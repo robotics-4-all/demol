@@ -17,7 +17,9 @@ NETWORK[WiFi] WITH
 
 BROKER[MQTT] MyBroker WITH 
     host="broker.hivemq.com", 
-    port=1883;
+    port=1883,
+    auth.username="myuser",
+    auth.password="mypassword";
 
 // Environmental Sensor (I2C)
 CONNECT EnvSensor WITH

@@ -43,11 +43,30 @@ def model_proc(model, metamodel):
         validate_unique_peripheral_names,
         validate_topic_format,
         validate_single_board,
+        validate_broker_security,
+        clear_validation_results,
+        check_validation_errors,
+        get_validation_errors,
+        get_passed_rules,
+        report_passed_rule,
     )
+    import click
+    import os
     
     device_name = model.metadata.name.strip('"')
 
     print(f'[*] Processing model: {model._tx_filename}')
+    
+    # Reset validation results for this run
+    clear_validation_results()
+
+    def run_rule(name, func, *args, desc=""):
+        """Helper to run a validation rule and track if it passed"""
+        err_before = len(get_validation_errors())
+        func(*args)
+        err_after = len(get_validation_errors())
+        if err_after == err_before:
+            report_passed_rule(name, desc)
     
     # ========================================================================
     # Model Enrichment (including broker property processing)
@@ -57,56 +76,63 @@ def model_proc(model, metamodel):
     # ========================================================================
     # Well-Formedness: Single board
     # ========================================================================
-    validate_single_board(model)
+    run_rule("Single Board", validate_single_board, model, desc="Exactly one board is defined")
     
     # ========================================================================
     # Well-Formedness: All peripherals must be connected
     # ========================================================================
-    validate_all_peripherals_connected(model)
+    run_rule("Peripheral Connectivity", validate_all_peripherals_connected, model, desc="All declared peripherals are connected")
 
     # ========================================================================
     # Well-Formedness: Unique peripheral names
     # ========================================================================
-    validate_unique_peripheral_names(model)
+    run_rule("Unique Identifiers", validate_unique_peripheral_names, model, desc="All peripherals have unique names")
     
     # ========================================================================
     # Well-Formedness: Broker requirements
     # ========================================================================
-    validate_broker_requirements(model)
+    run_rule("Broker Requirements", validate_broker_requirements, model, desc="Broker is configured if remote endpoints exist")
+    
+    # ========================================================================
+    # Safety: Broker security (authentication for remote brokers)
+    # ========================================================================
+    run_rule("Broker Security", validate_broker_security, model, desc="Remote brokers have authentication configured")
     
     # ========================================================================
     # Well-Formedness: Common ground check
     # ========================================================================
-    validate_common_ground(model)
+    run_rule("Common Ground", validate_common_ground, model, desc="Peripherals share a common ground with the board")
     
     # ========================================================================
     # Connection Validation
     # ========================================================================
-    validate_connections(model)
+    run_rule("Connection Integrity", validate_connections, model, desc="All pin-to-pin connections are valid")
     
     # ========================================================================
     # Global Safety Validations
     # ========================================================================
     
     # Safety: No pin conflicts (unique pins per connection)
-    validate_no_pin_conflicts(model.connections)
+    run_rule("Pin Conflicts", validate_no_pin_conflicts, model.connections, desc="No physical pin conflicts detected")
     
     # Safety: I2C addresses must be unique on the same bus
-    validate_i2c_address_uniqueness(model.connections)
+    run_rule("I2C Address Uniqueness", validate_i2c_address_uniqueness, model.connections, desc="I2C slave addresses are unique per bus")
     
     # Safety: Voltage limits must not be exceeded
-    validate_voltage_limits(model)
+    run_rule("Voltage Limits", validate_voltage_limits, model, desc="Peripheral voltage limits are respected")
     
     # Safety: IO Voltage compatibility
-    validate_io_voltage_compatibility(model)
-    
-    # Safety: Common ground connection
-    validate_common_ground(model)
+    run_rule("IO Voltage Compatibility", validate_io_voltage_compatibility, model, desc="Board and peripheral IO voltages match")
     
     # ========================================================================
     # Topic Format Validation (based on broker type)
     # ========================================================================
-    validate_topic_format(model)
+    run_rule("Topic Format", validate_topic_format, model, desc="MQTT/AMQP topics follow protocol conventions")
+    
+    # ========================================================================
+    # Final Error Check: Stop if any errors were reported
+    # ========================================================================
+    check_validation_errors(model)
     
     print("[✓] All validation checks passed!")
 

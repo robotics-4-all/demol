@@ -71,14 +71,6 @@ class BaseCodeGenerator(ABC):
                 "This transformation uses commlib-py library and only supports "
                 "plain authentication for MQTTBroker."
             )
-        else:
-            # Warn about missing authentication for remote brokers
-            if (config["host"] != "localhost" and 
-                not (config["username"] and config["password"])):
-                warnings.warn(
-                    "You are using a remote broker without authentication. "
-                    "This is not secure. Add username and password to your .dev file."
-                )
         
         return config
     

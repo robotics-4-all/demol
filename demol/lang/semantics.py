@@ -13,6 +13,32 @@ from textx import get_location, TextXSemanticError
 from typing import List, Set, Dict, Optional, Tuple
 import re
 
+# Global lists to collect validation results during a single model processing run
+_validation_errors = []
+_passed_rules = []
+
+def clear_validation_results():
+    """Clear the collected validation results"""
+    global _validation_errors, _passed_rules
+    _validation_errors = []
+    _passed_rules = []
+
+def get_validation_errors():
+    """Get the list of collected validation errors"""
+    return _validation_errors
+
+def get_passed_rules():
+    """Get the list of passed validation rules"""
+    return _passed_rules
+
+def report_passed_rule(rule_name: str, description: str = ""):
+    """Record that a validation rule has passed successfully"""
+    global _passed_rules
+    _passed_rules.append({
+        'name': rule_name,
+        'description': description
+    })
+
 
 class ValidationError(TextXSemanticError):
     """Custom validation error with location information"""
@@ -20,11 +46,27 @@ class ValidationError(TextXSemanticError):
 
 
 def raise_validation_error(obj, msg: str, error_type: str = "Semantics"):
-    """Raise a validation error with location information"""
-    raise TextXSemanticError(
-        f'[{error_type}] {msg}',
-        **get_location(obj)
-    )
+    """Collect a validation error with location information without terminating immediately"""
+    global _validation_errors
+    loc = get_location(obj)
+    
+    # Format the error message
+    error_msg = f"[{error_type}] {msg}"
+    
+    _validation_errors.append({
+        'obj': obj,
+        'msg': error_msg,
+        'loc': loc,
+        'type': error_type
+    })
+
+def check_validation_errors(model):
+    """Check if any validation errors occurred and raise a single exception if they did"""
+    global _validation_errors
+    if _validation_errors:
+        # Raise a generic error to stop further processing
+        # The caller should handle reporting the collected errors
+        raise ValidationError("Model validation failed.")
 
 
 # ============================================================================
@@ -660,8 +702,6 @@ def validate_io_voltage_compatibility(model) -> None:
     - Peripheral IO Voltage = peripheral.ioVcc if set, else peripheral.vcc
     - Voltages must be compatible (within tolerance).
     """
-    import warnings
-    
     board = model.components.board
     
     # Determine Board IO Voltage
@@ -685,16 +725,13 @@ def validate_io_voltage_compatibility(model) -> None:
             
         # Check compatibility
         if not are_voltages_compatible(board_io_v, periph_io_v):
-            # Emit warning instead of raising error
-            location = get_location(connection)
-            warning_msg = (
-                f"[Safety-IO-Voltage] IO Voltage Incompatibility at "
-                f"{location.get('filename', 'unknown')}:{location.get('line', '?')}: "
+            raise_validation_error(
+                connection,
                 f"Board '{board.name}' operates at {board_io_v}V (IO), "
                 f"but peripheral '{peripheral.name}' operates at {periph_io_v}V (IO). "
-                f"This may cause communication errors or damage."
+                f"This may cause communication errors or damage.",
+                "Safety-IO-Voltage"
             )
-            warnings.warn(warning_msg, category=UserWarning)
 
 
 def validate_common_ground(model) -> None:
@@ -711,24 +748,19 @@ def validate_common_ground(model) -> None:
     This validation emits warnings rather than errors, as some peripherals
     may have alternative grounding through other means (e.g., USB connections).
     """
-    import warnings
-    
     for connection in model.connections:
         peripheral = connection.peripheral.ref
         peripheral_name = connection.peripheral.name
         
         # Check if there are any power connections
         if not hasattr(connection, 'powerConns') or not connection.powerConns:
-            # No power connections defined - emit warning
-            location = get_location(connection)
-            warning_msg = (
-                f"[WF-Common-Ground] No power connections defined at "
-                f"{location.get('filename', 'unknown')}:{location.get('line', '?')}: "
+            raise_validation_error(
+                connection,
                 f"Peripheral '{peripheral_name}' (type: {peripheral.name}) has no power "
                 f"connections to the board. Ensure proper grounding through external means "
-                f"or add a GND power connection for electrical safety."
+                f"or add a GND power connection for electrical safety.",
+                "WF-Common-Ground"
             )
-            warnings.warn(warning_msg, category=UserWarning)
             continue
         
         # Check if any power connection is GND
@@ -748,16 +780,14 @@ def validate_common_ground(model) -> None:
         
         # If no ground connection found, emit warning
         if not has_ground:
-            location = get_location(connection)
-            warning_msg = (
-                f"[WF-Common-Ground] Missing ground connection at "
-                f"{location.get('filename', 'unknown')}:{location.get('line', '?')}: "
+            raise_validation_error(
+                connection,
                 f"Peripheral '{peripheral_name}' (type: {peripheral.name}) does not have "
                 f"a GND (ground) power connection to the board. This may cause electrical "
                 f"issues, signal integrity problems, or device malfunction. "
-                f"Please add a GND power connection between the board and peripheral."
+                f"Please add a GND power connection between the board and peripheral.",
+                "WF-Common-Ground"
             )
-            warnings.warn(warning_msg, category=UserWarning)
 
 # ============================================================================
 # Well-Formedness Validation
@@ -802,6 +832,39 @@ def validate_broker_requirements(model) -> None:
             "[WF-Broker-Requirements] Broker configuration required: One or more connections define remote endpoints "
             "but no broker is configured in the model.",
             "MissingBrokerError"
+        )
+
+
+def validate_broker_security(model) -> None:
+    """
+    Validate Safety-Broker-Security property.
+    
+    From SEMANTICS.md Section 8.1 (implied safety):
+        Remote brokers must have authentication configured to prevent unauthorized access.
+    """
+    if not hasattr(model, 'broker') or model.broker is None:
+        return
+        
+    broker = model.broker
+    host = getattr(broker, 'host', 'localhost')
+    
+    # Check if authentication is provided
+    has_auth = False
+    if hasattr(broker, 'auth') and broker.auth:
+        # Check for username/password or API key
+        username = getattr(broker.auth, "username", "")
+        password = getattr(broker.auth, "password", "")
+        key = getattr(broker.auth, "key", "")
+        
+        if (username and password) or key:
+            has_auth = True
+            
+    if host != "localhost" and not has_auth:
+        raise_validation_error(
+            broker,
+            f"Remote broker '{broker.name}' ({host}) is used without authentication. "
+            "This is not secure. Please add 'auth.username' and 'auth.password' (or 'auth.key') to your broker configuration.",
+            "SecurityError"
         )
 
 
