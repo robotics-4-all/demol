@@ -6,7 +6,9 @@ BOARD[RPI] RaspberryPi_3B WITH
         cpu.family=PiArmCortex,
         cpu.freq=1400 mhz,
         cpu.fpu=true,
-        energy=1.7 W, 5.0 W, 2.8 W
+        power.min=1.7 W,
+        power.max=5.0 W,
+        power.avg=2.8 W
     PORTS
         spi=2,
         i2c=1,

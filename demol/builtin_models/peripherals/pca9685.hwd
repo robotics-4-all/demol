@@ -2,7 +2,9 @@ ACTUATOR[ServoController] PCA9685 WITH
     OP
         vcc=5V,
         ioVcc=5V,
-        energy=10 mW, 500 mW, 100 mW
+        power.min=10 mW,
+        power.max=500 mW,
+        power.avg=100 mW
     PINS
         GND_1[GND] @ 1,
         SCL_1[scl-0] @ 2,

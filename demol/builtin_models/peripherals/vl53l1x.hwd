@@ -2,7 +2,9 @@ SENSOR[Distance] VL53L1X WITH
     OP
         vcc=3V3, //According to the datasheet it is 2.6-5.5V
         ioVcc=3V3,
-        energy=5 mW, 60 mW, 20 mW
+        power.min=5 mW,
+        power.max=60 mW,
+        power.avg=20 mW
     PINS
         VDD[2.8V] @ 1,
         VIN[3V3] @ 2,

@@ -6,7 +6,9 @@ def test_valid_sensor(component_mm):
     SENSOR[Env] MySensor WITH
         OP
             vcc=3V3,
-            energy=10 mW, 20 mW, 15 mW
+            power.min=10 mW,
+            power.max=20 mW,
+            power.avg=15 mW
         PINS
             p1[3V3] @ 1,
             p2[GND] @ 2,
@@ -22,7 +24,9 @@ def test_valid_actuator(component_mm):
     ACTUATOR[Relay] MyRelay WITH
         OP
             vcc=5V,
-            energy=5 mW, 10 mW, 7 mW
+            power.min=5 mW,
+            power.max=10 mW,
+            power.avg=7 mW
         PINS
             p1[5V] @ 1,
             p2[GND] @ 2

@@ -2,7 +2,9 @@
 ACTUATOR[LedArray] WS2812 WITH
     OP
         vcc=5V,
-        energy=5 mW, 3600 mW, 1800 mW
+        power.min=5 mW,
+        power.max=3600 mW,
+        power.avg=1800 mW
     PINS
         VCC[5V] @ 1,
         GND[GND] @ 2,

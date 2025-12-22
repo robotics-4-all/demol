@@ -212,7 +212,9 @@ OperationalBoard:
         ("bluetooth" "=" bluetooth=Bluetooth ","?)?
         ("riotName" "=" riotName=STRING ","?)?
         
-        ("energy" "=" min=PowerConsumption ',' max=PowerConsumption ',' avg=PowerConsumption ","?)?
+        ("power.min" "=" min=PowerConsumption ","?)?
+        ("power.max" "=" max=PowerConsumption ","?)?
+        ("power.avg" "=" avg=PowerConsumption ","?)?
     )#
 ;
 
@@ -228,7 +230,9 @@ OperationalSensor:
     (
         ("vcc" "=" vcc=PowerType ","?)
         ("ioVcc" "=" iovcc=PowerType ","?)?
-        ("energy" "=" min=PowerConsumption ',' max=PowerConsumption ',' avg=PowerConsumption ","?)?
+        ("power.min" "=" min=PowerConsumption ","?)?
+        ("power.max" "=" max=PowerConsumption ","?)?
+        ("power.avg" "=" avg=PowerConsumption ","?)?
         ("riotTpl" "=" riotTpl=STRING ","?)?
         ("piTpl" "=" piTpl=STRING ","?)?
     )#
@@ -238,7 +242,9 @@ OperationalActuator:
     (
         ("vcc" "=" vcc=PowerType ","?)
         ("ioVcc" "=" iovcc=PowerType ","?)?
-        ("energy" "=" min=PowerConsumption ',' max=PowerConsumption ',' avg=PowerConsumption ","?)?
+        ("power.min" "=" min=PowerConsumption ","?)?
+        ("power.max" "=" max=PowerConsumption ","?)?
+        ("power.avg" "=" avg=PowerConsumption ","?)?
         ("riotTpl" "=" riotTpl=STRING ","?)?
         ("piTpl" "=" piTpl=STRING ","?)?
     )#

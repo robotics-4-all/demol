@@ -10,7 +10,9 @@ BOARD[ESP] ESP32Wroom32 WITH
         wifi.version=4,
         wifi.bands=[2.4GHz],
         bluetooth=BT4,
-        energy=2.64 mW, 792 mW, 100 mW
+        power.min=2.64 mW,
+        power.max=792 mW,
+        power.avg=100 mW
     PORTS
         spi=2,
         i2c=1,

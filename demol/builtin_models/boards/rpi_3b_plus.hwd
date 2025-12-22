@@ -9,7 +9,9 @@ BOARD[RPI] RaspberryPi_3B_Plus WITH
         wifi.name=RPi3_WiFi,
         wifi.version=5,
         wifi.bands=[2.4GHz, 5GHz],
-        energy=1.8 W, 5.1 W, 2.9 W
+        power.min=1.8 W,
+        power.max=5.1 W,
+        power.avg=2.9 W
     PORTS
         spi=2,
         i2c=2,

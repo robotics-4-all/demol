@@ -2,7 +2,9 @@ SENSOR[Distance] SRF05 WITH
     OP
         vcc=5V,
         ioVcc=5V,
-        energy=10 mW, 100 mW, 75 mW
+        power.min=10 mW,
+        power.max=100 mW,
+        power.avg=75 mW
     PINS
         VCC[5V] @ 1,
         echo[gpio] @ 2,

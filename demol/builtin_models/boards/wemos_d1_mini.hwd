@@ -8,7 +8,9 @@ BOARD[ESP] WemosD1Mini WITH
         wifi.name=Wemos_WiFi,
         wifi.version=4,
         wifi.bands=[2.4GHz],
-        energy=2 mW, 500 mW, 80 mW
+        power.min=2 mW,
+        power.max=500 mW,
+        power.avg=80 mW
     PORTS
         spi=1,
         i2c=1,

@@ -3,7 +3,9 @@
 ACTUATOR[LedArray] WS281X WITH
     OP
         vcc=5V,
-        energy=5 mW, 300 mW, 150 mW
+        power.min=5 mW,
+        power.max=300 mW,
+        power.avg=150 mW
     PINS
         vcc[5V] @ 1,
         gnd[GND] @ 2,

@@ -9,7 +9,9 @@ BOARD[RPI] RaspberryPi_4B_4GB WITH
         wifi.name=RPi4_WiFi,
         wifi.version=5,
         wifi.bands=[2.4GHz, 5GHz],
-        energy=2.5 W, 6.5 W, 3.5 W
+        power.min=2.5 W,
+        power.max=6.5 W,
+        power.avg=3.5 W
     PORTS
         spi=2,
         i2c=2,

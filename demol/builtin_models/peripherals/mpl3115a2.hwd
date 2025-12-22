@@ -3,7 +3,9 @@
 SENSOR[Env] Mpl3115a2 WITH
     OP
         vcc=3V3,
-        energy=0.01 mW, 10 mW, 2 mW
+        power.min=0.01 mW,
+        power.max=10 mW,
+        power.avg=2 mW
     PINS
         vcc[3V3] @ 1,
         gnd[GND] @ 2,
