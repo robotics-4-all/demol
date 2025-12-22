@@ -28,6 +28,7 @@ Device:
 
 Network: WiFiNetwork | EthNetwork;
 
+
 WiFiNetwork:
     /[Nn][Ee][Tt][Ww][Oo][Rr][Kk]/ '[' 'WiFi' ']' /[Ww][Ii][Tt][Hh]/
     (
@@ -56,7 +57,7 @@ Use:
 ;
 
 PeripheralDef:
-    ref=[Peripheral:FQN|+m:component] '(' name=ID ')' ('[' attributes*=AttributeSet[','] ']')?
+    ref=[Peripheral:FQN|+m:component] '[' name=ID ']' ('WITH' attributes*=AttributeSet[','])?
 ;
 
 Connect:

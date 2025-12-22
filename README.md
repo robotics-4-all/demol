@@ -225,38 +225,38 @@ Specifies the hardware composition using `USE` statements:
 
 ```
 USE RaspberryPi_4B_4GB;
-USE BME680(EnvSensor) [poll_period = 5], SonarSRF04(DistanceSensor);
-USE WS2812(StatusLED);
+USE BME680[EnvSensor] WITH poll_period = 5, SonarSRF04[DistanceSensor];
+USE WS2812[StatusLED];
 ```
 
 **Features:**
 - `USE <BoardName>;` defines the main board.
-- `USE <Peripheral>(<Name>);` defines peripherals.
+- `USE <Peripheral>[<Name>];` defines peripherals.
 - Board references are resolved from the global repository in `demol/builtin_models/boards/`
 - Peripheral models are loaded from `demol/builtin_models/peripherals/`
 - Supports multi-file imports using FQN (Fully Qualified Names)
 - Named peripheral instances for easy reference in connections
-- **Attributes can be overridden** using square bracket syntax
+- **Attributes can be overridden** using `WITH` syntax
 
 #### Attributes in Components
 
 Peripheral attributes can be customized when declaring instances:
 
 ```
-USE BME680(EnvSensor) [
+USE BME680[EnvSensor] WITH
     poll_period = 5,
     filter_size = 7
-];
+;
 
-USE SonarSRF04(DistanceSensor) [
+USE SonarSRF04[DistanceSensor] WITH
     max_distance = 300
-];
+;
 ```
 
 **Key Points:**
 - Attributes override peripheral default values
-- Use square brackets `[ ]` after the instance name
-- Comma-separated attribute assignments within square brackets
+- Use `WITH` keyword after the instance name
+- Comma-separated attribute assignments after `WITH`
 - Comma-separated peripheral instances in the peripherals list
 - Only override attributes you need to change
 - Supports lists and dictionaries: `colors = ['0xFF0000', '0x00FF00']` or `config = {timeout = 5000}`

@@ -11,7 +11,7 @@ BROKER[MQTT] MyMqttBroker WITH
     auth.password="guest";
 
 USE WemosD1Mini;
-USE SonarSRF04(Sonar), WS281X(Ledstrip);
+USE SonarSRF04[Sonar], WS281X[Ledstrip];
 
 CONNECT Sonar WITH
     POWER

@@ -5,7 +5,6 @@ from demol.lang import build_model
 from demol.lang.semantics import get_validation_errors, get_passed_rules, ValidationError
 from textx import TextXSemanticError
 from demol.transformations import (
-    m2t_device_json, 
     m2t_device_svg, 
     m2t_docs, 
     m2t_rpi, 

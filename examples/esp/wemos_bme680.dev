@@ -5,7 +5,7 @@ NETWORK[WiFi] WITH ssid="Wifi_2.4GHz", password="guest";
 BROKER[MQTT] MyMqttBroker WITH host="node.mqtt.local", port=1883, auth.username="guest", auth.password="guest";
 
 USE WemosD1Mini;
-USE BME680(BME);
+USE BME680[BME];
 
 CONNECT BME WITH
     POWER

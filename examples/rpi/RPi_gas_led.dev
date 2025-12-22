@@ -1,9 +1,9 @@
 DEVICE RpiRoom WITH description="My RaspberryPi 5 with a BME680 and a LedRing", author="maria", os=raspbian;
 
 USE RaspberryPi_5_8GB;
-USE BME680(RoomSensor), WS2812(LedWarning) [
+USE BME680[RoomSensor], WS2812[LedWarning] WITH 
         colors = ['0xFF0000','0x00FF00','0x0000FF','0xFFFF00','0xFF00FF','0x00FFFF','0xFFFFFF','0x800000','0x008000','0x000080','0xFFA500','0x800080']
-    ];
+    ;
 
 NETWORK[WiFi] WITH ssid="Wifi_2.4GHz", password="guest";
 

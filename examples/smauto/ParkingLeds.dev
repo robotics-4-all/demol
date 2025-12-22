@@ -1,7 +1,7 @@
 DEVICE ParkingLeds WITH description="Device with warning lights", author="maria", os=raspbian;
 
 USE RaspberryPi_5_8GB;
-USE WS2812(WarningLights);
+USE WS2812[WarningLights];
 
 NETWORK[WiFi] WITH ssid="Wifi_2.4GHz", password="guest";
 

@@ -1,13 +1,13 @@
 DEVICE SmartWindow WITH description="My RaspberryPi 5 with a BME680 and a ServoMotor to open and close a window", author="maria", os=raspbian;
 
 USE RaspberryPi_5_8GB;
-USE BME680(TempSensor), PCA9685(WindowController) [
+USE BME680[TempSensor], PCA9685[WindowController] WITH 
         channel = 7,
         initial_angle = 0.0,
         final_angle = 0.0,
         angular_speed = 9.0,
         angular_step = 1.0
-    ];
+    ;
 
 NETWORK[WiFi] WITH ssid="Wifi_2.4GHz", password="guest";
 

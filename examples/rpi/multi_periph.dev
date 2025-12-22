@@ -5,11 +5,11 @@ DEVICE MultiPeriphDevice WITH
 
 USE RaspberryPi_5_8GB;
 
-USE BME680(EnvSensor), 
-    SRF05(DistanceSensor), 
-    WS2812(StatusLed), 
-    TCRT5000(LineTracker),
-    TactileButton(UserButton);
+USE BME680[EnvSensor], 
+    SRF05[DistanceSensor], 
+    WS2812[StatusLed], 
+    TCRT5000[LineTracker],
+    TactileButton[UserButton];
 
 NETWORK[WiFi] WITH 
     ssid="MyHomeWiFi", 

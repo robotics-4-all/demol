@@ -1,8 +1,8 @@
 DEVICE RpiTrackerSensor WITH description="My RaspberryPi 5 with a TCRT5000 tracker sensor", author="maria", os=raspbian;
 
 USE RaspberryPi_5_8GB;
-USE VL53L1X(MyToF), TCRT5000(MyTracker),
-        TFMini(MyTFMini), BME680(MyBME), SRF05(MySRF);
+USE VL53L1X[MyToF], TCRT5000[MyTracker],
+        TFMini[MyTFMini], BME680[MyBME], SRF05[MySRF];
 
 NETWORK[WiFi] WITH ssid="Wifi_2.4GHz", password="guest";
 
