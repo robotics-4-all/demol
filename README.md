@@ -82,6 +82,7 @@
       - [Architecture](#architecture)
       - [Supported Generators](#supported-generators)
       - [Running Code Generation](#running-code-generation)
+    - [Documentation & Diagram Generation](#documentation--diagram-generation)
     - [REST API](#rest-api)
       - [`POST /validate`](#post-validate)
       - [`POST /generate`](#post-generate)
@@ -483,48 +484,75 @@ BROKER[Redis] MyRedisBroker WITH
 
 ### Complete Example
 
-Here's a complete device model demonstrating all features:
+Here's a comprehensive device model demonstrating multiple peripherals, network configuration, and remote communication:
 
 ```
-DEVICE SmartEnvironmentMonitor WITH description="Multi-sensor environmental monitoring device", author="john_doe", os=raspbian;
+DEVICE MultiPeriphDevice WITH 
+    description="A complex Raspberry Pi 5 system with multiple sensors and actuators", 
+    author="Antigravity", 
+    os=raspbian;
 
-NETWORK[WiFi] WITH ssid="IoT_Network", password="secure_password";
+USE RaspberryPi_5_8GB;
 
-BROKER[MQTT] SmartHomeBroker WITH
-    host="mqtt.smarthome.local",
-    port=1883,
-    ssl=True,
-    auth.username="sensor_node",
-    auth.password="node_pass";
+USE BME680(EnvSensor), 
+    SRF05(DistanceSensor), 
+    WS2812(StatusLed), 
+    TCRT5000(LineTracker),
+    TactileButton(UserButton);
 
-USE RaspberryPi_4B_4GB;
-USE BME680(EnvSensor) [poll_period = 5], SonarSRF04(DistanceSensor);
-USE WS2812(StatusLED) [colors = ['0xFF0000', '0x00FF00', '0x0000FF']];
+NETWORK[WiFi] WITH 
+    ssid="MyHomeWiFi", 
+    password="securepassword";
 
+BROKER[MQTT] MyBroker WITH 
+    host="broker.hivemq.com", 
+    port=1883;
+
+// Environmental Sensor (I2C)
 CONNECT EnvSensor WITH
-    POWER
-        gnd_1 -- GND,
-        power_5v -- VCC
-    DATA
-        i2c[slave_address=0x76] sda p_21 -- sda, scl p_22 -- scl
-    @ "home/environment/living_room";
+    POWER 
+        GND_1 -- gnd, 
+        power_5v_a -- vcc
+    DATA 
+        i2c[slave_address=0x76] sda GPIO2 -- sda, scl GPIO3 -- scl
+    @ "sensors/environment";
 
+// Ultrasonic Distance Sensor (GPIO)
 CONNECT DistanceSensor WITH
-    POWER
-        gnd_2 -- gnd,
-        power_5v -- vcc
-    DATA
-        gpio[mode="output"] p_23 -- trigger,
-        gpio[mode="input"] p_24 -- echo
-    @ "home/distance/entrance";
+    POWER 
+        GND_2 -- GND, 
+        power_5v_a -- VCC
+    DATA 
+        gpio[mode="input"] GPIO24 -- echo, 
+        gpio[mode="output"] GPIO23 -- trigger
+    @ "sensors/distance";
 
-CONNECT StatusLED WITH
-    POWER
-        gnd_3 -- GND,
-        power_5v -- VCC
-    DATA
-        gpio[mode="output"] GPIO10 -- DIN
-    @ "home/status/led";
+// RGB LED Ring (GPIO)
+CONNECT StatusLed WITH
+    POWER 
+        GND_3 -- GND, 
+        power_5v_b -- VCC
+    DATA 
+        gpio[mode="output"] GPIO18 -- DIN
+    @ "actuators/status_led";
+
+// Line Tracker (GPIO)
+CONNECT LineTracker WITH
+    POWER 
+        GND_4 -- GND, 
+        power_5v_b -- VCC
+    DATA 
+        gpio[mode="input"] GPIO4 -- D0
+    @ "sensors/line_tracker";
+
+// User Input Button (GPIO)
+CONNECT UserButton WITH
+    POWER 
+        GND_5 -- gnd, 
+        power_5v_a -- state
+    DATA 
+        gpio[mode="input", pullup=true] GPIO17 -- state
+    @ "sensors/user_button";
 ```
 
 
@@ -793,6 +821,8 @@ demol gen [GENERATOR] [MODEL_FILE]
 
 **Available Generators:**
 - `svg`: Generates a professional schematic SVG diagram of the device connections.
+- `infrastructure`: Generates a high-level infrastructure diagram showing the Edge, Communication, and Application layers.
+- `docs`: Generates a comprehensive Markdown hardware construction guide including both diagrams.
 - `pi`: Generates Python code for Raspberry Pi (using RPi.GPIO).
 - `riot`: Generates C code for RiotOS (using RIOT-OS).
 
@@ -806,21 +836,14 @@ The `validate` command is used to validate input models.
 To validate a device model, for example the `./examples/raspi_iot_device.dev`, head to the `examples` directory and execute:
 
 ```sh
-demol validate raspi_iot_device.dev
+demol validate examples/rpi/multi_periph.dev
 ```
 
 You should see an output similar to the below, in case of successful validation of the model.
 
 ```sh
-[*] Running validation for model rpi_iot_device.dev
-PowerPinConnection:
-  gnd_1 -> gnd
-PowerPinConnection:
-  power_5v -> vcc
-I2C-Connection:
-  SDA: p_21 -> sda
-  SCL: p_22 -> scl
-[*] Validation passed!
+[*] Running validation for model examples/rpi/multi_periph.dev
+[✓] Validation passed!
 ```
 
 Otherwise, the parser will raise an error:
@@ -860,7 +883,7 @@ To generate code for a device model:
 
 ```sh
 # Generate Raspberry Pi code
-demol gen pi examples/rpi_iot_device.dev
+demol generate rpi examples/rpi/multi_periph.dev
 ```
 
 This will:
@@ -868,6 +891,37 @@ This will:
 2. Validate semantics
 3. Resolve platform-specific templates
 4. Generate the runtime software for the device
+
+### Documentation & Diagram Generation
+
+DeMoL can automatically generate hardware construction guides and infrastructure diagrams to help with the physical assembly and system architecture visualization.
+
+#### 1. Hardware Construction Guide
+Generates a Markdown file with BOM, wiring tables, and communication details.
+
+```sh
+demol generate docs examples/rpi/multi_periph.dev
+```
+
+#### 2. System Diagram (Wiring)
+Generates a professional SVG showing pin-to-pin connections.
+
+```sh
+demol generate svg examples/rpi/multi_periph.dev
+```
+
+**Output Example:**
+![System Diagram](assets/MultiPeriphDevice.svg)
+
+#### 3. Infrastructure Diagram
+Generates an SVG visualizing the Edge, Communication, and Application layers.
+
+```sh
+demol generate svg examples/rpi/multi_periph.dev --infrastructure
+```
+
+**Output Example:**
+![Infrastructure Diagram](assets/MultiPeriphDevice_infrastructure.svg)
 
 ### REST API
 

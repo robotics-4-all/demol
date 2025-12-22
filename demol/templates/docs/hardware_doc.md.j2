@@ -3,6 +3,8 @@
 **Description**: {{ model.metadata.description }}
 **Version**: {{ model.metadata.version }}
 
+
+
 ## 1. Bill of Materials (BOM)
 
 ### Main Board
@@ -18,6 +20,8 @@
 {% endfor %}
 
 ## 2. Wiring Instructions
+
+![System Diagram]({{ model.metadata.name }}.svg)
 
 ### Overview
 Connect the peripherals to the main board as detailed below. Ensure all power connections are secure before powering on the device.
@@ -38,22 +42,32 @@ Connect the peripherals to the main board as detailed below. Ensure all power co
 {% endif %}
 
 #### IO Connections
-{% if conn.ioConns %}
+{% if conn.dataConns %}
 | Type | Board Pin | Peripheral Pin | Function |
 |------|-----------|----------------|----------|
-{% for io in conn.ioConns %}
+{% for io in conn.dataConns %}
 {% for pin in io.pins %}
-| {{ io.type }} | {{ pin.boardPin }} | {{ pin.peripheralPin }} | {{ pin.function }} |
+| {{ io.type }} | {{ pin.boardPin }} | {{ pin.peripheralPin }} | {{ pin.function if pin.function else 'N/A' }} |
 {% endfor %}
 {% endfor %}
 {% else %}
 *No IO connections defined.*
 {% endif %}
 
+#### Communication
+- **Topic**: `{{ conn.remote }}`
+{% if periph.__class__.__name__ == 'Sensor' %}
+- **Access**: Subscribe to this topic to receive sensor data.
+{% elif periph.__class__.__name__ == 'Actuator' %}
+- **Access**: Publish commands to this topic to control the actuator.
+{% endif %}
+
 ---
 {% endfor %}
 
 ## 3. Infrastructure Configuration
+
+![Infrastructure Diagram]({{ model.metadata.name }}_infrastructure.svg)
 
 {% if model.network %}
 ### Network

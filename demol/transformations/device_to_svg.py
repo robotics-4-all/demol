@@ -11,21 +11,21 @@ class SvgGenerator(BaseCodeGenerator):
     
     # --- Configuration ---
     # Colors
-    COLOR_BG = "#ffffff"
-    COLOR_BOARD_FILL = "#2c3e50" # Dark Blue-Grey
-    COLOR_BOARD_STROKE = "#34495e"
-    COLOR_BOARD_TEXT = "#ecf0f1"
+    COLOR_BG = "#FFFFFF"
+    COLOR_BOARD_FILL = "#0F172A"   # Slate 900
+    COLOR_BOARD_STROKE = "#1E293B" # Slate 800
+    COLOR_BOARD_TEXT = "#F8FAFC"   # Slate 50
     
-    COLOR_PERIPH_FILL = "#f8f9fa" # Light Grey
-    COLOR_PERIPH_STROKE = "#bdc3c7"
-    COLOR_PERIPH_TEXT = "#2c3e50"
+    COLOR_PERIPH_FILL = "#F1F5F9"  # Slate 100
+    COLOR_PERIPH_STROKE = "#CBD5E1" # Slate 300
+    COLOR_PERIPH_TEXT = "#0F172A"   # Slate 900
     
-    COLOR_PIN_TEXT = "#7f8c8d"
-    COLOR_PIN_MARKER = "#95a5a6"
+    COLOR_PIN_TEXT = "#64748B"     # Slate 500
+    COLOR_PIN_MARKER = "#94A3B8"   # Slate 400
     
-    COLOR_LINE_DEFAULT = "#3498db" # Blue
-    COLOR_LINE_POWER = "#e74c3c"   # Red
-    COLOR_LINE_GND = "#2c3e50"     # Dark
+    COLOR_LINE_DEFAULT = "#3B82F6" # Blue 500
+    COLOR_LINE_POWER = "#EF4444"   # Red 500
+    COLOR_LINE_GND = "#1E293B"     # Slate 800
     
     # Dimensions
     PIN_SPACING = 25

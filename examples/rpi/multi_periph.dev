@@ -1,0 +1,66 @@
+DEVICE MultiPeriphDevice WITH 
+    description="A complex Raspberry Pi 5 system with multiple sensors and actuators", 
+    author="Antigravity", 
+    os=raspbian;
+
+USE RaspberryPi_5_8GB;
+
+USE BME680(EnvSensor), 
+    SRF05(DistanceSensor), 
+    WS2812(StatusLed), 
+    TCRT5000(LineTracker),
+    TactileButton(UserButton);
+
+NETWORK[WiFi] WITH 
+    ssid="MyHomeWiFi", 
+    password="securepassword";
+
+BROKER[MQTT] MyBroker WITH 
+    host="broker.hivemq.com", 
+    port=1883;
+
+// Environmental Sensor (I2C)
+CONNECT EnvSensor WITH
+    POWER 
+        GND_1 -- gnd, 
+        power_5v_a -- vcc
+    DATA 
+        i2c[slave_address=0x76] sda GPIO2 -- sda, scl GPIO3 -- scl
+    @ "sensors/environment";
+
+// Ultrasonic Distance Sensor (GPIO)
+CONNECT DistanceSensor WITH
+    POWER 
+        GND_2 -- GND, 
+        power_5v_a -- VCC
+    DATA 
+        gpio[mode="input"] GPIO24 -- echo, 
+        gpio[mode="output"] GPIO23 -- trigger
+    @ "sensors/distance";
+
+// RGB LED Ring (GPIO)
+CONNECT StatusLed WITH
+    POWER 
+        GND_3 -- GND, 
+        power_5v_b -- VCC
+    DATA 
+        gpio[mode="output"] GPIO18 -- DIN
+    @ "actuators/status_led";
+
+// Line Tracker (GPIO)
+CONNECT LineTracker WITH
+    POWER 
+        GND_4 -- GND, 
+        power_5v_b -- VCC
+    DATA 
+        gpio[mode="input"] GPIO4 -- D0
+    @ "sensors/line_tracker";
+
+// User Input Button (GPIO)
+CONNECT UserButton WITH
+    POWER 
+        GND_5 -- gnd, 
+        power_5v_a -- state
+    DATA 
+        gpio[mode="input", pullup=true] GPIO17 -- state
+    @ "sensors/user_button";
