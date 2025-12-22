@@ -29,8 +29,14 @@ except ImportError as e:
     sys.exit(1)
 
 
+import argparse
+
 def main():
     """Main validation function"""
+    parser = argparse.ArgumentParser(description="DeMoL Examples Validator")
+    parser.add_argument("--skip-semantics", action="store_true", help="Skip semantic validation")
+    args = parser.parse_args()
+
     # Create reporter
     reporter = ValidationReporter()
     
@@ -55,7 +61,7 @@ def main():
     
     # Initialize metamodel
     try:
-        mm = get_device_mm()
+        mm = get_device_mm(skip_semantics=args.skip_semantics)
     except Exception as e:
         reporter.print(f"[red]Failed to initialize metamodel:[/red] {e}")
         sys.exit(1)

@@ -7,6 +7,7 @@ from .validation import (
     validate_model_file,
     validate_models,
 )
+from demol.lang.semantics import clear_validation_results
 from os.path import basename
 
 
@@ -18,5 +19,6 @@ def build_model(model_fpath, skip_semantics=False):
         mm = get_device_mm(skip_semantics=skip_semantics)
     else:
         raise ValueError('Not a valid model extension.')
+    clear_validation_results()
     model = mm.model_from_file(model_fpath)
     return model

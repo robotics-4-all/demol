@@ -174,11 +174,6 @@ RPI_EXAMPLES = [
     ("examples/smauto/RPiFan.dev", "rpi_out/smauto/RPiFan"),
     ("examples/smauto/SmartWindow.dev", "rpi_out/smauto/SmartWindow"),
     
-    # test (Test/Thesis examples)
-    ("examples/test/LoCScenario1.dev", "rpi_out/test/LoCScenario1"),
-    ("examples/test/LoCScenario2.dev", "rpi_out/test/LoCScenario2"),
-    ("examples/test/ThesisExample.dev", "rpi_out/test/ThesisExample"),
-    
     # rpi (Raspberry Pi examples)
     ("examples/rpi/RPi_ADC.dev", "rpi_out/rpi/RPi_ADC"),
     ("examples/rpi/RPi_gas_led.dev", "rpi_out/rpi/RPi_gas_led"),
@@ -191,7 +186,8 @@ RPI_EXAMPLES = [
 
 def generate_with_progress(
     examples: List[Tuple[str, str]], 
-    reporter: GenerationReporter
+    reporter: GenerationReporter,
+    skip_semantics: bool = False
 ) -> List[GenerationResult]:
     """Generate code for all examples with progress tracking"""
     results = []
@@ -213,7 +209,7 @@ def generate_with_progress(
                 progress.update(task, description=f"[cyan]Processing {dev_model}...")
                 
                 try:
-                    transform_device_model(dev_model, output_dir)
+                    transform_device_model(dev_model, output_dir, skip_semantics=skip_semantics)
                     results.append(GenerationResult(
                         dev_model=dev_model,
                         output_dir=output_dir,
@@ -234,7 +230,7 @@ def generate_with_progress(
             print(f"[{i}/{len(examples)}] Processing {dev_model}...")
             
             try:
-                transform_device_model(dev_model, output_dir)
+                transform_device_model(dev_model, output_dir, skip_semantics=skip_semantics)
                 results.append(GenerationResult(
                     dev_model=dev_model,
                     output_dir=output_dir,
@@ -253,8 +249,14 @@ def generate_with_progress(
     return results
 
 
+import argparse
+
 def main():
     """Run m2t_rpi transformation on all RPI examples."""
+    parser = argparse.ArgumentParser(description="DeMoL RPI Code Generator")
+    parser.add_argument("--skip-semantics", action="store_true", help="Skip semantic validation")
+    args = parser.parse_args()
+
     # Create reporter
     reporter = GenerationReporter()
     
@@ -265,7 +267,7 @@ def main():
     reporter.print(f"\n[cyan]Found {len(RPI_EXAMPLES)} RPI example(s)[/cyan]\n")
     
     # Generate code with progress
-    results = generate_with_progress(RPI_EXAMPLES, reporter)
+    results = generate_with_progress(RPI_EXAMPLES, reporter, skip_semantics=args.skip_semantics)
     
     # Display results
     reporter.print("")

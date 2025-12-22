@@ -378,12 +378,13 @@ def m2t_rpi(model, output_dir='.'):
     generator.generate()
 
 
-def transform_device_model(device_model_path: str, output_dir: str) -> None:
+def transform_device_model(device_model_path: str, output_dir: str, skip_semantics: bool = False) -> None:
     """Transform a DeMoL device model to Raspberry Pi code.
     
     Args:
         device_model_path: Path to .dev model file (relative to examples/)
         output_dir: Output directory (relative to REPO_PATH)
+        skip_semantics: Whether to skip semantic validation
     """
     # Build paths
     model_path = Path(device_model_path)
@@ -391,7 +392,7 @@ def transform_device_model(device_model_path: str, output_dir: str) -> None:
     logger.info(f"Transforming: {model_path}")
     
     # Parse device model
-    device_model = build_model(str(model_path))
+    device_model = build_model(str(model_path), skip_semantics=skip_semantics)
     
     m2t_rpi(device_model, output_dir)
     

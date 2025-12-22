@@ -15,7 +15,7 @@ def component_model_proc(model, metamodel):
     if hasattr(model, 'component'):
         validate_unique_pin_numbers(model.component)
         
-        # Validate board ports if it is a board
+        # If it's a board, validate its ports
         if model.component.__class__.__name__ == 'Board':
             validate_board_ports(model.component)
     
@@ -24,29 +24,27 @@ def component_model_proc(model, metamodel):
     check_validation_errors(model, skip_semantics=skip_semantics)
 
 
-def get_component_mm(global_repo: bool = False, skip_semantics: bool = False):
-    # Get meta-model from language description
+def get_component_mm(debug=False, skip_semantics=False):
     mm = metamodel_from_file(
         os.path.join(METAMODEL_REPO_PATH, 'component.tx'),
         auto_init_attributes=True,
-        global_repository=global_repo,
-        debug=False
+        textx_tools_support=True,
+        debug=debug
     )
 
     mm.register_scope_providers(
         {
-            "*.*": scoping_providers.FQNImportURI(importAs=True),
+            "*.*": scoping_providers.FQN(),
         }
     )
 
     mm.register_model_processor(component_model_proc)
 
     mm.register_obj_processors({
+
+        # EMPTY
     })
 
     mm.skip_semantics = skip_semantics
 
     return mm
-
-
-

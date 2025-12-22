@@ -23,6 +23,8 @@ try:
         validate_models,
         ValidationStatus,
     )
+    from demol.lang.validation import ValidationResult
+    from demol.lang.validation import validate_model_file
 except ImportError as e:
     print(f"Error importing demol package: {e}")
     print("Make sure you are running this script from the repository.")
@@ -38,7 +40,6 @@ def validate_component_models(
     reporter: ValidationReporter = None
 ) -> List:
     """Validate component model files (.hwd) with progress tracking"""
-    from demol.lang.validation import ValidationResult
     
     results = []
     
@@ -75,29 +76,7 @@ def validate_component_models(
 
 def validate_single_component(file_path: str, mm):
     """Validate a single component model file"""
-    from demol.lang.validation import ValidationResult
-    
-    errors = []
-    warnings = []
-    status = ValidationStatus.PASS
-    
-    try:
-        # Try to parse the model
-        model = mm.model_from_file(file_path)
-        
-        # If we get here, parsing succeeded
-        # Component models don't have additional semantic validations
-        
-    except Exception as e:
-        errors.append(str(e))
-        status = ValidationStatus.FAIL
-    
-    return ValidationResult(
-        file_path=file_path,
-        status=status,
-        errors=errors,
-        warnings=warnings
-    )
+    return validate_model_file(file_path, mm)
 
 
 def main():

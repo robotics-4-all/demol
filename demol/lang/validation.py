@@ -306,27 +306,65 @@ def validate_model_file(file_path: str, metamodel) -> ValidationResult:
     Returns:
         ValidationResult with status and any warnings/errors
     """
+    from demol.lang.semantics import (
+        get_validation_errors, 
+        get_passed_rules, 
+        clear_validation_results,
+        ValidationError
+    )
+    
     warnings_list = []
     errors_list = []
     status = ValidationStatus.PASS
+    
+    # Clear previous results
+    clear_validation_results()
     
     # Capture warnings during validation
     with warnings.catch_warnings(record=True) as caught_warnings:
         warnings.simplefilter("always")
         
         try:
+            # Set skip_semantics on metamodel if we want to collect all errors
+            # but we'll respect what's already there.
             metamodel.model_from_file(file_path)
+            
+            # Check for collected errors even if no exception was raised
+            # (this happens if skip_semantics=True)
+            collected_errors = get_validation_errors()
+            if collected_errors:
+                for err in collected_errors:
+                    errors_list.append(err['msg'])
+                
+                # If skip_semantics is enabled, we treat these as warnings
+                # so the validation process can continue/pass
+                if getattr(metamodel, 'skip_semantics', False):
+                    status = ValidationStatus.WARN
+                else:
+                    status = ValidationStatus.FAIL
             
             # Check if any warnings were captured
             if caught_warnings:
                 for w in caught_warnings:
                     warning_msg = str(w.message)
                     warnings_list.append(warning_msg)
-                status = ValidationStatus.WARN
+                if status != ValidationStatus.FAIL:
+                    status = ValidationStatus.WARN
             
-        except (TextXSemanticError, TextXSyntaxError) as e:
-            errors_list.append(str(e))
-            status = ValidationStatus.FAIL
+        except (ValidationError, TextXSemanticError, TextXSyntaxError) as e:
+            # Check collected errors first for more detail
+            collected_errors = get_validation_errors()
+            if collected_errors:
+                for err in collected_errors:
+                    errors_list.append(err['msg'])
+            else:
+                errors_list.append(str(e))
+            
+            # If skip_semantics is enabled and it's a semantic error, treat as warning
+            if getattr(metamodel, 'skip_semantics', False) and isinstance(e, (ValidationError, TextXSemanticError)):
+                status = ValidationStatus.WARN
+            else:
+                status = ValidationStatus.FAIL
         except Exception as e:
             errors_list.append(f"Unexpected error: {str(e)}")
             status = ValidationStatus.FAIL
