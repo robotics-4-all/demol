@@ -60,10 +60,10 @@ def raise_validation_error(obj, msg: str, error_type: str = "Semantics"):
         'type': error_type
     })
 
-def check_validation_errors(model):
+def check_validation_errors(model, skip_semantics=False):
     """Check if any validation errors occurred and raise a single exception if they did"""
     global _validation_errors
-    if _validation_errors:
+    if _validation_errors and not skip_semantics:
         # Raise a generic error to stop further processing
         # The caller should handle reporting the collected errors
         raise ValidationError("Model validation failed.")

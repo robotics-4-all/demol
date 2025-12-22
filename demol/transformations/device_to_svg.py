@@ -1,6 +1,7 @@
-import math
+import jinja2
 from pathlib import Path
 from .base_generator import BaseCodeGenerator
+from demol.definitions import TEMPLATES_DOCS
 
 class SvgGenerator(BaseCodeGenerator):
     """
@@ -48,12 +49,14 @@ class SvgGenerator(BaseCodeGenerator):
         if not output_file:
             output_file = f"{device_model.metadata.name}.svg"
         self.output_file = Path(output_file)
-        # BaseCodeGenerator creates the directory in __init__
         super().__init__(device_model, self.output_file.parent)
+        self.env = self.setup_template_environment()
 
     def setup_template_environment(self):
-        """Not using Jinja2 for SVG generation currently."""
-        return None
+        return jinja2.Environment(
+            loader=jinja2.FileSystemLoader(TEMPLATES_DOCS),
+            autoescape=jinja2.select_autoescape(['html', 'xml', 'j2'])
+        )
 
     def generate(self) -> None:
         """
@@ -130,32 +133,56 @@ class SvgGenerator(BaseCodeGenerator):
         board_h = max(min_board_height, total_content_height * 0.6)
         board_y = center_y - board_h / 2
         
-        board_rect = {
-            'x': board_x, 'y': board_y, 'w': self.BOARD_WIDTH, 'h': board_h,
-            'name': self.get_board().name
+        # Prepare data for template
+        template_data = {
+            "canvas": {
+                "width": canvas_width,
+                "height": canvas_height,
+                "title": model.metadata.name
+            },
+            "colors": {
+                "bg": self.COLOR_BG,
+                "board_fill": self.COLOR_BOARD_FILL,
+                "board_stroke": self.COLOR_BOARD_STROKE,
+                "board_text": self.COLOR_BOARD_TEXT,
+                "periph_fill": self.COLOR_PERIPH_FILL,
+                "periph_stroke": self.COLOR_PERIPH_STROKE,
+                "periph_text": self.COLOR_PERIPH_TEXT,
+                "pin_text": self.COLOR_PIN_TEXT,
+                "pin_marker": self.COLOR_PIN_MARKER,
+                "line_default": self.COLOR_LINE_DEFAULT,
+                "line_power": self.COLOR_LINE_POWER,
+                "line_gnd": self.COLOR_LINE_GND
+            },
+            "fonts": {
+                "title": self.FONT_TITLE,
+                "comp_title": self.FONT_COMP_TITLE,
+                "pin": self.FONT_PIN
+            },
+            "board": {
+                "x": board_x,
+                "y": board_y,
+                "w": self.BOARD_WIDTH,
+                "h": board_h,
+                "name": self.get_board().name
+            },
+            "peripherals": []
         }
 
-        svg_elements = []
-        
-        # --- Draw Board ---
-        svg_elements.append(f'<!-- Board -->')
-        svg_elements.append(self._svg_rect(board_rect['x'], board_rect['y'], board_rect['w'], board_rect['h'], self.COLOR_BOARD_FILL, self.COLOR_BOARD_STROKE))
-        svg_elements.append(self._svg_text(board_rect['x'] + board_rect['w']/2, board_rect['y'] + 30, board_rect['name'], self.FONT_COMP_TITLE, self.COLOR_BOARD_TEXT, weight="bold"))
-        
-        # --- Draw Peripherals & Connections ---
-        self._draw_stack(svg_elements, left_peripherals, True, center_y, board_rect, canvas_width)
-        self._draw_stack(svg_elements, right_peripherals, False, center_y, board_rect, canvas_width)
+        # Process stacks
+        self._process_stack(template_data, left_peripherals, True, center_y, canvas_width)
+        self._process_stack(template_data, right_peripherals, False, center_y, canvas_width)
 
-        # --- Final Output ---
+        # Render Template
         try:
+            template = self.env.get_template("device.svg.j2")
+            output = template.render(**template_data)
+            
             with open(self.output_file, "w") as f:
-                f.write(f'<svg xmlns="http://www.w3.org/2000/svg" width="{canvas_width}" height="{canvas_height}" viewBox="0 0 {canvas_width} {canvas_height}" style="background-color: {self.COLOR_BG};">\n')
-                f.write(self._svg_text(canvas_width/2, 30, f"Device Diagram: {model.metadata.name}", self.FONT_TITLE, "#333333", weight="bold"))
-                f.write("\n".join(svg_elements))
-                f.write('\n</svg>')
+                f.write(output)
             print(f"Successfully generated SVG: {self.output_file}")
         except Exception as e:
-            print(f"Error writing SVG file: {e}")
+            print(f"Error generating SVG: {e}")
 
     def _get_total_stack_height(self, periph_list):
         h = 0
@@ -163,31 +190,12 @@ class SvgGenerator(BaseCodeGenerator):
             h += p['height'] + 30
         return h
 
-    def _svg_rect(self, x, y, w, h, fill, stroke, r=8):
-        return f'<rect x="{x}" y="{y}" width="{w}" height="{h}" fill="{fill}" stroke="{stroke}" stroke-width="2" rx="{r}" ry="{r}" />'
-    
-    def _svg_text(self, x, y, text, size, color, anchor="middle", weight="normal", baseline="middle"):
-        return f'<text x="{x}" y="{y}" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="{size}" font-weight="{weight}" fill="{color}" text-anchor="{anchor}" dominant-baseline="{baseline}">{text}</text>'
-    
-    def _svg_line(self, x1, y1, x2, y2, color):
-        return f'<line x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}" stroke="{color}" stroke-width="2" />'
-
-    def _svg_bezier(self, x1, y1, x2, y2, color):
-        dist = abs(x2 - x1) * 0.5
-        cp1x = x1 + dist if x2 > x1 else x1 - dist
-        cp1y = y1
-        cp2x = x2 - dist if x2 > x1 else x2 + dist
-        cp2y = y2
-        return f'<path d="M {x1} {y1} C {cp1x} {cp1y}, {cp2x} {cp2y}, {x2} {y2}" stroke="{color}" stroke-width="2" fill="none" />'
-
-    def _svg_circle(self, cx, cy, r, fill):
-        return f'<circle cx="{cx}" cy="{cy}" r="{r}" fill="{fill}" />'
-
-    def _draw_stack(self, svg_elements, periphs, is_left_side, center_y, board_rect, canvas_width):
+    def _process_stack(self, template_data, periphs, is_left_side, center_y, canvas_width):
         stack_h = self._get_total_stack_height(periphs)
         start_y = center_y - stack_h / 2
         current_y = start_y
         
+        board_rect = template_data['board']
         total_pins = sum(len(p['pins']) for p in periphs)
         board_edge_x = board_rect['x'] if is_left_side else board_rect['x'] + board_rect['w']
         
@@ -202,10 +210,6 @@ class SvgGenerator(BaseCodeGenerator):
             p_w = self.PERIPH_WIDTH
             p_h = p['height']
             
-            svg_elements.append(f'<!-- Peripheral: {p["name"]} -->')
-            svg_elements.append(self._svg_rect(p_x, p_y, p_w, p_h, self.COLOR_PERIPH_FILL, self.COLOR_PERIPH_STROKE))
-            svg_elements.append(self._svg_text(p_x + p_w/2, p_y + 25, p["name"], self.FONT_COMP_TITLE, self.COLOR_PERIPH_TEXT, weight="bold"))
-            
             periph_pin_x = p_x + p_w if is_left_side else p_x
             periph_text_anchor = "end" if is_left_side else "start"
             periph_text_x = periph_pin_x - 10 if is_left_side else periph_pin_x + 10
@@ -213,6 +217,7 @@ class SvgGenerator(BaseCodeGenerator):
             board_text_anchor = "start" if is_left_side else "end"
             board_text_x = board_edge_x + 10 if is_left_side else board_edge_x - 10
             
+            processed_pins = []
             for i, pin in enumerate(p['pins']):
                 pp_y = p_y + self.PIN_MARGIN_TOP + i * self.PIN_SPACING
                 bp_y = pin_start_y + global_pin_idx * self.PIN_SPACING
@@ -222,11 +227,35 @@ class SvgGenerator(BaseCodeGenerator):
                 if pin['type'] == 'power': line_color = self.COLOR_LINE_POWER
                 elif pin['type'] == 'gnd': line_color = self.COLOR_LINE_GND
                 
-                svg_elements.append(self._svg_bezier(board_edge_x, bp_y, periph_pin_x, pp_y, line_color))
-                svg_elements.append(self._svg_circle(board_edge_x, bp_y, 4, line_color))
-                svg_elements.append(self._svg_circle(periph_pin_x, pp_y, 4, line_color))
-                svg_elements.append(self._svg_text(board_text_x, bp_y, pin['board'], self.FONT_PIN, self.COLOR_BOARD_TEXT, anchor=board_text_anchor))
-                svg_elements.append(self._svg_text(periph_text_x, pp_y, pin['periph'], self.FONT_PIN, self.COLOR_PIN_TEXT, anchor=periph_text_anchor))
+                # Bezier control points
+                dist = abs(periph_pin_x - board_edge_x) * 0.5
+                cp1x = board_edge_x + dist if periph_pin_x > board_edge_x else board_edge_x - dist
+                cp2x = periph_pin_x - dist if periph_pin_x > board_edge_x else periph_pin_x + dist
+
+                processed_pins.append({
+                    'board': pin['board'],
+                    'periph': pin['periph'],
+                    'bp_y': bp_y,
+                    'pp_y': pp_y,
+                    'color': line_color,
+                    'cp1x': cp1x,
+                    'cp2x': cp2x
+                })
+
+            template_data['peripherals'].append({
+                'name': p['name'],
+                'x': p_x,
+                'y': p_y,
+                'w': p_w,
+                'h': p_h,
+                'pin_x': periph_pin_x,
+                'text_x': periph_text_x,
+                'text_anchor': periph_text_anchor,
+                'pins': processed_pins,
+                'board_edge_x': board_edge_x,
+                'board_text_x': board_text_x,
+                'board_text_anchor': board_text_anchor
+            })
 
             current_y += p_h + 30
 

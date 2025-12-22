@@ -12,6 +12,7 @@ CLASS_TEMPLATES = os.path.join(CODE_PATH , "templates", "peripheral_classes")
 SMAUTO_TEMPLATES = os.path.join(CODE_PATH , "templates", "smauto")
 TEMPLATES = os.path.join(CODE_PATH , "templates", "riot")
 TEMPLATES_RPI = os.path.join(CODE_PATH , "templates", "rpi")
+TEMPLATES_DOCS = os.path.join(CODE_PATH , "templates", "docs")
 RIOT_SOURCE_DIRNAME = "src"
 DIAGRAMS_DIRNAME = 'diagrams'
 METAMODEL_REPO_PATH=os.path.join(THIS_DIR_PATH, 'grammar')

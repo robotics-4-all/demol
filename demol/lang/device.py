@@ -132,9 +132,14 @@ def model_proc(model, metamodel):
     # ========================================================================
     # Final Error Check: Stop if any errors were reported
     # ========================================================================
-    check_validation_errors(model)
+    skip_semantics = getattr(metamodel, 'skip_semantics', False)
+    check_validation_errors(model, skip_semantics=skip_semantics)
     
-    print("[✓] All validation checks passed!")
+    errors = get_validation_errors()
+    if not errors:
+        print("[✓] All validation checks passed!")
+    else:
+        print(f"[!] Model built with {len(errors)} semantic error(s) (skip_semantics=True)")
 
 
 def enrich_model(model):
@@ -210,7 +215,7 @@ def enrich_model(model):
             c.remote = default_topic.lower().strip('""')
 
 
-def get_device_mm(debug: bool = False, global_repo: bool = False):
+def get_device_mm(debug: bool = False, global_repo: bool = False, skip_semantics: bool = False):
     mm = metamodel_from_file(
         os.path.join(METAMODEL_REPO_PATH, 'device.tx'),
         auto_init_attributes=True,
@@ -239,5 +244,7 @@ def get_device_mm(debug: bool = False, global_repo: bool = False):
 
         # EMPTY
     })
+
+    mm.skip_semantics = skip_semantics
 
     return mm

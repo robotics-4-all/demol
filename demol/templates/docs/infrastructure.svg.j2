@@ -1,0 +1,112 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="{{ canvas.width }}" height="{{ canvas.height }}"
+    viewBox="0 0 {{ canvas.width }} {{ canvas.height }}" style="background-color: {{ canvas.bg_color }};">
+    <!-- Title -->
+    <text x="{{ canvas.width / 2 }}" y="30" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="20"
+        font-weight="bold" fill="{{ colors.text }}" text-anchor="middle" dominant-baseline="middle">Infrastructure: {{
+        canvas.title }}</text>
+
+    <!-- Layer Titles -->
+    {% for layer in layers %}
+    <text x="{{ layer.x }}" y="60" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="14"
+        font-weight="bold" fill="{{ colors.text }}" text-anchor="middle" dominant-baseline="middle">{{ layer.name
+        }}</text>
+    {% endfor %}
+
+    <!-- Layer Separators -->
+    {% for sep in separators %}
+    <line x1="{{ sep.x }}" y1="80" x2="{{ sep.x }}" y2="{{ canvas.height - 40 }}" stroke="{{ colors.line }}"
+        stroke-width="1.5" stroke-dasharray="5,5" opacity="0.5" />
+    {% endfor %}
+
+    <!-- Peripherals -->
+    {% for p in peripherals %}
+    <rect x="{{ p.x - box.width/2 }}" y="{{ p.y }}" width="{{ box.width }}" height="{{ box.height }}"
+        fill="{{ colors.periph }}" stroke="#1e40af" stroke-width="2" rx="8" ry="8" />
+    <text x="{{ p.x }}" y="{{ p.y + 20 }}" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="12"
+        font-weight="bold" fill="{{ colors.text_light }}" text-anchor="middle" dominant-baseline="middle">{{ p.name
+        }}</text>
+    <text x="{{ p.x }}" y="{{ p.y + 40 }}" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10"
+        fill="{{ colors.text_light }}" text-anchor="middle" dominant-baseline="middle">({{ p.type }})</text>
+
+    <!-- Connection to Board (Bezier) -->
+    {% set x1 = p.x + box.width/2 %}
+    {% set y1 = p.y + box.height/2 %}
+    {% set x2 = board.x - box.width/2 %}
+    {% set y2 = board.y_mid %}
+    {% set dx = (x2 - x1) * 0.5 %}
+    <path d="M {{ x1 }} {{ y1 }} C {{ x1 + dx }} {{ y1 }}, {{ x2 - dx }} {{ y2 }}, {{ x2 }} {{ y2 }}"
+        stroke="{{ colors.line }}" stroke-width="2" fill="none" />
+    <circle cx="{{ x1 }}" cy="{{ y1 }}" r="3" fill="{{ colors.line }}" />
+    <circle cx="{{ x2 }}" cy="{{ y2 }}" r="3" fill="{{ colors.line }}" />
+
+    <text x="{{ (x1 + x2) / 2 }}" y="{{ (y1 + y2) / 2 - 8 }}"
+        font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="9" fill="{{ colors.text }}"
+        text-anchor="middle" dominant-baseline="middle">{{ p.protocol }}</text>
+    {% endfor %}
+
+    <!-- Board -->
+    <rect x="{{ board.x - box.width/2 }}" y="{{ board.y_mid - box.height/2 }}" width="{{ box.width }}"
+        height="{{ box.height }}" fill="{{ colors.board }}" stroke="#0f172a" stroke-width="2" rx="8" ry="8" />
+    <text x="{{ board.x }}" y="{{ board.y_mid - 10 }}" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif"
+        font-size="12" font-weight="bold" fill="{{ colors.text_light }}" text-anchor="middle"
+        dominant-baseline="middle">{{ board.name }}</text>
+    <text x="{{ board.x }}" y="{{ board.y_mid + 10 }}" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif"
+        font-size="10" fill="{{ colors.text_light }}" text-anchor="middle" dominant-baseline="middle">({{ board.type
+        }})</text>
+
+    <!-- Connection Board -> Broker (Bezier) -->
+    {% set x1 = board.x + box.width/2 %}
+    {% set y1 = board.y_mid %}
+    {% set x2 = broker.x - box.width/2 %}
+    {% set y2 = broker.y_mid %}
+    {% set dx = (x2 - x1) * 0.5 %}
+    <path d="M {{ x1 }} {{ y1 }} C {{ x1 + dx }} {{ y1 }}, {{ x2 - dx }} {{ y2 }}, {{ x2 }} {{ y2 }}"
+        stroke="{{ colors.line }}" stroke-width="2" fill="none" />
+    <circle cx="{{ x1 }}" cy="{{ y1 }}" r="3" fill="{{ colors.line }}" />
+    <circle cx="{{ x2 }}" cy="{{ y2 }}" r="3" fill="{{ colors.line }}" />
+
+    <text x="{{ (x1 + x2) / 2 }}" y="{{ y1 - 15 }}" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif"
+        font-size="10" font-weight="bold" fill="{{ colors.text }}" text-anchor="middle" dominant-baseline="middle">{{
+        network.type }}</text>
+
+    <!-- Topics -->
+    {% for topic in topics %}
+    <text x="{{ (board.x + broker.x) / 2 }}" y="{{ topic.y }}"
+        font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="8" fill="#64748b" text-anchor="middle"
+        dominant-baseline="middle">{{ topic.text }}</text>
+    {% endfor %}
+
+    <!-- Broker -->
+    <rect x="{{ broker.x - box.width/2 }}" y="{{ broker.y_mid - box.height/2 }}" width="{{ box.width }}"
+        height="{{ box.height }}" fill="{{ colors.broker }}" stroke="#92400e" stroke-width="2" rx="8" ry="8" />
+    <text x="{{ broker.x }}" y="{{ broker.y_mid - 10 }}" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif"
+        font-size="14" font-weight="bold" fill="{{ colors.text_light }}" text-anchor="middle"
+        dominant-baseline="middle">MQTT Broker</text>
+    <text x="{{ broker.x }}" y="{{ broker.y_mid + 10 }}" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif"
+        font-size="10" fill="{{ colors.text_light }}" text-anchor="middle" dominant-baseline="middle">{{ broker.host
+        }}:{{ broker.port }}</text>
+
+    <!-- Applications -->
+    {% for app in apps %}
+    <rect x="{{ app.x - box.width/2 }}" y="{{ app.y }}" width="{{ box.width }}" height="{{ box.height }}"
+        fill="{{ colors.app }}" stroke="#065f46" stroke-width="2" rx="8" ry="8" />
+    <text x="{{ app.x }}" y="{{ app.y + box.height/2 }}" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif"
+        font-size="12" font-weight="bold" fill="{{ colors.text_light }}" text-anchor="middle"
+        dominant-baseline="middle">{{ app.name }}</text>
+
+    <!-- Connection to Broker (Bezier) -->
+    {% set x1 = broker.x + box.width/2 %}
+    {% set y1 = broker.y_mid %}
+    {% set x2 = app.x - box.width/2 %}
+    {% set y2 = app.y + box.height/2 %}
+    {% set dx = (x2 - x1) * 0.5 %}
+    <path d="M {{ x1 }} {{ y1 }} C {{ x1 + dx }} {{ y1 }}, {{ x2 - dx }} {{ y2 }}, {{ x2 }} {{ y2 }}"
+        stroke="{{ colors.line }}" stroke-width="2" fill="none" />
+    <circle cx="{{ x1 }}" cy="{{ y1 }}" r="3" fill="{{ colors.line }}" />
+    <circle cx="{{ x2 }}" cy="{{ y2 }}" r="3" fill="{{ colors.line }}" />
+
+    <text x="{{ (x1 + x2) / 2 }}" y="{{ (y1 + y2) / 2 - 8 }}"
+        font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="9" fill="{{ colors.text }}"
+        text-anchor="middle" dominant-baseline="middle">MQTT</text>
+    {% endfor %}
+</svg>

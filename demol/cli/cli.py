@@ -14,12 +14,9 @@ from demol.transformations import (
 )
 
 
-def handle_build_model(model_filepath):
+def handle_build_model(model_filepath, skip_semantics=False):
     """Helper to build model and handle validation errors gracefully"""
-    try:
-        model = build_model(model_filepath)
-        return model
-    except (ValidationError, TextXSemanticError) as e:
+    def print_results(errors, semantic_error_msg=None):
         passed = get_passed_rules()
         if passed:
             click.echo("")
@@ -29,7 +26,6 @@ def handle_build_model(model_filepath):
                 click.secho(f"{rule['name']}: ", bold=True, nl=False)
                 click.secho(f"{rule['description']}")
 
-        errors = get_validation_errors()
         if errors:
             click.echo("")
             click.secho(f"Found {len(errors)} validation error(s):", fg="red", bold=True)
@@ -44,11 +40,23 @@ def handle_build_model(model_filepath):
                 click.secho(f"({filename}:{line}:{col})", fg="cyan")
             
             click.echo("")
-            click.secho(f"[!] Validation failed with {len(errors)} error(s).", fg="red", bold=True)
-        else:
+            if not skip_semantics:
+                click.secho(f"[!] Validation failed with {len(errors)} error(s).", fg="red", bold=True)
+            else:
+                click.secho(f"[!] Model built with {len(errors)} error(s) (skip_semantics=True).", fg="yellow", bold=True)
+        elif semantic_error_msg:
             # Fallback for other semantic errors not caught by our collector
-            click.secho(f"\n[!] Semantic Error: {str(e)}", fg="red", bold=True)
-        
+            click.secho(f"\n[!] Semantic Error: {semantic_error_msg}", fg="red", bold=True)
+
+    try:
+        model = build_model(model_filepath, skip_semantics=skip_semantics)
+        if skip_semantics:
+            errors = get_validation_errors()
+            if errors:
+                print_results(errors)
+        return model
+    except (ValidationError, TextXSemanticError) as e:
+        print_results(get_validation_errors(), str(e))
         sys.exit(1)
     except Exception as e:
         click.secho(f"\n[!] Unexpected Error: {str(e)}", fg="red", bold=True)
@@ -64,22 +72,30 @@ def cli(ctx):
 
 @cli.command("validate")
 @click.argument("model_filepath")
+@click.option("--skip-semantics", is_flag=True, help="Build model even if semantic rules are failing")
 @click.pass_context
-def validate(ctx, model_filepath):
+def validate(ctx, model_filepath, skip_semantics):
     print(f'[*] Running validation for model {model_filepath}')
-    model = handle_build_model(model_filepath)
+    model = handle_build_model(model_filepath, skip_semantics=skip_semantics)
     if model:
-        passed = get_passed_rules()
-        if passed:
-            click.echo("")
-            click.secho("Passed Semantic Rules:", fg="green", bold=True)
-            for rule in passed:
-                click.secho(f"  ✓ ", fg="green", bold=True, nl=False)
-                click.secho(f"{rule['name']}: ", bold=True, nl=False)
-                click.secho(f"{rule['description']}")
+        errors = get_validation_errors()
+        # If skip_semantics was True and there were errors, handle_build_model 
+        # already printed the passed rules and errors.
+        if not errors:
+            passed = get_passed_rules()
+            if passed:
+                click.echo("")
+                click.secho("Passed Semantic Rules:", fg="green", bold=True)
+                for rule in passed:
+                    click.secho(f"  ✓ ", fg="green", bold=True, nl=False)
+                    click.secho(f"{rule['name']}: ", bold=True, nl=False)
+                    click.secho(f"{rule['description']}")
         
         click.echo("")
-        print(f'[✓] Validation passed!')
+        if errors:
+            print(f'[✓] Validation finished with {len(errors)} semantic error(s) (ignored).')
+        else:
+            print(f'[✓] Validation passed!')
 
 
 @cli.group("generate")
@@ -90,10 +106,11 @@ def generate():
 
 @generate.command("docs")
 @click.argument("model_filepath")
-def generate_docs(model_filepath):
+@click.option("--skip-semantics", is_flag=True, help="Build model even if semantic rules are failing")
+def generate_docs(model_filepath, skip_semantics):
     """Generate hardware documentation (Markdown + SVGs)"""
     print(f'[*] Generating documentation for model {model_filepath}')
-    model = handle_build_model(model_filepath)
+    model = handle_build_model(model_filepath, skip_semantics=skip_semantics)
     if model:
         m2t_docs(model)
         print(f'[✓] Documentation generated successfully.')
@@ -101,10 +118,11 @@ def generate_docs(model_filepath):
 
 @generate.command("rpi")
 @click.argument("model_filepath")
-def generate_rpi(model_filepath):
+@click.option("--skip-semantics", is_flag=True, help="Build model even if semantic rules are failing")
+def generate_rpi(model_filepath, skip_semantics):
     """Generate Python code for Raspberry Pi"""
     print(f'[*] Generating Raspberry Pi code for model {model_filepath}')
-    model = handle_build_model(model_filepath)
+    model = handle_build_model(model_filepath, skip_semantics=skip_semantics)
     if model:
         m2t_rpi(model)
         print(f'[✓] Raspberry Pi code generated successfully.')
@@ -112,10 +130,11 @@ def generate_rpi(model_filepath):
 
 @generate.command("smauto")
 @click.argument("model_filepath")
-def generate_smauto(model_filepath):
+@click.option("--skip-semantics", is_flag=True, help="Build model even if semantic rules are failing")
+def generate_smauto(model_filepath, skip_semantics):
     """Generate SMAuto model from DeMoL model"""
     print(f'[*] Generating SMAuto model for model {model_filepath}')
-    model = handle_build_model(model_filepath)
+    model = handle_build_model(model_filepath, skip_semantics=skip_semantics)
     if model:
         m2m_smauto(model)
         print(f'[✓] SMAuto model generated successfully.')
@@ -124,9 +143,10 @@ def generate_smauto(model_filepath):
 @generate.command("svg")
 @click.argument("model_filepath")
 @click.option("--infrastructure", is_flag=True, help="Generate infrastructure diagram instead of wiring diagram")
-def generate_svg(model_filepath, infrastructure):
+@click.option("--skip-semantics", is_flag=True, help="Build model even if semantic rules are failing")
+def generate_svg(model_filepath, infrastructure, skip_semantics):
     """Generate SVG diagrams (wiring or infrastructure)"""
-    model = handle_build_model(model_filepath)
+    model = handle_build_model(model_filepath, skip_semantics=skip_semantics)
     if model:
         if infrastructure:
             print(f'[*] Generating Infrastructure SVG for model {model_filepath}')

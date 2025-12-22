@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="{{ canvas.width }}" height="{{ canvas.height }}"
+    viewBox="0 0 {{ canvas.width }} {{ canvas.height }}" style="background-color: {{ colors.bg }};">
+    <!-- Title -->
+    <text x="{{ canvas.width / 2 }}" y="30" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif"
+        font-size="{{ fonts.title }}" font-weight="bold" fill="#333333" text-anchor="middle"
+        dominant-baseline="middle">Device Diagram: {{ canvas.title }}</text>
+
+    <!-- Board -->
+    <rect x="{{ board.x }}" y="{{ board.y }}" width="{{ board.w }}" height="{{ board.h }}"
+        fill="{{ colors.board_fill }}" stroke="{{ colors.board_stroke }}" stroke-width="2" rx="8" ry="8" />
+    <text x="{{ board.x + board.w/2 }}" y="{{ board.y + 30 }}"
+        font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="{{ fonts.comp_title }}"
+        font-weight="bold" fill="{{ colors.board_text }}" text-anchor="middle" dominant-baseline="middle">{{ board.name
+        }}</text>
+
+    <!-- Peripherals -->
+    {% for p in peripherals %}
+    <!-- Peripheral: {{ p.name }} -->
+    <rect x="{{ p.x }}" y="{{ p.y }}" width="{{ p.w }}" height="{{ p.h }}" fill="{{ colors.periph_fill }}"
+        stroke="{{ colors.periph_stroke }}" stroke-width="2" rx="8" ry="8" />
+    <text x="{{ p.x + p.w/2 }}" y="{{ p.y + 25 }}" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif"
+        font-size="{{ fonts.comp_title }}" font-weight="bold" fill="{{ colors.periph_text }}" text-anchor="middle"
+        dominant-baseline="middle">{{ p.name }}</text>
+
+    {% for pin in p.pins %}
+    <!-- Connection -->
+    <path
+        d="M {{ p.board_edge_x }} {{ pin.bp_y }} C {{ pin.cp1x }} {{ pin.bp_y }}, {{ pin.cp2x }} {{ pin.pp_y }}, {{ p.pin_x }} {{ pin.pp_y }}"
+        stroke="{{ pin.color }}" stroke-width="2" fill="none" />
+    <circle cx="{{ p.board_edge_x }}" cy="{{ pin.bp_y }}" r="4" fill="{{ pin.color }}" />
+    <circle cx="{{ p.pin_x }}" cy="{{ pin.pp_y }}" r="4" fill="{{ pin.color }}" />
+
+    <!-- Pin Labels -->
+    <text x="{{ p.board_text_x }}" y="{{ pin.bp_y }}" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif"
+        font-size="{{ fonts.pin }}" fill="{{ colors.board_text }}" text-anchor="{{ p.board_text_anchor }}"
+        dominant-baseline="middle">{{ pin.board }}</text>
+    <text x="{{ p.text_x }}" y="{{ pin.pp_y }}" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif"
+        font-size="{{ fonts.pin }}" fill="{{ colors.pin_text }}" text-anchor="{{ p.text_anchor }}"
+        dominant-baseline="middle">{{ pin.periph }}</text>
+    {% endfor %}
+    {% endfor %}
+</svg>

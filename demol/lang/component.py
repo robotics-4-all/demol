@@ -18,9 +18,13 @@ def component_model_proc(model, metamodel):
         # Validate board ports if it is a board
         if model.component.__class__.__name__ == 'Board':
             validate_board_ports(model.component)
+    
+    from demol.lang.semantics import check_validation_errors
+    skip_semantics = getattr(metamodel, 'skip_semantics', False)
+    check_validation_errors(model, skip_semantics=skip_semantics)
 
 
-def get_component_mm(global_repo: bool = False):
+def get_component_mm(global_repo: bool = False, skip_semantics: bool = False):
     # Get meta-model from language description
     mm = metamodel_from_file(
         os.path.join(METAMODEL_REPO_PATH, 'component.tx'),
@@ -39,6 +43,8 @@ def get_component_mm(global_repo: bool = False):
 
     mm.register_obj_processors({
     })
+
+    mm.skip_semantics = skip_semantics
 
     return mm
 
