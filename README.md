@@ -814,11 +814,11 @@ Commands:
 
 ```
 
-The `gen` command allows you to execute Model-to-Text (M2T) transformations to generate code, documentation, or diagrams.
+The `generate` command allows you to execute Model-to-Text (M2T) transformations to generate code, documentation, or diagrams.
 
 **Usage:**
 ```sh
-demol gen [GENERATOR] [MODEL_FILE]
+demol generate [GENERATOR] [MODEL_FILE]
 ```
 
 **Available Generators:**
@@ -830,9 +830,9 @@ demol gen [GENERATOR] [MODEL_FILE]
 
 **Example - Generate SVG Diagram:**
 ```sh
-demol gen svg examples/rpi_iot_device.dev
+demol generate svg examples/rpi_iot_device.dev --output-dir ./diagrams
 ```
-This command will generate an SVG file (e.g., `SmartEnvironmentMonitor.svg`) in the current directory, visualizing the pin-level connections between the board and peripherals.
+This command will generate an SVG file (e.g., `SmartEnvironmentMonitor.svg`) in the specified directory, visualizing the pin-level connections between the board and peripherals.
 
 The `validate` command is used to validate input models.
 To validate a device model, for example the `./examples/raspi_iot_device.dev`, head to the `examples` directory and execute:
@@ -848,10 +848,35 @@ You should see an output similar to the below, in case of successful validation 
 [✓] Validation passed!
 ```
 
-Otherwise, the parser will raise an error:
+**Skipping Semantic Errors:**
+If you want to build or validate a model even if semantic rules are failing (e.g., for testing or partial code generation), use the `--skip-semantics` flag. This flag is supported by the `validate` command and all `generate` commands:
 
 ```sh
-textx.exceptions.TextXSemanticError: rpi_iot_device.dev:29:17: Unknown object "MyBME2" of class "PeripheralDef"
+# Validate with errors ignored
+demol validate examples/rpi/multi_periph.dev --skip-semantics
+
+# Generate SVG even with semantic errors
+demol generate svg examples/rpi/multi_periph.dev --skip-semantics
+```
+
+This will report all errors but return a success exit code, allowing the process to continue.
+
+Otherwise, transformations will not proceed:
+
+```sh
+➜ demol generate docs examples/rpi/multi_periph.dev                 
+[*] Generating documentation for model examples/rpi/multi_periph.dev
+[*] Processing model: /home/klpanagi/Development/dsls/demol/examples/rpi/multi_periph.dev
+
+
+Found 4 validation error(s):
+  ✗ [Safety-IO-Voltage] Board 'RaspberryPi_5_8GB' operates at 3.3V (IO), but peripheral 'SRF05' operates at 5.0V (IO). This may cause communication errors or damage. (multi_periph.dev:34:1)
+  ✗ [Safety-IO-Voltage] Board 'RaspberryPi_5_8GB' operates at 3.3V (IO), but peripheral 'WS2812' operates at 5.0V (IO). This may cause communication errors or damage. (multi_periph.dev:44:1)
+  ✗ [Safety-IO-Voltage] Board 'RaspberryPi_5_8GB' operates at 3.3V (IO), but peripheral 'TCRT5000' operates at 5.0V (IO). This may cause communication errors or damage. (multi_periph.dev:53:1)
+  ✗ [Safety-IO-Voltage] Board 'RaspberryPi_5_8GB' operates at 3.3V (IO), but peripheral 'TactileButton' operates at 5.0V (IO). This may cause communication errors or damage. (multi_periph.dev:62:1)
+
+[!] Validation failed with 4 error(s).
+
 ```
 
 ### Code Generation
@@ -885,7 +910,10 @@ To generate code for a device model:
 
 ```sh
 # Generate Raspberry Pi code
-demol generate rpi examples/rpi/multi_periph.dev
+demol generate rpi examples/rpi/multi_periph.dev --output-dir ./rpi_code
+
+# Generate code even if semantic validation fails
+demol generate rpi examples/rpi/multi_periph.dev --skip-semantics --output-dir ./rpi_code
 ```
 
 This will:
@@ -902,24 +930,24 @@ DeMoL can automatically generate hardware construction guides and infrastructure
 Generates a Markdown file with BOM, wiring tables, and communication details.
 
 ```sh
-demol generate docs examples/rpi/multi_periph.dev
+demol generate docs examples/rpi/multi_periph.dev --output-dir ./docs
 ```
 
 #### 2. System Diagram (Wiring)
-Generates a professional SVG showing pin-to-pin connections.
+Generates a hardware-aware diagram showing pin-to-pin connections.
 
 ```sh
-demol generate svg examples/rpi/multi_periph.dev
+demol generate svg examples/rpi/multi_periph.dev --output-dir ./diagrams
 ```
 
 **Output Example:**
 ![System Diagram](assets/MultiPeriphDevice.svg)
 
 #### 3. Infrastructure Diagram
-Generates an SVG visualizing the Edge, Communication, and Application layers.
+Generates diagram visualizing the Edge, Communication, and Application layers.
 
 ```sh
-demol generate svg examples/rpi/multi_periph.dev --infrastructure
+demol generate svg examples/rpi/multi_periph.dev --infrastructure --output-dir ./diagrams
 ```
 
 **Output Example:**
@@ -970,7 +998,6 @@ Generates code or documentation from a DeMoL model file.
     -   `target`: The generation target.
 -   **Supported Targets:**
     -   `plantuml`: Generates a PlantUML diagram of the device.
-    -   `json`: Generates a JSON representation of the model.
 -   **Example Request:**
     ```bash
     curl -X POST "http://localhost:8000/generate" \

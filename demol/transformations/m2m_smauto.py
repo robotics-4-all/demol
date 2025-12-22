@@ -70,7 +70,13 @@ def get_peripherals_info(device_model):
 
 
 #Generate SmAuto model
-def demol2smauto(output_dir):
+def demol2smauto(model, output_dir='.'):
+    get_broker_info(model)
+    get_peripherals_info(model)
+    
+    if output_dir != '.' and not os.path.exists(output_dir):
+        os.makedirs(output_dir, exist_ok=True)
+        
     template = env.get_template("BrokerAndEntity.tmpl")
     rt = template.render(**broker_data, peripherals=peripherals_data)
     filepath = os.path.join(output_dir, f"{device_name}SmAutoModel.auto")

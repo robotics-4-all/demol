@@ -362,6 +362,22 @@ class RPiCodeGenerator(BaseCodeGenerator):
         logger.debug(f"Generated: {output_path}")
 
 
+def m2t_rpi(model, output_dir='.'):
+    """Transform a DeMoL device model object to Raspberry Pi code.
+    
+    Args:
+        model: Parsed textX device model
+        output_dir: Output directory
+    """
+    output_path = Path(output_dir)
+    if not output_path.exists():
+        output_path.mkdir(parents=True, exist_ok=True)
+        
+    # Generate code using new architecture
+    generator = RPiCodeGenerator(model, output_path)
+    generator.generate()
+
+
 def transform_device_model(device_model_path: str, output_dir: str) -> None:
     """Transform a DeMoL device model to Raspberry Pi code.
     
@@ -371,16 +387,13 @@ def transform_device_model(device_model_path: str, output_dir: str) -> None:
     """
     # Build paths
     model_path = Path(device_model_path)
-    output_path = Path('.') / output_dir
     
     logger.info(f"Transforming: {model_path}")
     
     # Parse device model
     device_model = build_model(str(model_path))
     
-    # Generate code using new architecture
-    generator = RPiCodeGenerator(device_model, output_path)
-    generator.generate()
+    m2t_rpi(device_model, output_dir)
     
     logger.info("Transformation complete!")
 

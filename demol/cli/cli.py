@@ -106,55 +106,75 @@ def generate():
 
 @generate.command("docs")
 @click.argument("model_filepath")
+@click.option("--output-dir", default=".", help="Output directory for generated documentation")
 @click.option("--skip-semantics", is_flag=True, help="Build model even if semantic rules are failing")
-def generate_docs(model_filepath, skip_semantics):
+def generate_docs(model_filepath, output_dir, skip_semantics):
     """Generate hardware documentation (Markdown + SVGs)"""
     print(f'[*] Generating documentation for model {model_filepath}')
     model = handle_build_model(model_filepath, skip_semantics=skip_semantics)
     if model:
-        m2t_docs(model)
+        m2t_docs(model, output_dir=output_dir)
         print(f'[✓] Documentation generated successfully.')
 
 
 @generate.command("rpi")
 @click.argument("model_filepath")
+@click.option("--output-dir", default=".", help="Output directory for generated code")
 @click.option("--skip-semantics", is_flag=True, help="Build model even if semantic rules are failing")
-def generate_rpi(model_filepath, skip_semantics):
+def generate_rpi(model_filepath, output_dir, skip_semantics):
     """Generate Python code for Raspberry Pi"""
     print(f'[*] Generating Raspberry Pi code for model {model_filepath}')
     model = handle_build_model(model_filepath, skip_semantics=skip_semantics)
     if model:
-        m2t_rpi(model)
+        m2t_rpi(model, output_dir=output_dir)
         print(f'[✓] Raspberry Pi code generated successfully.')
 
 
 @generate.command("smauto")
 @click.argument("model_filepath")
+@click.option("--output-dir", default=".", help="Output directory for generated SMAuto model")
 @click.option("--skip-semantics", is_flag=True, help="Build model even if semantic rules are failing")
-def generate_smauto(model_filepath, skip_semantics):
+def generate_smauto(model_filepath, output_dir, skip_semantics):
     """Generate SMAuto model from DeMoL model"""
     print(f'[*] Generating SMAuto model for model {model_filepath}')
     model = handle_build_model(model_filepath, skip_semantics=skip_semantics)
     if model:
-        m2m_smauto(model)
+        m2m_smauto(model, output_dir=output_dir)
         print(f'[✓] SMAuto model generated successfully.')
 
 
 @generate.command("svg")
 @click.argument("model_filepath")
+@click.option("--output-dir", default=".", help="Output directory for generated SVG")
 @click.option("--infrastructure", is_flag=True, help="Generate infrastructure diagram instead of wiring diagram")
 @click.option("--skip-semantics", is_flag=True, help="Build model even if semantic rules are failing")
-def generate_svg(model_filepath, infrastructure, skip_semantics):
+def generate_svg(model_filepath, output_dir, infrastructure, skip_semantics):
     """Generate SVG diagrams (wiring or infrastructure)"""
     model = handle_build_model(model_filepath, skip_semantics=skip_semantics)
     if model:
         if infrastructure:
             print(f'[*] Generating Infrastructure SVG for model {model_filepath}')
-            m2t_infrastructure_svg(model)
+            filename = os.path.join(output_dir, f'{model.metadata.name}_infrastructure.svg')
+            m2t_infrastructure_svg(model, filename)
         else:
             print(f'[*] Generating Wiring SVG for model {model_filepath}')
-            m2t_device_svg(model)
+            filename = os.path.join(output_dir, f'{model.metadata.name}.svg')
+            m2t_device_svg(model, filename)
         print(f'[✓] SVG generated successfully.')
+
+
+@generate.command("json")
+@click.argument("model_filepath")
+@click.option("--output-dir", default=".", help="Output directory for generated JSON")
+@click.option("--skip-semantics", is_flag=True, help="Build model even if semantic rules are failing")
+def generate_json(model_filepath, output_dir, skip_semantics):
+    """Generate JSON representation of the model"""
+    print(f'[*] Generating JSON for model {model_filepath}')
+    model = handle_build_model(model_filepath, skip_semantics=skip_semantics)
+    if model:
+        filename = os.path.join(output_dir, f'{model.metadata.name}.json')
+        m2t_device_json(model, filename)
+        print(f'[✓] JSON generated successfully: {filename}')
 
 
 def main():
