@@ -34,7 +34,7 @@ char stack{{ id[loop.index0] }}[THREAD_STACKSIZE_DEFAULT];
 {% endfor -%}
 char stack_mqtt[THREAD_STACKSIZE_DEFAULT];
 
-{% include 'mqtt_con.c.tmpl' %}
+{% include 'mqtt_con.c.j2' %}
 
 {% for name in peripheral_name.values() %}
 {% if peripheral_type[name] == "sensor" %}
@@ -50,7 +50,7 @@ char stack_mqtt[THREAD_STACKSIZE_DEFAULT];
  * published message in the topic that it listens to ({{topic[loop.index0]}}).
  */
 {% endif %}
-{% include name + ".c.tmpl" %}
+{% include name + ".c.j2" %}
 {% endfor %}
 
 int main(void)

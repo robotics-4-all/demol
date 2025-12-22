@@ -10,6 +10,6 @@ ACTUATOR[Button] TactileButton WITH
         gnd[GND] @ 1,
         state[gpio] @ 2
     TEMPLATES
-        raspbian="button.py.tmpl",
-        riotos="button.c.tmpl"
+        raspbian="button.py.j2",
+        riotos="button.c.j2"
 ;

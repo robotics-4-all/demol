@@ -26,8 +26,8 @@ SENSOR[ADC] ADCDifferentialPi WITH
         CH8_PLUS[adc-7] @ 19,
         CH8_MINUS[adc-7] @ 20
     TEMPLATES
-        raspbian="adafruit_adc_diff.py.tmpl",
-        riotos="adafruit_adc_diff.c.tmpl"
+        raspbian="adafruit_adc_diff.py.j2",
+        riotos="adafruit_adc_diff.c.j2"
     ATTRIBUTES
         num_channels[int] = 8,
         resolution[list] = [12, 14, 16, 18],

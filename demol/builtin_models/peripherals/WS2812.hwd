@@ -10,8 +10,8 @@ ACTUATOR[LedArray] WS2812 WITH
         GND[GND] @ 2,
         DIN[gpio,mosi-0] @ 3
     TEMPLATES
-        raspbian="ws2812.py.tmpl",
-        riotos="ws2812_riot.c.tmpl"
+        raspbian="ws2812.py.j2",
+        riotos="ws2812_riot.c.j2"
     ATTRIBUTES
         num_leds[int] = 12,
         color_format[str] = "GRB",

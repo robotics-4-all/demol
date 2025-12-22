@@ -12,6 +12,6 @@ SENSOR[Env] Mpl3115a2 WITH
         scl[scl-0] @ 5,
         sda[sda-0] @ 6
     TEMPLATES
-        raspbian="mpl3115a2.py.tmpl",
-        riotos="mpl3115a2_riot.c.tmpl"
+        raspbian="mpl3115a2.py.j2",
+        riotos="mpl3115a2_riot.c.j2"
 ;

@@ -12,6 +12,6 @@ ACTUATOR[LedArray] WS281X WITH
         data_in[gpio] @ 3,
         data_out[gpio] @ 4
     TEMPLATES
-        raspbian="ws281x.py.tmpl",
-        riotos="ws281x_riot.c.tmpl"
+        raspbian="ws281x.py.j2",
+        riotos="ws281x_riot.c.j2"
 ;

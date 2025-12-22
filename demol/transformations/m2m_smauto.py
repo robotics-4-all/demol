@@ -77,7 +77,7 @@ def demol2smauto(model, output_dir='.'):
     if output_dir != '.' and not os.path.exists(output_dir):
         os.makedirs(output_dir, exist_ok=True)
         
-    template = env.get_template("BrokerAndEntity.tmpl")
+    template = env.get_template("BrokerAndEntity.j2")
     rt = template.render(**broker_data, peripherals=peripherals_data)
     filepath = os.path.join(output_dir, f"{device_name}SmAutoModel.auto")
     ofh = codecs.open(filepath, "w", encoding="utf-8")

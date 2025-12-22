@@ -278,9 +278,9 @@ class RPiCodeGenerator(BaseCodeGenerator):
         
         # Select template based on peripheral type
         if peripheral_type == "Sensor":
-            template_name = "sensor_node.py.tmpl"
+            template_name = "sensor_node.py.j2"
         elif peripheral_type == "Actuator":
-            template_name = "actuator_node.py.tmpl"
+            template_name = "actuator_node.py.j2"
         else:
             logger.warning(f"Unknown peripheral type: {peripheral_type}, skipping node generation")
             return
@@ -326,7 +326,7 @@ class RPiCodeGenerator(BaseCodeGenerator):
         
     def generate_messages(self) -> None:
         """Generate MQTT messages module."""
-        template = self.env.get_template("msg.py.tmpl")
+        template = self.env.get_template("msg.py.j2")
         self._write_template(
             template,
             {},
@@ -335,7 +335,7 @@ class RPiCodeGenerator(BaseCodeGenerator):
         
     def generate_common(self) -> None:
         """Generate common module."""
-        template = self.env.get_template("common.py.tmpl")
+        template = self.env.get_template("common.py.j2")
         self._write_template(
             template,
             {},

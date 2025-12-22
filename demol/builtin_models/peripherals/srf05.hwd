@@ -11,8 +11,8 @@ SENSOR[Distance] SRF05 WITH
         trigger[gpio] @ 3,
         GND[GND] @ 5
     TEMPLATES
-        raspbian="srf05.py.tmpl",
-        riotos="srf05_riot.c.tmpl"
+        raspbian="srf05.py.j2",
+        riotos="srf05_riot.c.j2"
     ATTRIBUTES
         frequency[float] = 10
 ;

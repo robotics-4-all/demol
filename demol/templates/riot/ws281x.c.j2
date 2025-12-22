@@ -52,4 +52,4 @@ void ws281x_on_pub(const emcute_topic_t *topic, void *data, size_t len)
     ws281x_write(&dev);
 }
 
-{% include 'subscriber.c.tmpl' %}
+{% include 'subscriber.c.j2' %}

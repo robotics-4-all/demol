@@ -1,0 +1,97 @@
+class PeripheralState:
+    IDLE = "IDLE"
+    RUNNING = "RUNNING"
+    ERROR = "ERROR"
+
+
+class Peripheral:
+    def __init__(self, name, connections, attributes):
+        self.name = name
+        self._connections = connections
+        self._attributes = attributes
+        self._current_state = {
+            "state": PeripheralState.IDLE,
+            "data": None
+        }
+
+    def set_attr(self, key, value):
+        self._attributes[key] = value
+
+    def get_attr(self, key):
+        return self._attributes.get(key)
+
+    def initialize(self):
+        self._current_state = {
+            "state": PeripheralState.RUNNING,
+            "data": None
+        }
+
+    def disconnect(self):
+        self._current_state = {
+            "state": PeripheralState.IDLE,
+            "data": None
+        }
+
+    def update_state_data(self, data):
+        self._current_state["data"] = data
+
+    @property
+    def current_state(self):
+        return self._current_state
+
+    @property
+    def connections(self):
+        return self._connections
+
+    @property
+    def attributes(self):
+        return self._attributes
+
+
+class Sensor(Peripheral):
+    def __init__(self, name, connections, attributes):
+        super().__init__(name, connections, attributes)
+
+    def initialize(self):
+        super().initialize()
+
+    def read(self):
+        raise NotImplementedError("read() must be implemented by subclasses")
+
+    def disconnect(self):
+        super().disconnect()
+
+
+class Actuator(Peripheral):
+    def __init__(self, name, connections, attributes):
+        super().__init__(name, connections, attributes)
+
+    def initialize(self):
+        super().initialize()
+
+    def write(self, value):
+        raise NotImplementedError("write() must be implemented by subclasses")
+
+    def disconnect(self):
+        super().disconnect()
+
+
+class Composite(Peripheral):
+    def __init__(self, name, connections, attributes, sensors, actuators):
+        super().__init__(name, connections, attributes)
+        self._sensors = sensors
+        self._actuators = actuators
+
+    def initialize(self):
+        super().initialize()
+        for sensor in self._sensors:
+            sensor.initialize()
+        for actuator in self._actuators:
+            actuator.initialize()
+
+    def disconnect(self):
+        super().disconnect()
+        for sensor in self._sensors:
+            sensor.disconnect()
+        for actuator in self._actuators:
+            actuator.disconnect()

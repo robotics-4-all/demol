@@ -9,8 +9,8 @@ SENSOR[Proximity] HW006 WITH
         VCC[5V] @ 2,
         GND[GND] @ 3
     TEMPLATES
-        raspbian="hw006.py.tmpl",
-        riotos="hw006.c.tmpl"
+        raspbian="hw006.py.j2",
+        riotos="hw006.c.j2"
     ATTRIBUTES
         frequency[int] = 100
 ;

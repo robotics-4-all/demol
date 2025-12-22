@@ -15,4 +15,4 @@ void {{ peripheral_name[loop.index0] }}_on_pub(const emcute_topic_t *topic, void
      */ 
 }
 
-{% include 'subscriber.c.tmpl' %}
+{% include 'subscriber.c.j2' %}

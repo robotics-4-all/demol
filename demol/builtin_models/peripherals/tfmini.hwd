@@ -10,8 +10,8 @@ SENSOR[Distance] TFMini WITH
         RXD[rx-0] @ 3,
         TXD[tx-0] @ 4
     TEMPLATES
-        raspbian="tfmini.py.tmpl",
-        riotos="tfmini_riot.c.tmpl"
+        raspbian="tfmini.py.j2",
+        riotos="tfmini_riot.c.j2"
     ATTRIBUTES
         serial_port[str] = "/dev/ttyAMA0"
 ;
