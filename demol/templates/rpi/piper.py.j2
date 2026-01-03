@@ -1,0 +1,134 @@
+import subprocess
+import os
+import json
+from .peripheral import Actuator
+from .msg import SpeakerMessage
+
+
+class PiperTTS(Actuator):
+    """
+    High-quality Neural Text-to-Speech using Piper.
+    Requires 'piper' executable and voice models to be installed.
+    """
+    _MODEL = "{{ attributes.get('model', 'en_US-lessac-medium') }}"
+    _SPEAKER = {{ attributes.get('speaker', 0) }}
+    _LENGTH_SCALE = {{ attributes.get('length_scale', 1.0) }}
+    _NOISE_SCALE = {{ attributes.get('noise_scale', 0.667) }}
+    _NOISE_W = {{ attributes.get('noise_w', 0.8) }}
+
+    def __init__(self):
+        super().__init__(
+            name="{{ instance }}", 
+            connections={{ conn }}, 
+            attributes={{ attributes }}
+        )
+        self._piper_binary = None
+        self._aplay_binary = None
+        self._model_path = None
+
+    def initialize(self):
+        """Check for piper executable and model"""
+        # Check for piper
+        if subprocess.run(["which", "piper"], capture_output=True).returncode == 0:
+            self._piper_binary = "piper"
+        else:
+            print("Warning: 'piper' executable not found. Please install it.")
+            return
+
+        # Check for aplay (for audio output)
+        if subprocess.run(["which", "aplay"], capture_output=True).returncode == 0:
+            self._aplay_binary = "aplay"
+        else:
+            print("Warning: 'aplay' executable not found. Audio output may not work.")
+            return
+
+        # Resolve model path (assuming models are in /opt/piper-voices or local)
+        # This is a simplified check; in production, you'd want robust path handling
+        possible_paths = [
+            f"{self._MODEL}.onnx",
+            f"/opt/piper-voices/{self._MODEL}.onnx",
+            f"models/{self._MODEL}.onnx"
+        ]
+        
+        for path in possible_paths:
+            if os.path.exists(path):
+                self._model_path = path
+                break
+        
+        if not self._model_path:
+            # Fallback: assume the user provided a full path or it's in the current dir
+            if self._MODEL.endswith(".onnx") and os.path.exists(self._MODEL):
+                self._model_path = self._MODEL
+            else:
+                print(f"Warning: Piper model '{self._MODEL}' not found.")
+
+    def write(self, msg):
+        """Speak text using Piper streamed to aplay
+        
+        Args:
+            msg (SpeakerMessage): Speaker control message
+        """
+        if not self._piper_binary or not self._aplay_binary or not self._model_path:
+            return
+
+        text = ""
+        
+        if hasattr(msg, 'text'):
+            text = msg.text
+        elif isinstance(msg, dict):
+            text = msg.get('text', "")
+            
+        if text:
+            try:
+                # Construct piper command
+                # echo 'text' | piper --model model.onnx --output-raw | aplay -r 22050 -f S16_LE -t raw -
+                
+                piper_cmd = [
+                    self._piper_binary,
+                    "--model", self._model_path,
+                    "--output-raw",
+                    "--length-scale", str(self._LENGTH_SCALE),
+                    "--noise-scale", str(self._NOISE_SCALE),
+                    "--noise-w", str(self._NOISE_W)
+                ]
+                
+                if self._SPEAKER is not None:
+                     piper_cmd.extend(["--speaker", str(self._SPEAKER)])
+
+                # Create pipeline
+                echo_proc = subprocess.Popen(["echo", text], stdout=subprocess.PIPE)
+                piper_proc = subprocess.Popen(piper_cmd, stdin=echo_proc.stdout, stdout=subprocess.PIPE)
+                
+                # aplay command (Piper default is 22050Hz, 16-bit mono)
+                # Note: Some models might differ in sample rate; usually 22050 or 16000
+                aplay_cmd = [
+                    self._aplay_binary,
+                    "-r", "22050", 
+                    "-f", "S16_LE", 
+                    "-t", "raw", 
+                    "-"
+                ]
+                aplay_proc = subprocess.Popen(aplay_cmd, stdin=piper_proc.stdout)
+                
+                # Allow echo_proc to receive a SIGPIPE if piper_proc exits
+                echo_proc.stdout.close()
+                piper_proc.stdout.close()
+                
+                # Wait for playback to finish (non-blocking in main loop context is better, 
+                # but for simplicity we wait here or let it run)
+                # To be non-blocking, we wouldn't wait() here.
+                # aplay_proc.wait() 
+                
+            except Exception as e:
+                print(f"Error executing Piper TTS: {e}")
+
+    def disconnect(self):
+        pass
+
+
+if __name__ == "__main__":
+    tts = PiperTTS()
+    tts.initialize()
+    test_text = "Piper text to speech is active."
+    print(f"Speaking: {test_text}")
+    tts.write({"text": test_text})

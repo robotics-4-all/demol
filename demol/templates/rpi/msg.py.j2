@@ -190,6 +190,7 @@ class BuzzerMessage(PubSubMessage):
 class SpeakerMessage(PubSubMessage):
     header: MessageHeader = MessageHeader()
     volume: float = 0.5
+    text: str = ""
     uri: str = ""
 
 

@@ -1,0 +1,68 @@
+from gpiozero import TonalBuzzer
+from gpiozero.tones import Tone
+from .peripheral import Actuator
+from .msg import BuzzerMessage
+
+
+class BuzzerGeneric(Actuator):
+    """
+    Generic Buzzer Actuator (Tonal support)
+    """
+    _PIN = "{{ conn.gpio.pins.vin.name }}"
+    _INITIAL_STATE = {{ attributes.get('initial_state', False) | lower }}
+
+    def __init__(self):
+        super().__init__(
+            name="{{ instance }}", 
+            connections={{ conn }}, 
+            attributes={{ attributes }}
+        )
+        self.buzzer = None
+
+    def initialize(self):
+        """Initialize the Buzzer hardware"""
+        self.buzzer = TonalBuzzer(self._PIN)
+        if not self._INITIAL_STATE:
+            self.buzzer.off()
+
+    def write(self, msg):
+        """Write command to the Buzzer
+        
+        Args:
+            msg (BuzzerMessage): Buzzer control message
+        """
+        state = False
+        frequency = 1000.0
+        
+        if hasattr(msg, 'state'):
+            state = msg.state
+            frequency = getattr(msg, 'frequency', 1000.0)
+        elif isinstance(msg, dict):
+            state = msg.get('state', False)
+            frequency = msg.get('frequency', 1000.0)
+            
+        if state:
+            try:
+                self.buzzer.play(Tone(frequency))
+            except ValueError:
+                # Fallback to simple on if frequency is out of range for TonalBuzzer
+                self.buzzer.on()
+        else:
+            self.buzzer.off()
+
+    def disconnect(self):
+        """Release hardware resources"""
+        if self.buzzer:
+            self.buzzer.close()
+
+
+if __name__ == "__main__":
+    buzzer = BuzzerGeneric()
+    buzzer.initialize()
+    # Test: Play 440Hz tone for 1 second
+    print("Playing 440Hz tone...")
+    buzzer.write({"state": True, "frequency": 440.0})
+    import time
+    time.sleep(1)
+    buzzer.write({"state": False})
+    buzzer.disconnect()

@@ -2,8 +2,6 @@ SENSOR[Distance] SonarSRF04 WITH
     OP
         vcc=5V,
         ioVcc=5V,
-        piTpl="srf04",
-        riotTpl="srf04",
         power.min=10 mW,
         power.max=100 mW,
         power.avg=75 mW

@@ -7,12 +7,16 @@ class LedGeneric(Actuator):
     """
     Generic LED Actuator (PWM supported)
     """
-    _PIN = "{{ conn.gpio.pins.pin.name }}"
+    _PIN = "{{ conn.gpio.pins.vin.name }}"
     _ACTIVE_HIGH = {{ attributes.get('active_high', True) | lower }}
     _INITIAL_VALUE = {{ attributes.get('initial_value', False) | lower }}
 
     def __init__(self):
-        super().__init__(attributes={{ attributes }}, conn={{ conn }})
+        super().__init__(
+            name="{{ instance }}", 
+            connections={{ conn }}, 
+            attributes={{ attributes }}
+        )
         self.led = None
 
     def initialize(self):

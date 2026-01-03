@@ -14,7 +14,11 @@ class WS2812(Actuator):
     _DELAY = {{ attributes.get('delay', 0.1) }}
 
     def __init__(self):
-        super().__init__(attributes={{ attributes }}, conn={{ conn }})
+        super().__init__(
+            name="{{ instance }}", 
+            connections={{ conn }}, 
+            attributes={{ attributes }}
+        )
         self.spi = None
         self.pixels = None
 

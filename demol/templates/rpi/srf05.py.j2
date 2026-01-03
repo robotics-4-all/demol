@@ -1,4 +1,6 @@
 from gpiozero import DistanceSensor as DS
+{# from gpiozero.pins.rpigpio import RPiGPIOFactory as PinFactory #}
+from gpiozero.pins.pigpio import PiGPIOFactory as PinFactory
 from .peripheral import Sensor
 
 
@@ -14,9 +16,14 @@ class SRF05(Sensor):
     _MIN_DISTANCE = {{ attributes.get('min_distance', 0.0) }}
     _MAX_FREQUENCY = {{ op.get('freq_max', 16) }}
     _FREQUENCY = {{ attributes.get('frequency', 10.0) }}
+    _THRESHOLD_DISTANCE = {{ attributes.get('threshold_distance', 0.3) }}
 
     def __init__(self):
-        super().__init__(attributes={{ attributes }}, conn={{ conn }})
+        super().__init__(
+            name="{{ instance }}", 
+            connections={{ conn }}, 
+            attributes={{ attributes }}
+        )
         self.sensor = None
 
     def initialize(self):
@@ -25,7 +32,8 @@ class SRF05(Sensor):
             trigger=self._TRIGGER_PIN,
             echo=self._ECHO_PIN,
             max_distance=self._MAX_DISTANCE / 100.0,
-            threshold_distance=0.3
+            threshold_distance=self._THRESHOLD_DISTANCE,
+            pin_factory=PinFactory()
         )
 
     def read(self):

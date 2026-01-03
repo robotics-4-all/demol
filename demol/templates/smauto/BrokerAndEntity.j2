@@ -2,54 +2,146 @@ Broker<{{broker_type}}> {{broker_name}}
     host: "{{broker_host}}"
     port: {{broker_port}}
     auth:
-        username: "{{broker_username}}"
-        password: "{{broker_password}}"
+    username: "{{broker_username}}"
+    password: "{{broker_password}}"
     {%- if broker_vhost is defined and broker_vhost %}
     vhost: "{{ broker_vhost }}"
     {%- endif %}
     {%- if broker_topicExchange is defined and broker_topicExchange %}
     topicExchange: "{{ broker_topicExchange }}"
     {%- endif %}
-    {%-  if broker_db is defined and broker_db %}
+    {%- if broker_db is defined and broker_db %}
     db: {{ broker_db }}
     {%- endif %}
-end
+    end
 
-{% for peripheral in peripherals %}
-Entity {{peripheral["per_name"]}}
+    {% for peripheral in peripherals %}
+    Entity {{peripheral["per_name"]}}
     type: {{peripheral["per_type"].lower()}}
     topic: "{{peripheral["per_topic"]}}"
     broker: {{peripheral["per_broker"]}}
     attributes:
     {%- if peripheral["per_msg_type"] == "Distance" %}
-        - distance: float
-        - unit: str 
-        - max_distance : float
-        - min_distance : float
-    {%- elif peripheral["per_msg_type"] == "Tracker" %}
-        - object_detection : bool
-        - color : str
+    - distance: float
+    - unit: str
+    - max: float
+    - min: float
     {%- elif peripheral["per_msg_type"] == "Env" %}
-        - temperature : float
-        - pressure : float 
-        - humidity : float
-        - gas_resistance : float  
+    - temperature: float
+    - pressure: float
+    - humidity: float
+    - gas_resistance: float
+    {%- elif peripheral["per_msg_type"] == "Proximity" %}
+    - value: int
     {%- elif peripheral["per_msg_type"] == "ADC" %}
-        - voltage : float
+    - voltage: float
     {%- elif peripheral["per_msg_type"] == "LedArray" %}
-        - colors : list 
-        - delay: float = 0.1 
-        - brightness: float = 0.5 
-    {%- elif peripheral["per_msg_type"] == "ServoController" %} 
-        - initial_angle: float = 0.0
-        - final_angle: float = 0.0
-        - angular_speed: float = 0.0
-        - angular_step: float = 0.0   
+    - colors: list
+    - delay: float
+    - brightness: float
+    {%- elif peripheral["per_msg_type"] == "ServoController" %}
+    - initial_angle: float
+    - final_angle: float
+    - angular_speed: float
+    - angular_step: float
+    {%- elif peripheral["per_msg_type"] == "Temperature" %}
+    - temperature: float
+    - unit: str
+    {%- elif peripheral["per_msg_type"] == "Humidity" %}
+    - humidity: float
+    - unit: str
+    {%- elif peripheral["per_msg_type"] == "Pressure" %}
+    - pressure: float
+    - unit: str
+    {%- elif peripheral["per_msg_type"] == "Gas" %}
+    - gas_resistance: float
+    - unit: str
+    {%- elif peripheral["per_msg_type"] == "AirQuality" %}
+    - aqi: int
+    - co2: float
+    - tvoc: float
+    {%- elif peripheral["per_msg_type"] == "Light" %}
+    - lux: float
+    {%- elif peripheral["per_msg_type"] == "UV" %}
+    - uv_index: float
+    {%- elif peripheral["per_msg_type"] == "Sound" %}
+    - db: float
+    {%- elif peripheral["per_msg_type"] == "DistanceMatrix" %}
+    - distances: list
+    - rows: int
+    - cols: int
+    {%- elif peripheral["per_msg_type"] == "Acceleration" %}
+    - x: float
+    - y: float
+    - z: float
+    - unit: str
+    {%- elif peripheral["per_msg_type"] == "Gyroscope" %}
+    - x: float
+    - y: float
+    - z: float
+    - unit: str
+    {%- elif peripheral["per_msg_type"] == "Magnetometer" %}
+    - x: float
+    - y: float
+    - z: float
+    - unit: str
+    {%- elif peripheral["per_msg_type"] == "IMU" %}
+    - accel: AccelerationMessage
+    - gyro: GyroscopeMessage
+    - mag: MagnetometerMessage
+    {%- elif peripheral["per_msg_type"] == "Tracker" %}
+    - latitude: float
+    - longitude: float
+    - altitude: float
+    {%- elif peripheral["per_msg_type"] == "NeoPixel" %}
+    - red: int
+    - green: int
+    - blue: int
+    - index: int
+    {%- elif peripheral["per_msg_type"] == "MotorController" %}
+    - speed: float
+    - direction: int
+    {%- elif peripheral["per_msg_type"] == "Relay" %}
+    - state: bool
+    {%- elif peripheral["per_msg_type"] == "Switch" %}
+    - state: bool
+    {%- elif peripheral["per_msg_type"] == "Button" %}
+    - state: bool
+    {%- elif peripheral["per_msg_type"] == "Led" %}
+    - state: bool
+    - brightness: float
+    {%- elif peripheral["per_msg_type"] == "Buzzer" %}
+    - state: bool
+    - frequency: float
+    {%- elif peripheral["per_msg_type"] == "Speaker" %}
+    - volume: float
+    - uri: str
+    {%- elif peripheral["per_msg_type"] == "Stepper" %}
+    - steps: int
+    - direction: int
+    - speed: float
+    {%- elif peripheral["per_msg_type"] == "DCMotor" %}
+    - speed: float
+    - direction: int
+    {%- elif peripheral["per_msg_type"] == "Pump" %}
+    - state: bool
+    - flow_rate: float
+    {%- elif peripheral["per_msg_type"] == "Valve" %}
+    - state: bool
+    {%- elif peripheral["per_msg_type"] == "Heater" %}
+    - state: bool
+    - power: float
+    {%- elif peripheral["per_msg_type"] == "Cooler" %}
+    - state: bool
+    - power: float
+    {%- elif peripheral["per_msg_type"] == "Fan" %}
+    - speed: float
     {%- endif %}
-    {%- if peripheral["per_type"] == "Sensor" and peripheral["per_frequency"] is defined and peripheral["per_frequency"] %}
+    {%- if peripheral["per_type"] == "Sensor" and peripheral["per_frequency"] is defined and peripheral["per_frequency"]
+    %}
     freq: {{ peripheral["per_frequency"] }}
     {%- elif peripheral["per_type"] == "Sensor"%}
     freq: 1
     {%- endif %}
-end    
-{% endfor %}
+    end
+    {% endfor %}

@@ -1,0 +1,73 @@
+from gpiozero import AngularServo
+from .peripheral import Actuator
+from .msg import ServoControllerMessage
+
+
+class ServoGeneric(Actuator):
+    """
+    Generic PWM Angular Servo Actuator
+    """
+    _PIN = "{{ conn.gpio.pins.din.name }}"
+    _MIN_ANGLE = {{ attributes.get('min_angle', -90.0) }}
+    _MAX_ANGLE = {{ attributes.get('max_angle', 90.0) }}
+    _MIN_PULSE_WIDTH = {{ attributes.get('min_pulse_width', 0.001) }}
+    _MAX_PULSE_WIDTH = {{ attributes.get('max_pulse_width', 0.002) }}
+    _FRAME_WIDTH = {{ attributes.get('frame_width', 0.02) }}
+
+    def __init__(self):
+        super().__init__(
+            name="{{ instance }}", 
+            connections={{ conn }}, 
+            attributes={{ attributes }}
+        )
+        self.servo = None
+
+    def initialize(self):
+        """Initialize the Servo hardware"""
+        self.servo = AngularServo(
+            self._PIN,
+            initial_angle=0,
+            min_angle=self._MIN_ANGLE,
+            max_angle=self._MAX_ANGLE,
+            min_pulse_width=self._MIN_PULSE_WIDTH,
+            max_pulse_width=self._MAX_PULSE_WIDTH,
+            frame_width=self._FRAME_WIDTH
+        )
+
+    def write(self, msg):
+        """Write command to the Servo
+        
+        Args:
+            msg (ServoControllerMessage): Servo control message
+        """
+        angle = 0.0
+        
+        # Check for 'angle' attribute (common usage) or 'final_angle' from ServoControllerMessage
+        if hasattr(msg, 'angle'):
+            angle = msg.angle
+        elif hasattr(msg, 'final_angle'):
+            angle = msg.final_angle
+        elif isinstance(msg, dict):
+            angle = msg.get('angle', msg.get('final_angle', 0.0))
+            
+        # Ensure angle is within bounds
+        angle = max(self._MIN_ANGLE, min(self._MAX_ANGLE, angle))
+        self.servo.angle = angle
+
+    def disconnect(self):
+        """Release hardware resources"""
+        if self.servo:
+            self.servo.close()
+
+
+if __name__ == "__main__":
+    servo = ServoGeneric()
+    servo.initialize()
+    # Test: Move to 45 degrees
+    print("Moving servo to 45 degrees...")
+    servo.write({"angle": 45.0})
+    import time
+    time.sleep(1)
+    print("Moving servo back to 0 degrees...")
+    servo.write({"angle": 0.0})
+    servo.disconnect()

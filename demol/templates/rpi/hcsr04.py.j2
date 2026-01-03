@@ -1,7 +1,7 @@
 from gpiozero import DistanceSensor as DS
+from gpiozero.pins.pigpio import PiGPIOFactory
 from .peripheral import Sensor
 from .msg import DistanceMessage
-
 
 class HCSR04(Sensor):
     """
@@ -15,9 +15,14 @@ class HCSR04(Sensor):
     _MIN_DISTANCE = {{ attributes.get('min_distance', 0.0) }}
     _MAX_FREQUENCY = {{ op.get('freq_max', 16) }}
     _FREQUENCY = {{ attributes.get('frequency', 10.0) }}
+    _THRESHOLD_DISTANCE = {{ attributes.get('threshold_distance', 0.3) }}
 
     def __init__(self):
-        super().__init__(attributes={{ attributes }}, conn={{ conn }})
+        super().__init__(
+            name="{{ instance }}", 
+            connections={{ conn }}, 
+            attributes={{ attributes }}
+        )
         self.sensor = None
 
     def initialize(self):
@@ -26,7 +31,8 @@ class HCSR04(Sensor):
             trigger=self._TRIGGER_PIN,
             echo=self._ECHO_PIN,
             max_distance=self._MAX_DISTANCE / 100.0,
-            threshold_distance=0.3
+            threshold_distance=self._THRESHOLD_DISTANCE,
+            pin_factory=PiGPIOFactory()
         )
 
     def read(self):

@@ -1,0 +1,23 @@
+// Generic PWM Servo model
+ACTUATOR[ServoController] ServoGeneric WITH
+    OP
+        vcc=5V,
+        ioVcc=3.3V,
+        power.min=100 mW,
+        power.max=2500 mW,
+        power.avg=500 mW,
+        freq.max=50 hz
+    PINS
+        gnd[GND] @ 1,
+        din[gpio] @ 2,
+        vcc[5V] @ 3
+    TEMPLATES
+        raspbian="servo.py.j2",
+        riotos="servo.c.j2"
+    ATTRIBUTES
+        min_angle[float] = -90.0,
+        max_angle[float] = 90.0,
+        min_pulse_width[float] = 0.001,
+        max_pulse_width[float] = 0.002,
+        frame_width[float] = 0.02
+;

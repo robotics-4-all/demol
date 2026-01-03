@@ -22,7 +22,11 @@ class PCA9685(Actuator):
     _ADDRESS = {{ conn.i2c.slave_address if conn.i2c is defined else 0x40 }}
 
     def __init__(self):
-        super().__init__(attributes={{ attributes }}, conn={{ conn }})
+        super().__init__(
+            name="{{ instance }}", 
+            connections={{ conn }}, 
+            attributes={{ attributes }}
+        )
         self.pca = None
         self.servo = None
 

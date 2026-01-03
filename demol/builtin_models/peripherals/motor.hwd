@@ -1,0 +1,31 @@
+// Generic DC Motor model (H-Bridge)
+
+// Represents a generic motor connected to a bi-directional motor driver
+// circuit (i.e. an H-bridge).
+
+// Attach an H-bridge motor controller to your board.
+// Connect a power source (e.g. a battery pack or the 5V pin)
+// to the controller.
+// Connect the outputs of the controller board to the two terminals
+// of the motor.
+// Connect the inputs of the controller board to two GPIO pins.
+
+ACTUATOR[DCMotor] MotorGeneric WITH
+    OP
+        vcc=5V,
+        ioVcc=3V3,
+        power.min=100 mW,
+        power.max=2000 mW,
+        power.avg=500 mW,
+        freq.max=1000 hz
+    PINS
+        gnd[GND] @ 1,
+        forward[gpio] @ 2,  // The GPIO pin that the forward input of the motor driver chip is connected
+        backward[gpio] @ 3, // The GPIO pin that the backward input of the motor driver chip is connected
+        vcc[5V] @ 4
+    TEMPLATES
+        raspbian="motor.py.j2",
+        riotos="motor.c.j2"
+    ATTRIBUTES
+        pwm[bool] = true  // Enable PWM control of pins forward and backward
+;

@@ -12,7 +12,11 @@ class Button(Sensor):
     _FREQUENCY = {{ attributes.get('frequency', 10.0) }}
     
     def __init__(self):
-        super().__init__(attributes={{ attributes }}, conn={{ conn }})
+        super().__init__(
+            name="{{ instance }}", 
+            connections={{ conn }}, 
+            attributes={{ attributes }}
+        )
         self.button = None
     
     def initialize(self):

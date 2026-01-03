@@ -1,0 +1,72 @@
+from gpiozero import Motor
+from .peripheral import Actuator
+from .msg import DCMotorMessage
+
+
+class MotorGeneric(Actuator):
+    """
+    Generic DC Motor Actuator (H-Bridge)
+    """
+    _FORWARD_PIN = "{{ conn.gpio.pins.forward.name }}"
+    _BACKWARD_PIN = "{{ conn.gpio.pins.backward.name }}"
+    _PWM = {{ attributes.get('pwm', True) | lower }}
+
+    def __init__(self):
+        super().__init__(
+            name="{{ instance }}", 
+            connections={{ conn }}, 
+            attributes={{ attributes }}
+        )
+        self.motor = None
+
+    def initialize(self):
+        """Initialize the Motor hardware"""
+        self.motor = Motor(
+            forward=self._FORWARD_PIN,
+            backward=self._BACKWARD_PIN,
+            pwm=self._PWM
+        )
+
+    def write(self, msg):
+        """Write command to the Motor
+        
+        Args:
+            msg (DCMotorMessage): DC Motor control message
+        """
+        speed = 0.0
+        direction = 0
+        
+        if hasattr(msg, 'speed'):
+            speed = msg.speed
+            direction = getattr(msg, 'direction', 0)
+        elif isinstance(msg, dict):
+            speed = msg.get('speed', 0.0)
+            direction = msg.get('direction', 0)
+            
+        # Ensure speed is between 0 and 1
+        speed = max(0.0, min(1.0, abs(speed)))
+        
+        if direction > 0:
+            self.motor.forward(speed)
+        elif direction < 0:
+            self.motor.backward(speed)
+        else:
+            self.motor.stop()
+
+    def disconnect(self):
+        """Release hardware resources"""
+        if self.motor:
+            self.motor.close()
+
+
+if __name__ == "__main__":
+    motor = MotorGeneric()
+    motor.initialize()
+    # Test: Run forward at 50% speed for 1 second
+    print("Running motor forward...")
+    motor.write({"speed": 0.5, "direction": 1})
+    import time
+    time.sleep(1)
+    print("Stopping motor...")
+    motor.write({"speed": 0.0, "direction": 0})
+    motor.disconnect()

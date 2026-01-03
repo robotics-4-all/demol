@@ -1,0 +1,59 @@
+DEVICE MobileRobot WITH 
+    description="A mobile robot with obstacle avoidance", 
+    author="Antigravity", 
+    os=raspbian;
+
+USE RaspberryPi_5_8GB;
+
+// Peripherals
+USE MotorGeneric[LeftMotor], MotorGeneric[RightMotor];
+USE HCSR04[ObstacleSensor] WITH 
+    threshold_distance = 0.2,
+    frequency = 20
+;
+USE BuzzerGeneric[AlarmBuzzer];
+
+NETWORK[WiFi] WITH 
+    ssid="RobotNet", 
+    password="robot_password";
+
+BROKER[MQTT] RobotBroker WITH 
+    host="192.168.1.10", 
+    port=1883,
+    auth.username="robot",
+    auth.password="robot_pass";
+
+// Connections
+CONNECT LeftMotor WITH
+    POWER 
+        GND_1 -- gnd, 
+        power_5v_a -- vcc
+    DATA 
+        gpio[mode="output"] GPIO17 -- forward,
+        gpio[mode="output"] GPIO27 -- backward
+    @ "robot/motors/left";
+
+CONNECT RightMotor WITH
+    POWER 
+        GND_2 -- gnd, 
+        power_5v_b -- vcc
+    DATA 
+        gpio[mode="output"] GPIO23 -- forward,
+        gpio[mode="output"] GPIO24 -- backward
+    @ "robot/motors/right";
+
+CONNECT ObstacleSensor WITH
+    POWER 
+        GND_3 -- GND, 
+        power_5v_a -- VCC
+    DATA 
+        gpio[mode="output"] GPIO5 -- trigger,
+        gpio[mode="input"] GPIO6 -- echo
+    @ "robot/sensors/distance";
+
+CONNECT AlarmBuzzer WITH
+    POWER 
+        GND_4 -- gnd
+    DATA 
+        gpio[mode="output"] GPIO18 -- vin
+    @ "robot/alerts/buzzer";

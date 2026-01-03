@@ -5,13 +5,13 @@ class PeripheralState:
 
 
 class Peripheral:
-    def __init__(self, name, connections, attributes):
+    def __init__(self, name=None, connections=None, attributes=None):
         self.name = name
-        self._connections = connections
-        self._attributes = attributes
+        self._connections = connections if connections is not None else {}
+        self._attributes = attributes if attributes is not None else {}
         self._current_state = {
             "state": PeripheralState.IDLE,
-            "data": None
+            "data": {}
         }
 
     def set_attr(self, key, value):
@@ -49,7 +49,7 @@ class Peripheral:
 
 
 class Sensor(Peripheral):
-    def __init__(self, name, connections, attributes):
+    def __init__(self, name=None, connections=None, attributes=None):
         super().__init__(name, connections, attributes)
 
     def initialize(self):
@@ -63,7 +63,7 @@ class Sensor(Peripheral):
 
 
 class Actuator(Peripheral):
-    def __init__(self, name, connections, attributes):
+    def __init__(self, name=None, connections=None, attributes=None):
         super().__init__(name, connections, attributes)
 
     def initialize(self):
