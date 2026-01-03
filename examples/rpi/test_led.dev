@@ -16,8 +16,7 @@ BROKER[MQTT] MyBroker WITH
 
 CONNECT StatusLed WITH
     POWER 
-        GND_1 -- gnd, 
-        power_3v3_a -- vcc
+        GND_1 -- gnd
     DATA 
-        gpio[mode="output"] GPIO17 -- pin
+        gpio[mode="output"] GPIO17 -- vin
     @ "actuators/led";
