@@ -116,6 +116,7 @@ class RPiCodeGenerator(BaseCodeGenerator):
         broker_config = self.get_broker_config()
         pins = self.get_pin_mappings(connection.dataConns, board)
         attributes = self.get_peripheral_attributes(peripheral_ref)
+        op_attributes = self.get_operational_attributes(peripheral_ref)
         
         # Build base context
         context = {
@@ -128,7 +129,9 @@ class RPiCodeGenerator(BaseCodeGenerator):
             "broker": broker_config,
             "topic": connection.remote,
             "conn": {},
-            "attributes": attributes
+            "attributes": attributes,
+            "op": op_attributes,
+            "max_frequency": op_attributes.get("freq_max", {}).get("value", 100.0)
         }
         
         # Build structured connection info

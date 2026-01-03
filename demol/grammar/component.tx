@@ -159,7 +159,7 @@ SensorType:
     "Tracker"	    |
     "ADC"           |
     "Proximity"     |
-    "NeoPixel"
+    "Button"
 ;
 
 ActuatorType:
@@ -167,11 +167,11 @@ ActuatorType:
     "ServoController"   |
     "Relay"             |
     "Switch"            |
-    "Button"            |
     
     // Display & Light Actuators
     "LedArray"          |
-    "Led"
+    "Led"               |
+    "NeoPixel"          |
     
     // Sound Actuators
     "Buzzer"            |
@@ -233,6 +233,7 @@ OperationalSensor:
         ("power.min" "=" min=PowerConsumption ","?)?
         ("power.max" "=" max=PowerConsumption ","?)?
         ("power.avg" "=" avg=PowerConsumption ","?)?
+        ("freq.max" "=" freq_max=Frequency ","?)?
         ("riotTpl" "=" riotTpl=STRING ","?)?
         ("piTpl" "=" piTpl=STRING ","?)?
     )#
@@ -245,6 +246,7 @@ OperationalActuator:
         ("power.min" "=" min=PowerConsumption ","?)?
         ("power.max" "=" max=PowerConsumption ","?)?
         ("power.avg" "=" avg=PowerConsumption ","?)?
+        ("freq.max" "=" freq_max=Frequency ","?)?
         ("riotTpl" "=" riotTpl=STRING ","?)?
         ("piTpl" "=" piTpl=STRING ","?)?
     )#
@@ -252,6 +254,10 @@ OperationalActuator:
 
 PowerConsumption:
     value=NUMBER unit=PowerUnit
+;
+
+Frequency:
+    value=NUMBER unit=FrequencyUnit
 ;
 
 TemplateMapping:

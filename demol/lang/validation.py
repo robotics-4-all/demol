@@ -308,6 +308,7 @@ def validate_model_file(file_path: str, metamodel) -> ValidationResult:
     """
     from demol.lang.semantics import (
         get_validation_errors, 
+        get_validation_warnings,
         get_passed_rules, 
         clear_validation_results,
         ValidationError
@@ -343,12 +344,20 @@ def validate_model_file(file_path: str, metamodel) -> ValidationResult:
                 else:
                     status = ValidationStatus.FAIL
             
-            # Check if any warnings were captured
+            # Check for collected semantic warnings
+            collected_warnings = get_validation_warnings()
+            if collected_warnings:
+                for warn in collected_warnings:
+                    warnings_list.append(warn['msg'])
+                if status == ValidationStatus.PASS:
+                    status = ValidationStatus.WARN
+
+            # Check if any Python warnings were captured
             if caught_warnings:
                 for w in caught_warnings:
                     warning_msg = str(w.message)
                     warnings_list.append(warning_msg)
-                if status != ValidationStatus.FAIL:
+                if status == ValidationStatus.PASS:
                     status = ValidationStatus.WARN
             
         except (ValidationError, TextXSemanticError, TextXSyntaxError) as e:

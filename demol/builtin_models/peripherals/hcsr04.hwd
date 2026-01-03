@@ -4,7 +4,8 @@ SENSOR[Distance] HCSR04 WITH
         ioVcc=5V,
         power.min=10 mW,
         power.max=100 mW,
-        power.avg=75 mW
+        power.avg=75 mW,
+        freq.max=100 hz
     PINS
         GND[GND] @ 1,
         echo[gpio] @ 2,

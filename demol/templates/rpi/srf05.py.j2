@@ -1,49 +1,42 @@
 from gpiozero import DistanceSensor as DS
-from time import sleep
-
-{% if sensor_type == "SRF05" %}
-MAX_FREQUENCY = {{max_frequency | default(20)}}  #(Hz) recommended 
-MAX_DISTANCE = {{max_distance | default(200.0)}}
-MIN_DISTANCE = {{min_distance | default(4.0)}}
-{% elif sensor_type == "HC_SR04" %}
-MAX_FREQUENCY = {{max_frequency | default(16)}}
-MAX_DISTANCE = {{max_distance | default(200.0)}}
-MIN_DISTANCE = {{min_distance | default(0.0)}}
-{% endif -%}
-
-
-TRIGGER_PIN = "{{conn.gpio.pins.trigger.name}}"
-TRIGGER_PIN_NUMBER = "{{conn.gpio.pins.trigger.id}}"
-ECHO_PIN = "{{conn.gpio.pins.echo.name}}"
-ECHO_PIN_NUMBER = "{{conn.gpio.pins.echo.id}}"
+from .peripheral import Sensor
 
 
 class SRF05(Sensor):
-    #The class that sums up all distance sensors
+    """
+    Ultrasonic distance sensor (SRF05/HC-SR04)
+    """
+    _TRIGGER_PIN = "{{ conn.gpio.pins.trigger.name }}"
+    _TRIGGER_PIN_NUMBER = {{ conn.gpio.pins.trigger.id }}
+    _ECHO_PIN = "{{ conn.gpio.pins.echo.name }}"
+    _ECHO_PIN_NUMBER = {{ conn.gpio.pins.echo.id }}
+    _MAX_DISTANCE = {{ attributes.get('max_distance', 200.0) }}
+    _MIN_DISTANCE = {{ attributes.get('min_distance', 0.0) }}
+    _MAX_FREQUENCY = {{ op.get('freq_max', 16) }}
+    _FREQUENCY = {{ attributes.get('frequency', 10.0) }}
 
     def __init__(self):
-        self.max_distance = MAX_DISTANCE
-        self.min_distance = MIN_DISTANCE
-        self.max_frequency = MAX_FREQUENCY
+        super().__init__(attributes={{ attributes }}, conn={{ conn }})
+        self.sensor = None
+
+    def initialize(self):
+        """Initialize the sensor hardware"""
         self.sensor = DS(
-            trigger=TRIGGER_PIN,
-            echo=ECHO_PIN,
-            max_distance=self.max_distance,
+            trigger=self._TRIGGER_PIN,
+            echo=self._ECHO_PIN,
+            max_distance=self._MAX_DISTANCE / 100.0,
             threshold_distance=0.3
         )
-        self.msg = DistanceMessage()
-    
+
     def read(self):
-        data = {
-            "distance": self.sensor.distance * 100,
-            "max_distance": self.max_distance,
-            "min_distance": self.min_distance
-        }
-        self.msg = DistanceMessage(**data)
-        return msg
-    
-    def get_max_frequency(self):
-        return self.max_frequency
+        """Read sensor data"""
+        self.update_state_data({
+            "distance": self.sensor.distance * 100.0,
+            "max_distance": self._MAX_DISTANCE,
+            "min_distance": self._MIN_DISTANCE
+        })
 
     def disconnect(self):
-        self.sensor.close()
+        """Release hardware resources"""
+        if self.sensor:
+            self.sensor.close()

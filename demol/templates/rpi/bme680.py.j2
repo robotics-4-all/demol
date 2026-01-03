@@ -1,23 +1,30 @@
 import bme680
 import time
-
-DEFAULT_PRIMARY = bme680.I2C_ADDR_PRIMARY
-DEFAULT_SECONDARY = bme680.I2C_ADDR_SECONDARY
-PRIMARY_SLAVE_ADDRESS = 0x{{slaveAddr | default(76)}}
-SECONDARY_SLAVE_ADDRESS = 0x{{secondary_slave_address | default(77)}}
-MAX_FREQUENCY = {{max_frequency | default(180.0)}}
+from .peripheral import Sensor
+from .msg import EnvMessage
 
 
-class BME680:
-    # i don't know if it'll be possible to enter all these in the model
+class BME680(Sensor):
+    """
+    BME680 Environmental Sensor (Temperature, Humidity, Pressure, Gas)
+    """
+    _PRIMARY_ADDRESS = {{ conn.i2c.slave_address if conn.i2c is defined else 0x4c }}
+    _SECONDARY_ADDRESS = {{ attributes.get('secondary_slave_address', 0x4d) }}
+    _MAX_FREQUENCY = {{ op.get('freq_max', 180.0) }}
+    _FREQUENCY = {{ attributes.get('frequency', 10.0) }}
+
     def __init__(self):
-        # Initiallize sensor
-        try:
-            self.sensor = bme680.BME680(PRIMARY_SLAVE_ADDRESS)
-        except (RuntimeError, IOError):
-            self.sensor = bme680.BME680(SECONDARY_SLAVE_ADDRESS)
+        super().__init__(attributes={{ attributes }}, conn={{ conn }})
+        self.sensor = None
 
-        #Initiallizing parameters
+    def initialize(self):
+        """Initialize the sensor hardware"""
+        try:
+            self.sensor = bme680.BME680(self._PRIMARY_ADDRESS)
+        except (RuntimeError, IOError):
+            self.sensor = bme680.BME680(self._SECONDARY_ADDRESS)
+
+        # Initializing parameters
         self.sensor.set_humidity_oversample(bme680.OS_2X)
         self.sensor.set_pressure_oversample(bme680.OS_4X)
         self.sensor.set_temperature_oversample(bme680.OS_8X)
@@ -28,25 +35,21 @@ class BME680:
         self.sensor.set_gas_heater_duration(150)
         self.sensor.select_gas_heater_profile(0)
 
-        self.max_frequency = MAX_FREQUENCY
-    
-    def read_data(self):
-        data = {}
-        try:
-            if self.sensor.get_sensor_data():
-                data = {"temperature": self.sensor.data.temperature,
-                             "pressure": self.sensor.data.pressure,
-                             "humidity": self.sensor.data.humidity}
-                if self.sensor.data.heat_stable:
-                    data["gas_resistance"] = self.sensor.data.gas_resistance
-                else:
-                    data["gas_resistance"] = "Unstable heat, gas resistance not meassured"
-            return data
-        except KeyboardInterrupt:
-            pass
+    def read(self):
+        """Read sensor data"""
+        if self.sensor.get_sensor_data():
+            data = {
+                "temperature": self.sensor.data.temperature,
+                "pressure": self.sensor.data.pressure,
+                "humidity": self.sensor.data.humidity
+            }
+            if self.sensor.data.heat_stable:
+                data["gas_resistance"] = self.sensor.data.gas_resistance
+            else:
+                data["gas_resistance"] = 0.0
+            
+            self.update_state_data(data)
 
-    def get_max_frequency(self):
-        return self.max_frequency    
-    
     def disconnect(self):
+        """Release hardware resources"""
         pass

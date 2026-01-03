@@ -1,38 +1,45 @@
 import time
 import board
 import adafruit_vl53l1x
+from .peripheral import Sensor
+from .msg import DistanceMessage
 
-SENSOR_ADDRESS = {{slaveAddr | default(0x29)}}
-DISTANCE_MODE = {{distance_mode | default(1)}}
-TIMING_BUDGET = {{timing_budget | default(100)}}
-MAX_DISTANCE = {{max_distance | default(200.0)}}
-MIN_DISTANCE = {{min_distance | default(0.1)}}
-MAX_FREQUENCY = {{max_frequency | default(50.0)}}
 
-class VL53L1X:
+class VL53L1X(Sensor):
+    """
+    VL53L1X Time-of-Flight distance sensor
+    """
+    _ADDRESS = {{ conn.i2c.slave_address if conn.i2c is defined else 0x29 }}
+    _DISTANCE_MODE = {{ attributes.get('distance_mode', 1) }}
+    _TIMING_BUDGET = {{ attributes.get('timing_budget', 100) }}
+    _MAX_DISTANCE = {{ attributes.get('max_distance', 200.0) }}
+    _MIN_DISTANCE = {{ attributes.get('min_distance', 0.1) }}
+    _MAX_FREQUENCY = {{ op.get('freq_max', 50.0) }}
+    _FREQUENCY = {{ attributes.get('frequency', 10.0) }}
+
     def __init__(self):
+        super().__init__(attributes={{ attributes }}, conn={{ conn }})
+        self.vl53 = None
+
+    def initialize(self):
+        """Initialize the sensor hardware"""
         i2c = board.I2C()
-        self.vl53 = adafruit_vl53l1x.VL53L1X(i2c, address = SENSOR_ADDRESS)
-        self.vl53.distance_mode = DISTANCE_MODE
-        self.vl53.timing_budget = TIMING_BUDGET
+        self.vl53 = adafruit_vl53l1x.VL53L1X(i2c, address=self._ADDRESS)
+        self.vl53.distance_mode = self._DISTANCE_MODE
+        self.vl53.timing_budget = self._TIMING_BUDGET
         self.vl53.start_ranging()
-        self.open_sensor()
-        self.max_distance = MAX_DISTANCE
-        self.min_distance = MIN_DISTANCE
-        self.max_frequency = MAX_FREQUENCY
-    
-    def read_data(self):
+
+    def read(self):
+        """Read sensor data"""
         if self.vl53.data_ready:
-            data = {
-                   # "sensor_name": self.__class__.__name__,
-                    "max_distance": self.max_distance,
-                    "min_distance": self.min_distance,
-                    "distance": self.vl53.distance
-            }
-            return data
-        
-    def get_max_frequency(self):
-        return self.max_frequency
-    
+            self.update_state_data({
+                "distance": self.vl53.distance,
+                "max_distance": self._MAX_DISTANCE,
+                "min_distance": self._MIN_DISTANCE
+            })
+            self.vl53.clear_interrupt()
+
     def disconnect(self):
-        pass
+        """Release hardware resources"""
+        if self.vl53:
+            self.vl53.stop_ranging()

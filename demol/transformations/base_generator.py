@@ -107,6 +107,35 @@ class BaseCodeGenerator(ABC):
             else:
                 result[item.name] = item.default
         return result
+
+    def get_operational_attributes(self, peripheral_ref) -> Dict[str, Any]:
+        """Extract operational attributes from peripheral definition.
+        
+        Args:
+            peripheral_ref: Reference to peripheral object with operational block
+            
+        Returns:
+            Dictionary of operational attribute name-value pairs
+        """
+        op = peripheral_ref.operational
+        result = {
+            "vcc": op.vcc,
+            "ioVcc": getattr(op, "iovcc", op.vcc),
+        }
+        
+        # Add power consumption if present
+        if hasattr(op, "min") and op.min:
+            result["power_min"] = {"value": op.min.value, "unit": op.min.unit}
+        if hasattr(op, "max") and op.max:
+            result["power_max"] = {"value": op.max.value, "unit": op.max.unit}
+        if hasattr(op, "avg") and op.avg:
+            result["power_avg"] = {"value": op.avg.value, "unit": op.avg.unit}
+            
+        # Add frequency if present
+        if hasattr(op, "freq_max") and op.freq_max:
+            result["freq_max"] = {"value": op.freq_max.value, "unit": op.freq_max.unit}
+            
+        return result
     
     def get_pin_mappings(self, data_connections, board) -> Dict[str, Any]:
         """Extract pin mappings from data connections.

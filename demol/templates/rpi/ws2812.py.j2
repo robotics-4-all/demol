@@ -1,48 +1,65 @@
 import time
 import board
 import neopixel_spi as neopixel
+from .peripheral import Actuator
 
-NUM_PIXELS = {{num_pixels | default(12)}}
-PIXEL_ORDER = neopixel.{{color_format | default("GRB")}}
-COLORS = {{colors | default("['0xFF0000', '0x00FF00', '0x0000FF', '0xFFFF00', '0xFF00FF', '0x00FFFF', '0xFFFFFF', '0x800000', '0x008000', '0x000080', '0xFFA500', '0x800080']")}}
-DELAY = {{delay | default(0.1)}}
-BRIGHTNESS = {{brightness | default(0.5)}}
 
-class LEDArray:
+class WS2812(Actuator):
+    """
+    WS2812 NeoPixel LED Array (SPI-based)
+    """
+    _NUM_PIXELS = {{ attributes.get('num_leds', 12) }}
+    _PIXEL_ORDER = "{{ attributes.get('color_format', 'GRB') }}"
+    _BRIGHTNESS = {{ attributes.get('brightness', 0.5) }}
+    _DELAY = {{ attributes.get('delay', 0.1) }}
+
     def __init__(self):
+        super().__init__(attributes={{ attributes }}, conn={{ conn }})
+        self.spi = None
+        self.pixels = None
+
+    def initialize(self):
+        """Initialize the actuator hardware"""
         self.spi = board.SPI()
+        pixel_order = getattr(neopixel, self._PIXEL_ORDER, neopixel.GRB)
         self.pixels = neopixel.NeoPixel_SPI(
             self.spi,
-            NUM_PIXELS,
-            brightness=BRIGHTNESS,
-            pixel_order=PIXEL_ORDER,
+            self._NUM_PIXELS,
+            brightness=self._BRIGHTNESS,
+            pixel_order=pixel_order,
             auto_write=True
         )
 
-    def set_action(self, **params):
-        # Extract parameters with defaults
-        colors = params.get('colors', COLORS)
-        delay = params.get('delay', DELAY)
-        brightness = params.get('brightness', BRIGHTNESS)
+    def write(self, msg):
+        """Write command to the actuator"""
+        # msg is expected to have 'colors' (list of hex strings)
+        colors = []
+        if hasattr(msg, 'colors'):
+            colors = msg.colors
+        elif isinstance(msg, dict) and 'colors' in msg:
+            colors = msg['colors']
         
-        # Update brightness if provided
-        if 'brightness' in params:
-            self.pixels.brightness = brightness
+        if not colors:
+            return
+
+        # Turn the colors into integers
+        int_colors = []
+        for x in colors:
+            try:
+                if isinstance(x, str) and x.startswith('0x'):
+                    int_colors.append(int(x, 16))
+                else:
+                    int_colors.append(int(x))
+            except (ValueError, TypeError):
+                continue
         
-        # Turn the colors into integers so the neopixel library will understand.
-        colors = [int(x, 16) for x in colors]
-        # Execute the LED sequence
-        i = 0
-        for color in colors:
-            if i >= NUM_PIXELS:  # Don't exceed the number of available pixels
+        for i, color in enumerate(int_colors):
+            if i >= self._NUM_PIXELS:
                 break
             self.pixels[i] = color
-            i += 1
-            time.sleep(delay)
-        self.pixels.fill(0)
+            time.sleep(self._DELAY)
 
     def disconnect(self):
-        self.pixels.fill(0)
-
-class WS2812(LEDArray):
-    pass
+        """Release hardware resources"""
+        if self.pixels:
+            self.pixels.fill(0)

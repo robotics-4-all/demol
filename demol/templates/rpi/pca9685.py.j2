@@ -1,53 +1,54 @@
-# servo classes are defined considering a pca9685 servo driver
-# SPDX-FileCopyrightText: 2021 ladyada for Adafruit Industries
-# SPDX-License-Identifier: MIT
-
 import time
 import numpy as np
 import board
 from adafruit_motor import servo
 from adafruit_pca9685 import PCA9685 as PCA
+from .peripheral import Actuator
 
-FREQUENCY = {{frequency | default(50)}}  # Frequency for the PCA9685
-CHANNEL = {{channel | default(0)}} 
-INITIAL_ANGLE = {{initial_angle | default(0)}}  # Initial angle for the servo
-FINAL_ANGLE = {{final_angle | default(180)}}  # Final angle for the servo
-ANGULAR_SPEED = {{angular_speed | default(0.1)}}  # Speed of the servo movement in degrees per second
-ANGULAR_STEP = {{angular_step | default(1)}}  # Step size for the servo movement in degrees
-MAX_FREQUENCY = {{max_frequency | default(1000)}}
-MIN_PULSE = {{min_pulse | default(500)}}
-MAX_PULSE = {{max_pulse | default(2500)}}
 
-class ServoControllerClass:
+class PCA9685(Actuator):
+    """
+    PCA9685 PWM/Servo Controller
+    """
+    _FREQUENCY = {{ attributes.get('frequency', 50) }}
+    _CHANNEL = {{ attributes.get('channel', 0) }}
+    _INITIAL_ANGLE = {{ attributes.get('initial_angle', 0) }}
+    _FINAL_ANGLE = {{ attributes.get('final_angle', 180) }}
+    _ANGULAR_SPEED = {{ attributes.get('angular_speed', 0.1) }}
+    _ANGULAR_STEP = {{ attributes.get('angular_step', 1) }}
+    _MAX_FREQUENCY = {{ op.get('freq_max', 1000) }}
+    _MIN_PULSE = {{ attributes.get('min_pulse', 500) }}
+    _MAX_PULSE = {{ attributes.get('max_pulse', 2500) }}
+    _ADDRESS = {{ conn.i2c.slave_address if conn.i2c is defined else 0x40 }}
+
     def __init__(self):
-        self.i2c = board.I2C()
-        self.pca = PCA(self.i2c)
-        if FREQUENCY >= MAX_FREQUENCY:
-            raise ValueError(f"Frequency {FREQUENCY} Hz exceeds maximum {MAX_FREQUENCY} Hz.")
-        self.pca.frequency = FREQUENCY
-        self.servo7 = servo.Servo(self.pca.channels[CHANNEL], min_pulse=MIN_PULSE, max_pulse=MAX_PULSE)
-    
+        super().__init__(attributes={{ attributes }}, conn={{ conn }})
+        self.pca = None
+        self.servo = None
 
-    def set_action(self, **params):
-        initial_angle = params.get('initial_angle', INITIAL_ANGLE)
-        final_angle = params.get('final_angle', FINAL_ANGLE)
-        angular_step = params.get('angular_step', ANGULAR_STEP)
-        angular_speed = params.get('angular_speed', ANGULAR_SPEED)
+    def initialize(self):
+        """Initialize the actuator hardware"""
+        i2c = board.I2C()
+        self.pca = PCA(i2c, address=self._ADDRESS)
+        self.pca.frequency = self._FREQUENCY
+        self.servo = servo.Servo(
+            self.pca.channels[self._CHANNEL], 
+            min_pulse=self._MIN_PULSE, 
+            max_pulse=self._MAX_PULSE
+        )
 
-        if (angular_speed != 0):
-            if (initial_angle > final_angle) & (angular_step > 0):
-                angular_step = -angular_step
-            angle_range = np.arange(initial_angle, final_angle + angular_step, angular_step)
-            time_per_step = abs(angular_step) / angular_speed  # Time = Distance / Speed
-            for angle in angle_range:
-                self.servo7.angle = angle
-                time.sleep(time_per_step)
-        else:   
-            print("Speed is set to zero. Servo will stop moving.")
-            self.disconnect()
+    def write(self, msg):
+        """Write command to the actuator"""
+        # msg is expected to have 'angle'
+        angle = 0
+        if hasattr(msg, 'angle'):
+            angle = msg.angle
+        elif isinstance(msg, dict) and 'angle' in msg:
+            angle = msg['angle']
+        
+        self.servo.angle = angle
 
     def disconnect(self):
-        self.pca.deinit()
-
-class PCA9685(ServoControllerClass):
-    pass
+        """Release hardware resources"""
+        if self.pca:
+            self.pca.deinit()

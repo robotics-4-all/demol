@@ -1,32 +1,39 @@
 import time
 import adafruit_tfmini   
 import serial
+from .peripheral import Sensor
 
-PORT = "{{serial_port | default("/dev/ttyAMA0")}}"
-MAX_DISTANCE = {{max_distance | default(200.0)}}
-MIN_DISTANCE = {{min_distance | default(0.1)}}
-MAX_FREQUENCY = {{max_frequency | default(100.0)}}
 
-class TFMini:
+class TFMini(Sensor):
+    """
+    TFMini LiDAR distance sensor (UART-based)
+    """
+    _PORT = "{{ conn.uart.port if conn.uart is defined else '/dev/ttyAMA0' }}"
+    _BAUDRATE = {{ conn.uart.baudrate if conn.uart is defined else 115200 }}
+    _MAX_DISTANCE = {{ attributes.get('max_distance', 200.0) }}
+    _MIN_DISTANCE = {{ attributes.get('min_distance', 0.1) }}
+    _MAX_FREQUENCY = {{ op.get('freq_max', 100.0) }}
+    _FREQUENCY = {{ attributes.get('frequency', 10.0) }}
+
     def __init__(self):
-        self.uart = serial.Serial(PORT, timeout=1)
-        self.tfmini = adafruit_tfmini.TFmini(self.uart, timeout =60)
-        self.max_distance = MAX_DISTANCE
-        self.min_distance = MIN_DISTANCE
-        self.max_frequency = MAX_FREQUENCY
+        super().__init__(attributes={{ attributes }}, conn={{ conn }})
+        self.uart = None
+        self.tfmini = None
 
-    def read_data(self):
-        data = {
+    def initialize(self):
+        """Initialize the sensor hardware"""
+        self.uart = serial.Serial(self._PORT, baudrate=self._BAUDRATE, timeout=1)
+        self.tfmini = adafruit_tfmini.TFmini(self.uart, timeout=60)
+
+    def read(self):
+        """Read sensor data"""
+        self.update_state_data({
             "distance": self.tfmini.distance,
-           # "signal_strength": self.tfmini.strength,
-           # "mode": self.tfmini.mode,
-            "max_distance": self.max_distance,
-            "min_distance": self.min_distance
-        }
-        return data
-    
-    def get_max_frequency(self):
-        return self.max_frequency    
+            "max_distance": self._MAX_DISTANCE,
+            "min_distance": self._MIN_DISTANCE
+        })
 
     def disconnect(self):
-        pass
+        """Release hardware resources"""
+        if self.uart:
+            self.uart.close()

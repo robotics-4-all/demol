@@ -32,7 +32,7 @@ class Peripheral:
             "data": None
         }
 
-    def update_state_data(self, data):
+    def update_state_data(self, data: dict):
         self._current_state["data"] = data
 
     @property

@@ -1,0 +1,37 @@
+from gpiozero import Button as GpioButton
+from .peripheral import Sensor
+from .msg import ButtonMessage
+
+
+class Button(Sensor):
+    """
+    Tactile Button Sensor
+    """
+    _PIN = "{{ conn.gpio.pins.state.name }}"
+    _MAX_FREQUENCY = {{ op.get('freq_max', 100) }}
+    _FREQUENCY = {{ attributes.get('frequency', 10.0) }}
+    
+    def __init__(self):
+        super().__init__(attributes={{ attributes }}, conn={{ conn }})
+        self.button = None
+    
+    def initialize(self):
+        """Initialize the sensor hardware"""
+        self.button = GpioButton(self._PIN, pull_up={{ attributes.get('pullup', True) | lower }})
+        
+    def read(self):
+        """Read sensor data"""
+        self.update_state_data({"state": self.button.is_pressed})
+        
+    def disconnect(self):
+        """Release hardware resources"""
+        if self.button:
+            self.button.close()
+
+
+if __name__ == "__main__":
+    sensor = Button()
+    sensor.initialize()
+    sensor.read()
+    print("Button: ", sensor.current_state['data'])
+    sensor.disconnect()

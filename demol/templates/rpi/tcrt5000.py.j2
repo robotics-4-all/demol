@@ -1,25 +1,24 @@
 from gpiozero import DigitalInputDevice as DInD
-from common import Sensor
-from msg import ProximityMessage
-
-D_IN_PIN = "{{ conn.gpio.pins.D0.name }}"
-D_IN_PIN_NUMBER = {{ conn.gpio.pins.D0.id}}
-MAX_FREQUENCY = {{max_frequency | default(100.0)}}
+from .peripheral import Sensor
+from .msg import ProximityMessage
 
 
 class TCRT5000(Sensor):
     """
     IR reflective sensor - detects black vs white/reflective surfaces
     """
+    _PIN = "{{ conn.gpio.pins.D0.name }}"
+    _PIN_NUMBER = {{ conn.gpio.pins.D0.id }}
+    _MAX_FREQUENCY = {{ op.get('freq_max', 100) }}
+    _FREQUENCY = {{ attributes.get('frequency', 10.0) }}
     
-    def __init__(self, attributes: dict, conn: dict):
-        super().__init__(attributes, conn)
+    def __init__(self):
+        super().__init__(attributes={{ attributes }}, conn={{ conn }})
         self.sensor = None
-        self.msg = ProximityMessage()
-        
+    
     def initialize(self):
         """Initialize the sensor hardware"""
-        self.sensor = DInD(D_IN_PIN)
+        self.sensor = DInD(self._PIN)
         
     def read(self):
         """Read sensor data
@@ -27,16 +26,7 @@ class TCRT5000(Sensor):
         Returns:
             ProximityMessage: Proximity message
         """
-        value = self.sensor.value
-        self._data = {
-            "detect": value
-        }
-        self.msg.detect = value
-        return self.msg
-    
-    def get_max_frequency(self):
-        """Get maximum polling frequency in Hz"""
-        return self.attributes.get("frequency", 100.0)
+        self.update_state_data({"value": self.sensor.value})
     
     def disconnect(self):
         """Release hardware resources"""
@@ -46,4 +36,7 @@ class TCRT5000(Sensor):
 
 if __name__ == "__main__":
     sensor = TCRT5000()
-    sensor.run()
+    sensor.initialize()
+    sensor.read()
+    print("TCRT5000: ", sensor.current_state['data'])
+    sensor.disconnect()

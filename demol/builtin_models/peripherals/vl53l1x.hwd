@@ -4,7 +4,8 @@ SENSOR[Distance] VL53L1X WITH
         ioVcc=3V3,
         power.min=5 mW,
         power.max=60 mW,
-        power.avg=20 mW
+        power.avg=20 mW,
+        freq.max=50 hz
     PINS
         VDD[2.8V] @ 1,
         VIN[3V3] @ 2,

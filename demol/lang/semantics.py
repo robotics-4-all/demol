@@ -15,17 +15,23 @@ import re
 
 # Global lists to collect validation results during a single model processing run
 _validation_errors = []
+_validation_warnings = []
 _passed_rules = []
 
 def clear_validation_results():
     """Clear the collected validation results"""
-    global _validation_errors, _passed_rules
+    global _validation_errors, _validation_warnings, _passed_rules
     _validation_errors = []
+    _validation_warnings = []
     _passed_rules = []
 
 def get_validation_errors():
     """Get the list of collected validation errors"""
     return _validation_errors
+
+def get_validation_warnings():
+    """Get the list of collected validation warnings"""
+    return _validation_warnings
 
 def get_passed_rules():
     """Get the list of passed validation rules"""
@@ -58,6 +64,21 @@ def raise_validation_error(obj, msg: str, error_type: str = "Semantics"):
         'msg': error_msg,
         'loc': loc,
         'type': error_type
+    })
+
+def raise_validation_warning(obj, msg: str, warning_type: str = "Warning"):
+    """Collect a validation warning with location information"""
+    global _validation_warnings
+    loc = get_location(obj)
+    
+    # Format the warning message
+    warning_msg = f"[{warning_type}] {msg}"
+    
+    _validation_warnings.append({
+        'obj': obj,
+        'msg': warning_msg,
+        'loc': loc,
+        'type': warning_type
     })
 
 def check_validation_errors(model, skip_semantics=False):
@@ -725,7 +746,7 @@ def validate_io_voltage_compatibility(model) -> None:
             
         # Check compatibility
         if not are_voltages_compatible(board_io_v, periph_io_v):
-            raise_validation_error(
+            raise_validation_warning(
                 connection,
                 f"Board '{board.name}' operates at {board_io_v}V (IO), "
                 f"but peripheral '{peripheral.name}' operates at {periph_io_v}V (IO). "
@@ -754,7 +775,7 @@ def validate_common_ground(model) -> None:
         
         # Check if there are any power connections
         if not hasattr(connection, 'powerConns') or not connection.powerConns:
-            raise_validation_error(
+            raise_validation_warning(
                 connection,
                 f"Peripheral '{peripheral_name}' (type: {peripheral.name}) has no power "
                 f"connections to the board. Ensure proper grounding through external means "
@@ -780,7 +801,7 @@ def validate_common_ground(model) -> None:
         
         # If no ground connection found, emit warning
         if not has_ground:
-            raise_validation_error(
+            raise_validation_warning(
                 connection,
                 f"Peripheral '{peripheral_name}' (type: {peripheral.name}) does not have "
                 f"a GND (ground) power connection to the board. This may cause electrical "

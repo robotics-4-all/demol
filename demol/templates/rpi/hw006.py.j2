@@ -1,25 +1,41 @@
 from gpiozero import DigitalInputDevice as DInD
-import time
+from .peripheral import Sensor
 
-GPIO_PIN = "{{DO}}"
-MAX_FREQUENCY = {{max_frequency | default(1000.0)}}
 
-class HW006:
-    #The sensor recognizes whether it "sees" black or a white/reflective area
+class HW006(Sensor):
+    """
+    IR reflective sensor - detects black vs white/reflective surfaces
+    """
+    _PIN = "{{ conn.gpio.pins.D0.name }}"
+    _PIN_NUMBER = {{ conn.gpio.pins.D0.id }}
+    _MAX_FREQUENCY = {{ op.get('freq_max', 100) }}
+    _FREQUENCY = {{ attributes.get('frequency', 10.0) }}
+    
     def __init__(self):
-        self.sensor = DInD(GPIO_PIN)
-        self.max_frequency = MAX_FREQUENCY
- 
-    def read_data(self):
-        value = self.sensor.value
-        data = {
-            "detect": value
-        }
-        return data
-
-    def get_max_frequency(self):
-        return self.max_frequency
-
+        super().__init__(attributes={{ attributes }}, conn={{ conn }})
+        self.sensor = None
+    
+    def initialize(self):
+        """Initialize the sensor hardware"""
+        self.sensor = DInD(self._PIN)
+        
+    def read(self):
+        """Read sensor data
+        
+        Returns:
+            ProximityMessage: Proximity message
+        """
+        self.update_state_data({"value": self.sensor.value})
+    
     def disconnect(self):
-        #Release used resources
-        self.sensor.close()
+        """Release hardware resources"""
+        if self.sensor:
+            self.sensor.close()
+
+
+if __name__ == "__main__":
+    sensor = HW006()
+    sensor.initialize()
+    sensor.read()
+    print("HW006: ", sensor.current_state['data'])
+    sensor.disconnect()

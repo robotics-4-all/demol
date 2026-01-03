@@ -1,11 +1,12 @@
 // Single Tactile Button model
 
-ACTUATOR[Button] TactileButton WITH
+SENSOR[Button] TactileButton WITH
     OP
         vcc=5V,
         power.min=0 mW,
         power.max=1 mW,
-        power.avg=0.5 mW
+        power.avg=0.5 mW,
+        freq.max=100 hz
     PINS
         gnd[GND] @ 1,
         state[gpio] @ 2

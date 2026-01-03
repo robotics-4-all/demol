@@ -1,0 +1,61 @@
+from gpiozero import PWMLED
+from .peripheral import Actuator
+from .msg import LedMessage
+
+
+class LedGeneric(Actuator):
+    """
+    Generic LED Actuator (PWM supported)
+    """
+    _PIN = "{{ conn.gpio.pins.pin.name }}"
+    _ACTIVE_HIGH = {{ attributes.get('active_high', True) | lower }}
+    _INITIAL_VALUE = {{ attributes.get('initial_value', False) | lower }}
+
+    def __init__(self):
+        super().__init__(attributes={{ attributes }}, conn={{ conn }})
+        self.led = None
+
+    def initialize(self):
+        """Initialize the LED hardware"""
+        self.led = PWMLED(
+            self._PIN, 
+            active_high=self._ACTIVE_HIGH, 
+            initial_value=0.0 if not self._INITIAL_VALUE else 1.0
+        )
+
+    def write(self, msg):
+        """Write command to the LED
+        
+        Args:
+            msg (LedMessage): LED control message
+        """
+        state = False
+        brightness = 1.0
+        
+        if hasattr(msg, 'state'):
+            state = msg.state
+            brightness = getattr(msg, 'brightness', 1.0)
+        elif isinstance(msg, dict):
+            state = msg.get('state', False)
+            brightness = msg.get('brightness', 1.0)
+            
+        if state:
+            self.led.value = max(0.0, min(1.0, brightness))
+        else:
+            self.led.off()
+
+    def disconnect(self):
+        """Release hardware resources"""
+        if self.led:
+            self.led.close()
+
+
+if __name__ == "__main__":
+    led = LedGeneric()
+    led.initialize()
+    # Test: Turn on at 50% brightness
+    led.write({"state": True, "brightness": 0.5})
+    import time
+    time.sleep(1)
+    led.write({"state": False})
+    led.disconnect()

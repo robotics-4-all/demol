@@ -4,7 +4,8 @@ SENSOR[Proximity] TCRT5000 WITH
         ioVcc=5V,
         power.min=10 mW,
         power.max=100 mW,
-        power.avg=50 mW
+        power.avg=50 mW,
+        freq.max=1000 hz
     PINS
         VCC[5V] @ 1,
         GND[GND] @ 2,

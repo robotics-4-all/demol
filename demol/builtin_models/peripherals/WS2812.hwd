@@ -4,7 +4,8 @@ ACTUATOR[LedArray] WS2812 WITH
         vcc=5V,
         power.min=5 mW,
         power.max=3600 mW,
-        power.avg=1800 mW
+        power.avg=1800 mW,
+        freq.max=400 hz
     PINS
         VCC[5V] @ 1,
         GND[GND] @ 2,

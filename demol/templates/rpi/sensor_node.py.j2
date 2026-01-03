@@ -1,22 +1,59 @@
 from commlib.node import Node
+from commlib.utils import get_timestamp_ns, Rate
 from commlib.transports.mqtt import ConnectionParameters
 from .msg import {{class}}Message
 from .{{ peripheral.name.lower() }} import {{ peripheral.name }}
 
 
+class {{ peripheral.name }}Node:
+    _FREQUENCY = {{ attributes.get('frequency', 10.0) }}
+    _MAX_FREQUENCY = {{ op.get('freq_max', {}).get('value', 100.0) }}
+
+    def __init__(self):
+        self.sensor = {{ peripheral.name }}()
+        self.sensor.initialize()
+        self.rate = Rate(self._FREQUENCY)
+        conn_params = ConnectionParameters(
+            host="{{ broker.host }}",
+            port={{ broker.port }}{% if broker.ssl is defined %},
+            ssl={{ broker.ssl }}{% endif %}{% if broker.username is defined and broker.username %},
+            username="{{ broker.username }}"{% endif %}{% if broker.password is defined and broker.password %},
+            password="{{ broker.password}}"{% endif %}
+        )
+        self.node = Node(
+            node_name='sensors.{{ type }}.{{ class }}.{{ instance }}',
+            connection_params=conn_params, heartbeats=False)
+    
+    def _initialize(self):
+        self.sensor.initialize()
+        self.pub = self.node.create_publisher(msg_type={{ class }}Message, topic="{{ topic }}")
+        self.node.run()
+
+    def _send(self):
+        msg = {{class}}Message(**self.sensor.current_state['data'])
+        msg.header.stamp = get_timestamp_ns()
+        self.pub.send(msg)
+
+    def _read(self):
+        try:
+            self.sensor.read()
+        except Exception as e:
+            print(f"Error reading sensor data: {e}")
+
+    def disconnect(self):
+        self.sensor.disconnect()
+
+    def run(self):
+        try:
+            self._initialize()
+            while True:
+                self._read()
+                self._send()
+                self.rate.sleep()
+        except KeyboardInterrupt:
+            self.disconnect()
+
+
 if __name__ == "__main__":
-    sensor = {{ peripheral.name }}(attributes={{ attributes }}, conn={{ conn }})
-    sensor.initialize()
-    conn_params = ConnectionParameters(host="{{ broker.host }}", port={{ broker.port }}{% if broker.ssl is defined %}, ssl={{ broker.ssl }}{% endif %}{% if broker.username is defined and broker.username %}, username="{{ broker.username }}"{% endif %}{% if broker.password is defined and broker.password %}, password="{{ broker.password}}"{% endif %})
-    node = Node(node_name='sensors.{{ class }}', connection_params=conn_params, heartbeats=False)
-    pub = node.create_publisher(msg_type={{ class }}Message, topic="{{ topic }}")
-    try:
-        node.run()
-        while True:
-            sensor.read()
-            pub.send(self.msg)
-            self._rate.sleep()
-    except KeyboardInterrupt:
-        sensor.disconnect()
-    except Exception as e:
-        print(e)
+    node = {{ peripheral.name }}Node()
+    node.run()

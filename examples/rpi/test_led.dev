@@ -1,0 +1,23 @@
+DEVICE TestLedDevice WITH 
+    description="A simple test for the Generic LED", 
+    author="Antigravity", 
+    os=raspbian;
+
+USE RaspberryPi_5_8GB;
+USE LedGeneric[StatusLed];
+
+NETWORK[WiFi] WITH 
+    ssid="TestWiFi", 
+    password="password";
+
+BROKER[MQTT] MyBroker WITH 
+    host="localhost", 
+    port=1883;
+
+CONNECT StatusLed WITH
+    POWER 
+        GND_1 -- gnd, 
+        power_3v3_a -- vcc
+    DATA 
+        gpio[mode="output"] GPIO17 -- pin
+    @ "actuators/led";

@@ -19,7 +19,7 @@ class EnvMessage(PubSubMessage):
 
 class ProximityMessage(PubSubMessage):
     header: MessageHeader = MessageHeader()
-    detect : bool = 0
+    value : int = 0  # 0: no object, 1: object detected
 
 
 class ADCMessage(PubSubMessage):
@@ -53,3 +53,182 @@ class ServoControllerMessage(PubSubMessage):
     final_angle: float = 0.0
     angular_speed: float = 0.0 # degrees per second
     angular_step: float = 0.0 # degrees
+
+
+class TemperatureMessage(PubSubMessage):
+    header: MessageHeader = MessageHeader()
+    temperature: float = 0.0
+    unit: str = "C"
+
+
+class HumidityMessage(PubSubMessage):
+    header: MessageHeader = MessageHeader()
+    humidity: float = 0.0
+    unit: str = "%"
+
+
+class PressureMessage(PubSubMessage):
+    header: MessageHeader = MessageHeader()
+    pressure: float = 0.0
+    unit: str = "hPa"
+
+
+class GasMessage(PubSubMessage):
+    header: MessageHeader = MessageHeader()
+    gas_resistance: float = 0.0
+    unit: str = "Ohm"
+
+
+class AirQualityMessage(PubSubMessage):
+    header: MessageHeader = MessageHeader()
+    aqi: int = 0
+    co2: float = 0.0
+    tvoc: float = 0.0
+
+
+class LightMessage(PubSubMessage):
+    header: MessageHeader = MessageHeader()
+    lux: float = 0.0
+
+
+class UVMessage(PubSubMessage):
+    header: MessageHeader = MessageHeader()
+    uv_index: float = 0.0
+
+
+class SoundMessage(PubSubMessage):
+    header: MessageHeader = MessageHeader()
+    db: float = 0.0
+
+
+class DistanceMatrixMessage(PubSubMessage):
+    header: MessageHeader = MessageHeader()
+    distances: list = []
+    rows: int = 0
+    cols: int = 0
+
+
+class AccelerationMessage(PubSubMessage):
+    header: MessageHeader = MessageHeader()
+    x: float = 0.0
+    y: float = 0.0
+    z: float = 0.0
+    unit: str = "m/s^2"
+
+
+class GyroscopeMessage(PubSubMessage):
+    header: MessageHeader = MessageHeader()
+    x: float = 0.0
+    y: float = 0.0
+    z: float = 0.0
+    unit: str = "rad/s"
+
+
+class MagnetometerMessage(PubSubMessage):
+    header: MessageHeader = MessageHeader()
+    x: float = 0.0
+    y: float = 0.0
+    z: float = 0.0
+    unit: str = "uT"
+
+
+class IMUMessage(PubSubMessage):
+    header: MessageHeader = MessageHeader()
+    accel: AccelerationMessage = AccelerationMessage()
+    gyro: GyroscopeMessage = GyroscopeMessage()
+    mag: MagnetometerMessage = MagnetometerMessage()
+
+
+class TrackerMessage(PubSubMessage):
+    header: MessageHeader = MessageHeader()
+    latitude: float = 0.0
+    longitude: float = 0.0
+    altitude: float = 0.0
+
+
+class NeoPixelMessage(PubSubMessage):
+    header: MessageHeader = MessageHeader()
+    red: int = 0
+    green: int = 0
+    blue: int = 0
+    index: int = 0
+
+
+class MotorControllerMessage(PubSubMessage):
+    header: MessageHeader = MessageHeader()
+    speed: float = 0.0
+    direction: int = 0
+
+
+class RelayMessage(PubSubMessage):
+    header: MessageHeader = MessageHeader()
+    state: bool = False
+
+
+class SwitchMessage(PubSubMessage):
+    header: MessageHeader = MessageHeader()
+    state: bool = False
+
+
+class ButtonMessage(PubSubMessage):
+    header: MessageHeader = MessageHeader()
+    state: bool = False
+
+
+class LedMessage(PubSubMessage):
+    header: MessageHeader = MessageHeader()
+    state: bool = False
+    brightness: float = 1.0
+
+
+class BuzzerMessage(PubSubMessage):
+    header: MessageHeader = MessageHeader()
+    state: bool = False
+    frequency: float = 1000.0
+
+
+class SpeakerMessage(PubSubMessage):
+    header: MessageHeader = MessageHeader()
+    volume: float = 0.5
+    uri: str = ""
+
+
+class StepperMessage(PubSubMessage):
+    header: MessageHeader = MessageHeader()
+    steps: int = 0
+    direction: int = 0
+    speed: float = 0.0
+
+
+class DCMotorMessage(PubSubMessage):
+    header: MessageHeader = MessageHeader()
+    speed: float = 0.0
+    direction: int = 0
+
+
+class PumpMessage(PubSubMessage):
+    header: MessageHeader = MessageHeader()
+    state: bool = False
+    flow_rate: float = 0.0
+
+
+class ValveMessage(PubSubMessage):
+    header: MessageHeader = MessageHeader()
+    state: bool = False
+
+
+class HeaterMessage(PubSubMessage):
+    header: MessageHeader = MessageHeader()
+    state: bool = False
+    power: float = 0.0
+
+
+class CoolerMessage(PubSubMessage):
+    header: MessageHeader = MessageHeader()
+    state: bool = False
+    power: float = 0.0
+
+
+class FanMessage(PubSubMessage):
+    header: MessageHeader = MessageHeader()
+    speed: float = 0.0

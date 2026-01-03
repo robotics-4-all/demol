@@ -1,0 +1,19 @@
+// Generic LED model
+ACTUATOR[Led] LedGeneric WITH
+    OP
+        vcc=3V3,
+        ioVcc=3V3,
+        power.min=5 mW,
+        power.max=20 mW,
+        power.avg=10 mW,
+        freq.max=1000 hz
+    PINS
+        gnd[GND] @ 1,
+        vcc[gpio] @ 2
+    TEMPLATES
+        raspbian="led.py.j2",
+        riotos="led.c.j2"
+    ATTRIBUTES
+        active_high[bool] = true,
+        initial_value[bool] = false
+;
