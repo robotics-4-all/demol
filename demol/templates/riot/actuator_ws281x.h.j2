@@ -1,0 +1,10 @@
+#ifndef {{ name|upper }}_{{ index }}_DRIVER_H
+#define {{ name|upper }}_{{ index }}_DRIVER_H
+
+#include "mqtt_broker.h"
+
+int init_actuator_{{ name }}_{{ index }}(void);
+void start_actuator_{{ name }}_{{ index }}(void);
+void {{ name }}_{{ index }}_on_message(MessageData *data);
+
+#endif

@@ -14,7 +14,8 @@ SENSOR[Env] BME680 WITH
         raspbian="bme680.py.j2",
         riotos="bme680.c.j2"
     DEPENDENCIES
-        raspbian=["bme680"]
+        raspbian=["bme680"],
+        riotos=["bme680"]
     ATTRIBUTES
         poll_period[int] = 10,
         humidity_oversample[int] = 2,

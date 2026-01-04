@@ -14,7 +14,8 @@ ACTUATOR[LedArray] WS2812 WITH
         raspbian="ws2812.py.j2",
         riotos="ws2812_riot.c.j2"
     DEPENDENCIES
-        raspbian=["adafruit-blinka", "adafruit-circuitpython-neopixel-spi"]
+        raspbian=["adafruit-blinka", "adafruit-circuitpython-neopixel-spi"],
+        riotos=["ws281x"]
     ATTRIBUTES
         num_leds[int] = 12,
         color_format[str] = "GRB",

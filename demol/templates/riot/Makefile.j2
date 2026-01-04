@@ -1,51 +1,89 @@
-# name of your application
+# application name
 APPLICATION = {{ connection_conf }}
 
-# If no BOARD is found in the environment, use this default:
 BOARD ?= {{ board_name }}
+PORT ?= /dev/ttyUSB0
+BAUDRATE ?= 115200
 
-# This has to be the absolute path to the RIOT base directory:
-RIOTBASE ?= $(HOME)/RIOT
-
-# Include Peripheral and FMT module
-{%- for module in module.values() %}
-USEMODULE += {{module}}
-{%- endfor %}
-
-USEMODULE += fmt
-USEMODULE += xtimer
-
-# Comment this out to disable code in RIOT that does safety checking
-# which is not needed in a production environment but helps in the
-# development process:
 DEVELHELP ?= 1
-
-# Change this to 0 show compiler invocation lines by default:
 QUIET ?= 1
 
-# Include packages that pull up and auto-init the link layer.
-# NOTE: 6LoWPAN will be included if IEEE802.15.4 devices are present
-USEMODULE += gnrc_netdev_default
-USEMODULE += auto_init_gnrc_netif
-# Specify the mandatory networking modules for IPv6
-USEMODULE += gnrc_ipv6_default
-# Include MQTT-SN
-USEMODULE += emcute
-# Add also the shell, some shell commands
-USEMODULE += shell
-USEMODULE += shell_commands
+################## Common #################
+
+USEMODULE += xtimer
+USEMODULE += pthread
+USEMODULE += posix_headers
 USEMODULE += ps
-# For testing we also include the ping6 command and some stats
-USEMODULE += gnrc_icmpv6_echo
-# Optimize network stack to for use with a single network interface
-USEMODULE += gnrc_netif_single
+USEMODULE += netdev_default
 
-# Connect board to wifi
+
+################## Hardware Drivers ##################
+
+{% for dep in dependencies -%}
+USEMODULE += {{ dep }}
+{% endfor %}
+
+################## MQTT Broker ##################
+
+# USEMODULE += mqtt_broker
+
+ifeq ($(BOARD), {{ board_name }})
 USEMODULE += esp_wifi
-CFLAGS += -DESP_WIFI_SSID=\"{{wifi_ssid}}\"
-CFLAGS += -DESP_WIFI_PASS=\"{{wifi_passwd}}\"
+WIFI_SSID={{ wifi_ssid }}
+WIFI_PASS={{ wifi_passwd }}
 
-# Give specific ID to this MQTT node
-CFLAGS += -DEMCUTE_ID=\"{{ connection_conf }}\"
+CFLAGS += '-DESP_WIFI_SSID="$(WIFI_SSID)"'
+CFLAGS += '-DESP_WIFI_PASS="$(WIFI_PASS)"'
+endif
+
+# network module dependencies
+
+CFLAGS += -DDEFAULT_MQTT_CLIENT_ID=\"{{ connection_conf }}\"
+CFLAGS += -DDEFAULT_MQTT_PORT={{ port }}
+CFLAGS += -DBROKER_IPV4_ADDR=\"{{ address }}\"
+{% if broker.username -%}
+CFLAGS += -DDEFAULT_MQTT_USER=\"{{ broker.username }}\"
+{% endif -%}
+{% if broker.password -%}
+CFLAGS += -DDEFAULT_MQTT_PWD=\"{{ broker.password }}\"
+{% endif -%}
+
+USEPKG += paho-mqtt
+
+LWIP_IPV4 ?= 1
+
+ifneq (0, $(LWIP_IPV4))
+USEMODULE += ipv4_addr
+USEMODULE += lwip_arp
+USEMODULE += lwip_ipv4
+USEMODULE += lwip_dhcp_auto
+CFLAGS += -DETHARP_SUPPORT_STATIC_ENTRIES=1
+LWIP_IPV6 ?= 0
+else
+# use IPv6 as default IP protocol when IPv4 is not explicitly selected
+LWIP_IPV6 ?= 1
+endif
+
+ifneq (0, $(LWIP_IPV6))
+USEMODULE += ipv6_addr
+USEMODULE += lwip_ipv6
+USEMODULE += lwip_ipv6_autoconfig
+endif
+
+USEMODULE += lwip_netdev
+USEMODULE += lwip
+
+# DISABLE_MODULE += auto_init_lwip
+
+USEMODULE += sock_async_event
+USEMODULE += sock_ip
+USEMODULE += sock_udp
+USEMODULE += sock_tcp
+
+USEPKG += jsmn
+
+CFLAGS += -Wno-error=unused-variable -Wno-error=unused-function -Wno-error=type-limits
+
+CONTINUE_ON_EXPECTED_ERRORS=1
 
 include $(RIOTBASE)/Makefile.include

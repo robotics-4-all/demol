@@ -14,4 +14,6 @@ SENSOR[Env] Mpl3115a2 WITH
     TEMPLATES
         raspbian="mpl3115a2.py.j2",
         riotos="mpl3115a2_riot.c.j2"
+    DEPENDENCIES
+        riotos=["mpl3115a2"]
 ;

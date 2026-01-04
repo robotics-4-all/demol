@@ -1,0 +1,91 @@
+#include "sensor_{{ name }}_{{ index }}.h"
+#include "thread.h"
+#include "xtimer.h"
+#include "json_handler.h"
+#include "bme680.h"
+
+static {{ name }}_t {{ name }}_{{ index }}_dev;
+static {{ name }}_{{ index }}_callback {{ name }}_{{ index }}_cb;
+
+char {{ name }}_{{ index }}_json_payload[165] = "";
+char {{ name }}_{{ index }}_stack[THREAD_STACKSIZE_MAIN];
+
+void *{{ name }}_{{ index }}_thread(void *args);
+
+int init_sensor_{{ name }}_{{ index }}(void)
+{
+    bme680_params_t params;
+    params.ifsel = BME680_I2C_INTF;
+    params.intf.i2c.dev = I2C_DEV(0);
+    params.intf.i2c.addr = 0x{{ args_p.slave_address|default('77') }};
+    params.temp_os = BME680_OS_{{ args_p.temperature_oversample|default('8') }}X;
+    params.pres_os = BME680_OS_{{ args_p.pressure_oversample|default('4') }}X;
+    params.hum_os = BME680_OS_{{ args_p.humidity_oversample|default('2') }}X;
+    params.filter = BME680_FILTER_SIZE_{{ args_p.filter_size|default('3') }};
+    params.gas_measure = BME680_ENABLE_GAS_MEAS;
+    params.heater_temp = {{ args_p.heater_temp|default('320') }};
+    params.heater_dur = {{ args_p.heater_duration|default('150') }};
+
+    BME680_SENSOR(&{{ name }}_{{ index }}_dev).amb_temp = 25;
+
+    printf("Initialize {{ name|upper }} sensor ... ");
+    if ({{ name }}_init(&{{ name }}_{{ index }}_dev, &params) != {{ name|upper }}_OK)
+    {
+        puts("failed");
+        return -1;
+    }
+    else
+    {
+        puts("OK");
+        return 0;
+    }
+}
+
+void start_sensor_{{ name }}_{{ index }}({{ name }}_{{ index }}_callback callback)
+{
+    {{ name }}_{{ index }}_cb = callback;
+    thread_create({{ name }}_{{ index }}_stack, sizeof({{ name }}_{{ index }}_stack),
+                  (THREAD_PRIORITY_MAIN + 1),
+                  THREAD_CREATE_STACKTEST,
+                  {{ name }}_{{ index }}_thread,
+                  NULL, "{{ name }}_{{ index }}_sensor");
+};
+
+void *{{ name }}_{{ index }}_thread(void *args)
+{
+    (void)args;
+    struct {{ name }}_field_data data;
+
+    while (1)
+    {
+        {{ name }}_force_measurement(&{{ name }}_{{ index }}_dev);
+
+        int duration = {{ name }}_get_duration(&{{ name }}_{{ index }}_dev);
+        xtimer_msleep(duration);
+        int res = {{ name }}_get_data(&{{ name }}_{{ index }}_dev, &data);
+
+        if (res == 0 && {{ name }}_{{ index }}_dev.sensor.new_fields)
+        {
+            // printf("[{{ name|upper }}]: T = %.3f degC, P = %lu Pa, H = %.3f %%\n", (float)data.temperature / 100, data.pressure, (float)data.humidity / 1000);
+
+            json_dumps({{ name }}_{{ index }}_json_payload,
+                       JSON_START,
+                       JSON_KEY, "Temperature", JSON_INT, data.temperature,
+                       JSON_KEY, "Pressure", JSON_INT, data.pressure,
+                       JSON_KEY, "Humidity", JSON_INT, data.humidity,
+                       JSON_STOP);
+
+            {{ name }}_{{ index }}_cb({{ name }}_{{ index }}_json_payload);
+        }
+        else if (res == 0)
+        {
+            printf("[{{ name }}]: no new data\n");
+        }
+        else
+        {
+            printf("[{{ name }}]: read data failed with reason %d\n", res);
+        }
+
+        xtimer_msleep(({{ name|upper }}_{{ index }}_FREQ));
+    }
+};

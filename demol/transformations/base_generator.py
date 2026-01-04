@@ -108,6 +108,25 @@ class BaseCodeGenerator(ABC):
                 result[item.name] = item.default
         return result
 
+    def get_platform_attributes(self, obj, os_name: str) -> Dict[str, Any]:
+        """Extract platform-specific attributes for a given OS.
+        
+        Args:
+            obj: Object with platforms attribute (e.g., Board)
+            os_name: Name of the operating system (e.g., 'riotos', 'raspbian')
+            
+        Returns:
+            Dictionary of attribute name-value pairs
+        """
+        result = {}
+        if hasattr(obj, 'platforms') and obj.platforms:
+            for platform in obj.platforms:
+                if platform.os == os_name:
+                    for attr in platform.attributes:
+                        result[attr.name] = self._convert_attribute_value(attr.value)
+                    break
+        return result
+
     def get_operational_attributes(self, peripheral_ref) -> Dict[str, Any]:
         """Extract operational attributes from peripheral definition.
         
@@ -326,6 +345,24 @@ class BaseCodeGenerator(ABC):
         for item in dict_attr.items:
             result[item.key] = item.value
         return result
+    
+    def _convert_attribute_value(self, value) -> Any:
+        """Convert AttributeValue to Python object.
+        
+        Args:
+            value: AttributeValue object from model
+            
+        Returns:
+            Python object (list, dict, or primitive)
+        """
+        v_type = type(value).__name__
+        if v_type == "ListValue":
+            return [v for v in value.items]
+        elif v_type == "DictValue":
+            return {item.key: self._convert_attribute_value(item.value) for item in value.items}
+        else:
+            # VALUE (HEX, NUMBER, STRING, BOOL)
+            return value
     
 
     

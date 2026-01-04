@@ -20,6 +20,7 @@ Board:
 	  'OP' operational=OperationalBoard
       ('PORTS' ports*=Port[','])?
 	  'PINS' pins*=Pin[',']
+      ('PLATFORMS' platforms*=PlatformMapping[','])?
     ';'
 ;
 
@@ -233,7 +234,6 @@ OperationalBoard:
         ("ethernet.name" "=" ethernet_name=ID ","?)?
         
         ("bluetooth" "=" bluetooth=Bluetooth ","?)?
-        ("riotName" "=" riotName=STRING ","?)?
         
         ("power.min" "=" min=PowerConsumption ","?)?
         ("power.max" "=" max=PowerConsumption ","?)?
@@ -285,5 +285,11 @@ Frequency:
 
 TemplateMapping:
     os=OperatingSystem '=' template=STRING
+;
+
+PlatformMapping:
+    os=OperatingSystem '{'
+        attributes*=AttributeSet[',']
+    '}'
 ;
 

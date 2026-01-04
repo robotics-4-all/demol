@@ -1,0 +1,52 @@
+#include <stdio.h>
+#include <string.h>
+{% for i in range(num_of_peripherals) -%}
+#include "{{ peripheral_type[peripheral_name[i]] }}_{{ peripheral_name[i] }}_{{ i }}.h"
+{% endfor -%}
+#include "mqtt_broker.h"
+
+{% for i in range(num_of_peripherals) -%}
+#define {{ peripheral_name[i]|upper }}_{{ i }}_TOPIC "{{ topic[i] }}"
+{% endfor %}
+
+static MQTTClient client;
+static Network network;
+
+{% for i in range(num_of_peripherals) -%}
+{% if peripheral_type[peripheral_name[i]] == "sensor" -%}
+void {{ peripheral_name[i] }}_{{ i }}_new_data_cb(char *payload);
+{% else -%}
+void {{ peripheral_name[i] }}_{{ i }}_on_message(MessageData *data);
+{% endif -%}
+{% endfor %}
+
+int main(void)
+{
+    init_mqtt_broker(&client, &network);
+
+    {% for i in range(num_of_peripherals) -%}
+    {% if peripheral_type[peripheral_name[i]] == "sensor" -%}
+    init_sensor_{{ peripheral_name[i] }}_{{ i }}();
+    start_sensor_{{ peripheral_name[i] }}_{{ i }}({{ peripheral_name[i] }}_{{ i }}_new_data_cb);
+    {% else -%}
+    init_actuator_{{ peripheral_name[i] }}_{{ i }}();
+    MQTTSubscribe(&client, {{ peripheral_name[i]|upper }}_{{ i }}_TOPIC, QOS0, {{ peripheral_name[i] }}_{{ i }}_on_message);
+    start_actuator_{{ peripheral_name[i] }}_{{ i }}();
+    {% endif -%}
+    {% endfor %}
+
+    while(1) {
+        xtimer_sleep(1);
+    }
+
+    return 0;
+}
+
+{% for i in range(num_of_peripherals) -%}
+{% if peripheral_type[peripheral_name[i]] == "sensor" -%}
+void {{ peripheral_name[i] }}_{{ i }}_new_data_cb(char *payload)
+{
+    mqtt_publish(&client, &network, payload, {{ peripheral_name[i]|upper }}_{{ i }}_TOPIC);
+}
+{% endif -%}
+{% endfor %}

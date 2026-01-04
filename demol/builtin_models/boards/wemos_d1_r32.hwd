@@ -1,0 +1,56 @@
+BOARD[ESP] WemosD1R32 WITH
+    OP
+        vcc=5V,
+        ioVcc=3V3,
+        memory.flash=4 mb,
+        cpu.family=ESP32,
+        cpu.freq=240 mhz,
+        cpu.fpu=false,
+        wifi.name=wlan0,
+        wifi.version=4,
+        wifi.bands=[2.4GHz],
+        bluetooth=BT4,
+        power.min=2.64 mW,
+        power.max=792 mW,
+        power.avg=100 mW
+    PORTS
+        spi=1,
+        i2c=1,
+        uart=1,
+        gpio=22
+    PINS
+        // Arduino Uno Form Factor Mapping
+        D0[gpio,rx-0] @ 1,      // GPIO3
+        D1[gpio,tx-0] @ 2,      // GPIO1
+        D2[gpio] @ 3,           // GPIO26
+        D3[gpio,pwm-0] @ 4,     // GPIO25
+        D4[gpio] @ 5,           // GPIO17
+        D5[gpio,pwm-0] @ 6,     // GPIO16
+        D6[gpio,pwm-0] @ 7,     // GPIO27
+        D7[gpio] @ 8,           // GPIO14
+        D8[gpio] @ 9,           // GPIO12
+        D9[gpio,pwm-0] @ 10,    // GPIO13
+        D10[gpio,cs-0] @ 11,    // GPIO5
+        D11[gpio,mosi-0] @ 12,  // GPIO23
+        D12[gpio,miso-0] @ 13,  // GPIO19
+        D13[gpio,sck-0] @ 14,   // GPIO18
+        
+        A0[gpio,adc] @ 15,      // GPIO2
+        A1[gpio,adc] @ 16,      // GPIO4
+        A2[gpio,adc] @ 17,      // GPIO35
+        A3[gpio,adc] @ 18,      // GPIO34
+        A4[gpio,adc,sda-0] @ 19, // GPIO33 (SDA in some mappings, but SDA/SCL are usually dedicated)
+        A5[gpio,adc,scl-0] @ 20, // GPIO32 (SCL in some mappings)
+
+        SDA[gpio,sda-0] @ 21,   // GPIO21
+        SCL[gpio,scl-0] @ 22,   // GPIO22
+
+        VCC_5V[5V] @ 23,
+        VCC_3V3[3V3] @ 24,
+        GND[GND] @ 25
+        // RESET[RESET] @ 26
+    PLATFORMS
+        riotos {
+            board = "esp32-wemos-d1-r32"
+        }
+;

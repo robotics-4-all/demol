@@ -1,0 +1,70 @@
+#include "sensor_{{ name }}_{{ index }}.h"
+#include "thread.h"
+#include "xtimer.h"
+#include "json_handler.h"
+#include "mpl3115a2.h"
+
+static mpl3115a2_t {{ name }}_{{ index }}_dev;
+static {{ name }}_{{ index }}_callback {{ name }}_{{ index }}_cb;
+
+char {{ name }}_{{ index }}_json_payload[165] = "";
+char {{ name }}_{{ index }}_stack[THREAD_STACKSIZE_MAIN];
+
+void *{{ name }}_{{ index }}_thread(void *args);
+
+int init_sensor_{{ name }}_{{ index }}(void)
+{
+    mpl3115a2_params_t params;
+    params.i2c = I2C_DEV(0);
+    params.addr = 0x{{ args_p.slave_address|default('60') }};
+
+    printf("Initialize {{ name|upper }} sensor ... ");
+    if (mpl3115a2_init(&{{ name }}_{{ index }}_dev, &params) != MPL3115A2_OK)
+    {
+        puts("failed");
+        return -1;
+    }
+    else
+    {
+        puts("OK");
+        return 0;
+    }
+}
+
+void start_sensor_{{ name }}_{{ index }}({{ name }}_{{ index }}_callback callback)
+{
+    {{ name }}_{{ index }}_cb = callback;
+    thread_create({{ name }}_{{ index }}_stack, sizeof({{ name }}_{{ index }}_stack),
+                  (THREAD_PRIORITY_MAIN + 1),
+                  THREAD_CREATE_STACKTEST,
+                  {{ name }}_{{ index }}_thread,
+                  NULL, "{{ name }}_{{ index }}_sensor");
+};
+
+void *{{ name }}_{{ index }}_thread(void *args)
+{
+    (void)args;
+
+    while (1)
+    {
+        int pressure = mpl3115a2_read_pressure(&{{ name }}_{{ index }}_dev);
+
+        if (pressure >= 0)
+        {
+            printf("[{{ name|upper }}]: Pressure = %d Pa\n", pressure);
+
+            json_dumps({{ name }}_{{ index }}_json_payload,
+                       JSON_START,
+                       JSON_KEY, "Pressure", JSON_INT, pressure,
+                       JSON_STOP);
+
+            {{ name }}_{{ index }}_cb({{ name }}_{{ index }}_json_payload);
+        }
+        else
+        {
+            printf("[{{ name }}]: read data failed\n");
+        }
+
+        xtimer_msleep(({{ name|upper }}_{{ index }}_FREQ));
+    }
+};

@@ -1,0 +1,62 @@
+#include "actuator_{{ name }}_{{ index }}.h"
+#include "thread.h"
+#include "xtimer.h"
+#include "json_handler.h"
+#include "ws281x.h"
+#include "ws281x_params.h"
+
+static ws281x_t {{ name }}_{{ index }}_dev;
+char {{ name }}_{{ index }}_stack[THREAD_STACKSIZE_MAIN];
+
+void *{{ name }}_{{ index }}_thread(void *args);
+
+static uint8_t {{ name }}_{{ index }}_buf[{{ args_p.num_leds|default(1) }} * WS281X_BYTES_PER_DEVICE];
+
+int init_actuator_{{ name }}_{{ index }}(void)
+{
+    ws281x_params_t params;
+    params.buf = {{ name }}_{{ index }}_buf;
+    params.numof = {{ args_p.num_leds|default(1) }};
+    params.pin = GPIO_PIN(0, {{ args_p.data_in }});
+
+    printf("Initialize {{ name|upper }} actuator ... ");
+    if (ws281x_init(&{{ name }}_{{ index }}_dev, &params) != 0)
+    {
+        puts("failed");
+        return -1;
+    }
+    else
+    {
+        puts("OK");
+        return 0;
+    }
+}
+
+void start_actuator_{{ name }}_{{ index }}(void)
+{
+    thread_create({{ name }}_{{ index }}_stack, sizeof({{ name }}_{{ index }}_stack),
+                  (THREAD_PRIORITY_MAIN + 1),
+                  THREAD_CREATE_STACKTEST,
+                  {{ name }}_{{ index }}_thread,
+                  NULL, "{{ name }}_{{ index }}_actuator");
+};
+
+void *{{ name }}_{{ index }}_thread(void *args)
+{
+    (void)args;
+
+    while (1)
+    {
+        // Actuator logic here (e.g., check for commands)
+        xtimer_msleep(1000);
+    }
+};
+
+void {{ name }}_{{ index }}_on_message(MessageData *data)
+{
+    printf("Received message on topic %.*s: %.*s\n",
+           data->topicName->lenstring.len, data->topicName->lenstring.data,
+           data->message->payloadlen, (char *)data->message->payload);
+    
+    // Parse JSON and control LEDs
+}

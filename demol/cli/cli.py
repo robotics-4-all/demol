@@ -8,6 +8,7 @@ from demol.transformations import (
     m2t_device_svg, 
     m2t_docs, 
     m2t_rpi, 
+    m2t_riot,
     m2m_smauto,
     m2t_infrastructure_svg
 )
@@ -127,6 +128,19 @@ def generate_rpi(model_filepath, output_dir, skip_semantics):
     if model:
         m2t_rpi(model, output_dir=output_dir)
         print(f'[✓] Raspberry Pi code generated successfully.')
+
+
+@generate.command("riot")
+@click.argument("model_filepath")
+@click.option("--output-dir", default=".", help="Output directory for generated code")
+@click.option("--skip-semantics", is_flag=True, help="Build model even if semantic rules are failing")
+def generate_riot(model_filepath, output_dir, skip_semantics):
+    """Generate C code for RiotOS"""
+    print(f'[*] Generating RiotOS code for model {model_filepath}')
+    model = handle_build_model(model_filepath, skip_semantics=skip_semantics)
+    if model:
+        m2t_riot(model, output_dir=output_dir)
+        print(f'[✓] RiotOS code generated successfully.')
 
 
 @generate.command("smauto")

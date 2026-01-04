@@ -59,4 +59,9 @@ BOARD[RPI] RaspberryPi_4B_4GB WITH
         GPIO20[gpio,mosi-1] @ 38,
         GND_8[GND] @ 39,
         GPIO21[gpio,sck-1] @ 40
+    PLATFORMS
+        raspbian {
+            arch = "armv8",
+            os_version = "bullseye"
+        }
 ;

@@ -1,0 +1,90 @@
+#include "mqtt_broker.h"
+#include "xtimer.h"
+
+void init_mqtt_broker(MQTTClient *client, Network *network)
+{
+    NetworkInit(network);
+
+    MQTTClientInit(client, network,
+                   COMMAND_TIMEOUT_MS,
+                   writebuf, MQTT_BUF_SIZE,
+                   readbuf, MQTT_BUF_SIZE);
+
+    MQTTStartTask(client);
+
+    while (mqtt_connect(client, network) < 0)
+    {
+        mqtt_disconnect(client, network);
+        xtimer_msleep(2000);
+        puts("Attempting to reconnect...");
+    }
+};
+
+int mqtt_connect(MQTTClient *client, Network *network)
+{
+    int ret;
+    int port = DEFAULT_MQTT_PORT;
+    char remote_ip[] = BROKER_IPV4_ADDR;
+
+    ret = NetworkConnect(network, remote_ip, port);
+    if (ret < 0)
+    {
+        puts("Error connecting to mqtt broker...");
+        return -1;
+    }
+
+    MQTTPacket_connectData data = MQTTPacket_connectData_initializer;
+
+    data.MQTTVersion = MQTT_VERSION_v311;
+    data.clientID.cstring = DEFAULT_MQTT_CLIENT_ID;
+    data.username.cstring = DEFAULT_MQTT_USER;
+    data.password.cstring = DEFAULT_MQTT_PWD;
+    data.keepAliveInterval = DEFAULT_KEEPALIVE_SEC;
+    data.cleansession = IS_CLEAN_SESSION;
+    data.willFlag = 0;
+
+    ret = MQTTConnect(client, &data);
+    if (ret < 0)
+    {
+        puts("Error connecting to mqtt clinet...");
+        return -2;
+    }
+
+    puts("Connected successfully to broker");
+
+    return 0;
+};
+
+int mqtt_disconnect(MQTTClient *client, Network *network)
+{
+    if (client->isconnected)
+    {
+        puts("Disconnecting from the broker");
+        MQTTDisconnect(client);
+        NetworkDisconnect(network);
+
+        return 0;
+    }
+    else
+    {
+        puts("Not connected to broker. Skipping disconnection ...");
+        return 1;
+    }
+};
+
+void mqtt_publish(MQTTClient *client, Network *network, char *payload, char *topic)
+{
+    MQTTMessage message;
+    message.qos = QOS0;
+    message.retained = IS_RETAINED_MSG;
+    message.payload = payload;
+    message.payloadlen = strlen((char *)message.payload);
+
+    while (MQTTPublish(client, topic, &message) < 0)
+    {
+        mqtt_disconnect(client, network);
+        mqtt_connect(client, network);
+        xtimer_msleep(2000);
+        puts("Attempting to reconnect...");
+    }
+};
