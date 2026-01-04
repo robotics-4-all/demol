@@ -6,9 +6,10 @@ This document outlines the formal semantics and validation rules implemented in 
 
 1.  [Introduction](#1-introduction)
 2.  [Hardware Component Definitions](#2-hardware-component-definitions)
-    - [Energy Property](#21-energy-property)
+    - [Power Consumption](#21-power-consumption)
     - [Templates Section](#22-templates-section)
     - [Attributes](#23-attributes)
+    - [Dependencies](#24-dependencies)
 3.  [Power Connection Validation](#3-power-connection-validation)
 4.  [Data Connection Validation](#4-data-connection-validation)
     - [GPIO Connections](#41-gpio-connections)
@@ -46,125 +47,152 @@ The primary goals of semantic validation are:
 
 Hardware components (boards and peripherals) are defined in `.hwd` files with specific properties that affect validation and code generation.
 
-### 2.1. Energy Property
+### 2.1. Power Consumption
 
-The `energy` property specifies power consumption characteristics with three values: minimum, maximum, and average power consumption. Each value must include a unit.
+Power consumption characteristics are defined within the `OP` (Operational) block using individual properties for minimum, maximum, and average power.
 
 **Syntax:**
 ```
-energy: <min> <unit>, <max> <unit>, <avg> <unit>
+OP
+    power.min = <value> <unit>,
+    power.max = <value> <unit>,
+    power.avg = <value> <unit>
 ```
 
 **Example - Board:**
 ```
-Board[RPI] RaspberryPi_4B_4GB
-  operational
-    energy: 1.4 W, 7.6 W, 3.5 W
-    vcc: 5V
-    ioVcc: 3V3
+BOARD[RPI] RaspberryPi_5_8GB WITH
+    OP
+        vcc=5V,
+        ioVcc=3V3,
+        power.min=3.0 W,
+        power.max=8.0 W,
+        power.avg=4.5 W
     ...
-  end
-  ...
-end
+;
 ```
 
 **Example - Peripheral:**
 ```
-Sensor[Env] BME680
-  operational
-    energy: 0.01 mW, 39.6 mW, 3 mW
-    vcc: 3V3
-    ioVcc: 3V3
+SENSOR[Env] BME680 WITH
+    OP
+        vcc=3V3,
+        ioVcc=3V3,
+        power.min=0.01 mW,
+        power.max=39.6 mW,
+        power.avg=3 mW
     ...
-  end
-  ...
-end
+;
 ```
 
 **Validation:**
-- All three values must be positive numbers
-- Values represent: [minimum, maximum, average] power consumption
-- Units must be valid power units (W, mW, uW)
+- Each value must be a positive number.
+- Units must be valid power units (`W`, `mW`, `uW`).
+- These values are used for power budget calculations and safety validations.
 
 ### 2.2. Templates Section
 
-The `templates` section maps operating systems/platforms to their corresponding code generation templates.
+The `TEMPLATES` section maps target operating systems to their corresponding code generation templates.
 
 **Syntax:**
 ```
-templates
-  <os_name>: "<template_file>",
-  ...
-end
+TEMPLATES
+    <os_name> = "<template_file>",
+    ...
 ```
 
 **Example:**
 ```
-Sensor[Env] BME680
-  ...
-  templates
-    raspbian: "bme680.py.tmpl",
-    riotos: "bme680_riot.c.tmpl"
-  end
-end
+SENSOR[Env] BME680 WITH
+    ...
+    TEMPLATES
+        raspbian = "bme680.py.j2",
+        riotos = "bme680_riot.c.j2"
+;
 ```
 
 **Validation:**
-- Template files must exist in the appropriate templates directory
-- OS names must be valid identifiers
-- Used by code generators to select appropriate templates
+- OS names must be valid identifiers (e.g., `raspbian`, `riotos`).
+- Template files are referenced by the code generators to produce platform-specific implementation.
 
 ### 2.3. Attributes
 
-Attributes define configurable parameters for peripherals. They can be specified in the peripheral definition (defaults) or overridden in the Components block.
+Attributes define configurable parameters for peripherals. They are declared in the peripheral definition with types and default values, and can be overridden in the `USE` statement within a device model.
 
-**Syntax in Peripheral Definition:**
+**Syntax in Peripheral Definition (`.hwd`):**
 ```
-attributes
-  <name> [<type>] = <default_value>,
-  ...
-end
+ATTRIBUTES
+    <name>[<type>] = <default_value>,
+    ...
 ```
 
-**Syntax in Components Block:**
+**Syntax in Device Model (`.dev`):**
 ```
-Components
-  peripherals:
-    <instance>(<Type>) [
-      <attribute> = <value>,
-      ...
-    ]
-end
+USE <PeripheralType>[<InstanceName>] WITH
+    <attribute> = <value>,
+    ...
+;
 ```
 
 **Example - Peripheral Definition:**
 ```
-Sensor[Env] BME680
-  ...
-  attributes
-    poll_period[int] = 10,
-    humidity_oversample[int] = 2,
-    filter_size[int] = 3
-  end
-end
+SENSOR[Env] BME680 WITH
+    ...
+    ATTRIBUTES
+        poll_period[int] = 10,
+        filter_size[int] = 3
+;
 ```
 
-**Example - Components Block:**
+**Example - Device Model Override:**
 ```
-Components
-  board: RaspberryPi_4B_4GB
-  peripherals:
-    BME680(MyBME) [
-        poll_period = 5,
-        filter_size = 7
-      ]
-end
+USE BME680[MyBME] WITH
+    poll_period = 5,
+    filter_size = 7
+;
 ```
 
 **Validation:**
-- Attribute names must be valid identifiers
-- Values must match declared types
-- Attributes in Components block override peripheral defaults
+- Attribute names must be valid identifiers.
+- Values must match the declared types (`int`, `float`, `str`, `bool`, `list`, `dict`).
+- Overrides in the device model must reference existing attributes defined in the peripheral's `.hwd` file.
+
+### 2.4. Dependencies
+
+The `dependencies` section defines the software packages required by a peripheral for a specific target operating system.
+
+**Syntax:**
+```
+DEPENDENCIES
+    <os_name> = [
+        <dependency_item>,
+        ...
+    ]
+```
+
+**Dependency Item Formats:**
+1.  **Simple String**: Just the package name.
+    ```
+    raspbian = ["gpiozero"]
+    ```
+2.  **Structured Object**: Allows specifying version and source.
+    ```
+    raspbian = [
+        {package="gpiozero", version=">=2.0", source="pip"},
+        {package="pigpio", source="apt"}
+    ]
+    ```
+
+**Validation:**
+- **Package Name**: Must be a non-empty string.
+- **Version Specification**: 
+  - Can be a simple version number (e.g., `"1.2.3"`).
+  - Can include comparison operators (e.g., `">2.0"`, `"<3.0"`, `">=1.5"`, `"<=4.0"`, `"==2.0.1"`, `"!=1.0"`).
+  - The code generator automatically handles these operators, defaulting to `==` for `pip` and `=` for `apt` if no operator is provided.
+- **Source**:
+  - `pip`: Python Package Index (default).
+  - `apt`: Advanced Package Tool (system packages).
+- **OS Name**: Must be a valid target operating system defined in the grammar.
 
 ---
 
@@ -358,8 +386,8 @@ Well-formedness rules ensure that the device model is complete and logically sou
 
 ### 6.1. All Peripherals Connected (WF-All-Peripherals-Connected)
 
--   **Rule**: Every peripheral declared in the `Components` section must be used in at least one `Connection`.
--   **Invariant**: `∀p ∈ components.peripherals. ∃k ∈ connections. k.peripheral = p`
+-   **Rule**: Every peripheral instance declared in a `USE` statement must be used in at least one `CONNECT` block.
+-   **Invariant**: `∀p ∈ uses.peripherals. ∃k ∈ connections. k.peripheral = p`
 
 ### 6.2. Broker Requirements (Inv-Broker-Connection)
 
@@ -372,4 +400,4 @@ Well-formedness rules ensure that the device model is complete and logically sou
 
 ### 6.4. Unique Peripheral Names (WF-Unique-Peripheral-Names)
 
--   **Rule**: All peripheral instances defined in the `Components` section must have unique names. This prevents ambiguity when defining connections.
+-   **Rule**: All peripheral instances defined in `USE` statements must have unique names. This prevents ambiguity when defining connections.

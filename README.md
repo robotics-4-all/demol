@@ -323,6 +323,11 @@ SENSOR[Env] BME680 WITH
     TEMPLATES
         raspbian="bme680.py.tmpl",
         riotos="bme680.c.tmpl"
+    DEPENDENCIES
+        raspbian = [
+            {package="bme680", version=">=1.0.5", source="pip"},
+            {package="libgpiod-dev", source="apt"}
+        ]
     ATTRIBUTES
         poll_period[int] = 10,
         humidity_oversample[int] = 2,
@@ -330,6 +335,13 @@ SENSOR[Env] BME680 WITH
         filter_size[int] = 3
 ;
 ```
+
+**Dependency Specification:**
+Peripherals can define their software dependencies per target OS. Dependencies can be simple strings (package names) or structured objects:
+- **Simple String**: `raspbian=["gpiozero"]` (defaults to `pip` and latest version)
+- **Structured Object**: `{package="name", version="spec", source="pip|apt"}`
+  - `version`: Supports comparison operators like `>=2.0`, `<3.0`, `==1.2.3`, etc.
+  - `source`: Specifies the package manager (`pip` for Python, `apt` for system packages).
 
 **Available Sensor Types:** `Distance`, `Temperature`, `Humidity`, `Gas`, `Env`, `AirQuality`, `Light`, `UV`, `Sound`, `Acceleration`, `Gyroscope`, `Magnetometer`, `IMU`, `Tracker`, `Proximity`, `Motion`, `Presence`, `ADC`, `Current`, `Voltage`, `Power`, `Flow`, `Level`, `Weight`, `Force`, `Vibration`, `Camera`, `RFID`, `Fingerprint`, `GPS`, `Color`
 
@@ -921,6 +933,11 @@ This will:
 2. Validate semantics
 3. Resolve platform-specific templates
 4. Generate the runtime software for the device
+5. **Generate deployment artifacts**:
+   - `Dockerfile`: For containerized deployment.
+   - `docker-compose.yml`: For orchestrating the device and its broker.
+   - `requirements.txt`: For Python dependencies.
+   - `install_deps.sh`: A standalone bash script to install all `apt` and `pip` dependencies directly on the host system (non-Docker deployment).
 
 ### Documentation & Diagram Generation
 

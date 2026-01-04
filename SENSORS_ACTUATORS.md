@@ -25,9 +25,9 @@ All sensors use the syntax: `SENSOR[Type] ComponentName`
 | Type | Description | Message Schema | Common Uses |
 |------|-------------|----------------|-------------|
 | `Distance` | Ultrasonic/ToF distance | `{ "distance": float, "unit": "cm\|m", "timestamp": int }` | Proximity detection, robotics |
-| `Proximity` | Binary proximity detection | `{ "detected": bool, "distance": float, "timestamp": int }` | Object detection, automation |
-| `Motion` | PIR motion sensors | `{ "motion": bool, "timestamp": int }` | Security, auto-lighting |
-| `Presence` | Presence detection | `{ "present": bool, "count": int, "timestamp": int }` | Occupancy sensing, smart buildings |
+| `Proximity` | Binary proximity detection | `{ "value": bool, "distance": float, "timestamp": int }` | Object detection, automation |
+| `Motion` | PIR motion sensors | `{ "value": bool, "timestamp": int }` | Security, auto-lighting |
+| `Presence` | Presence detection | `{ "value": bool, "count": int, "timestamp": int }` | Occupancy sensing, smart buildings |
 | `Acceleration` | Accelerometers | `{ "x": float, "y": float, "z": float, "unit": "m/s²", "timestamp": int }` | Vibration, orientation |
 | `Gyroscope` | Angular velocity sensors | `{ "x": float, "y": float, "z": float, "unit": "rad/s\|deg/s", "timestamp": int }` | Orientation, stabilization |
 | `Magnetometer` | Magnetic field sensors | `{ "x": float, "y": float, "z": float, "unit": "µT", "heading": float, "timestamp": int }` | Compass, navigation |
