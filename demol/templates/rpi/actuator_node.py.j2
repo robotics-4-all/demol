@@ -16,7 +16,7 @@ class {{ peripheral.name }}Node:
             port={{ broker.port }}{% if broker.ssl is defined %},
             ssl={{ broker.ssl }}{% endif %}{% if broker.username is defined and broker.username %},
             username="{{ broker.username }}"{% endif %}{% if broker.password is defined and broker.password %},
-            password="{{ broker.password}}"{% endif %}
+            password="{{ broker.password }}"{% endif %}
         )
 
     def _initialize(self):
@@ -25,7 +25,7 @@ class {{ peripheral.name }}Node:
             topic="{{ topic }}",
             on_message=self._on_message)
         self.node = Node(
-            node_name='actuators.{{ class }}.{{ instance }}',
+            node_name='actuators.{{ class | lower }}.{{ instance | lower }}',
             connection_params=self.conn_params,
             heartbeats=False)
 

@@ -12,6 +12,8 @@ SENSOR[Distance] TFMini WITH
     TEMPLATES
         raspbian="tfmini.py.j2",
         riotos="tfmini_riot.c.j2"
+    DEPENDENCIES
+        raspbian=["pyserial"]
     ATTRIBUTES
         serial_port[str] = "/dev/ttyAMA0"
 ;

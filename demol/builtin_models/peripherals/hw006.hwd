@@ -11,6 +11,8 @@ SENSOR[Proximity] HW006 WITH
     TEMPLATES
         raspbian="hw006.py.j2",
         riotos="hw006.c.j2"
+    DEPENDENCIES
+        raspbian=["gpiozero"]
     ATTRIBUTES
         frequency[int] = 100
 ;

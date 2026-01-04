@@ -11,12 +11,12 @@ BROKER[MQTT] MyMqttBroker WITH
     auth.password="guest";
 
 USE WemosD1Mini;
-USE SonarSRF04[Sonar], WS281X[Ledstrip];
+USE HCSR04P[Sonar], WS281X[Ledstrip];
 
 CONNECT Sonar WITH
     POWER
-        gnd -- gnd,
-        power_5v -- vcc
+        gnd -- GND,
+        power_3v3 -- VCC
     DATA
         gpio d3 -- trigger,
         gpio d4 -- echo

@@ -5,12 +5,12 @@ NETWORK[WiFi] WITH ssid="Wifi_2.4GHz", password="guest";
 BROKER[MQTT] MyMqttBroker WITH host="node.mqtt.local", port=1885, auth.username="guest", auth.password="guest";
 
 USE ESP32Wroom32;
-USE SonarSRF04[MySonar], BME680[MyBME];
+USE HCSR04P[MySonar], BME680[MyBME];
 
 CONNECT MySonar WITH
     POWER
-        GND_1 -- gnd,
-        VCC_5V -- vcc
+        GND_1 -- GND,
+        VCC_3V3 -- VCC
     DATA
         gpio GPIO13 -- trigger,
         gpio GPIO14 -- echo

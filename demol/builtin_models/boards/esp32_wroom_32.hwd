@@ -1,6 +1,6 @@
 BOARD[ESP] ESP32Wroom32 WITH
     OP
-        vcc=3V3,
+        vcc=5V,
         ioVcc=3V3,
         memory.flash=4 mb,
         cpu.family=ESP32,

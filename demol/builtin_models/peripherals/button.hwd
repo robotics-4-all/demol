@@ -13,4 +13,6 @@ SENSOR[Button] TactileButton WITH
     TEMPLATES
         raspbian="button.py.j2",
         riotos="button.c.j2"
+    DEPENDENCIES
+        raspbian=["gpiozero"]
 ;

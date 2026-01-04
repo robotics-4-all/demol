@@ -13,6 +13,8 @@ SENSOR[Distance] SRF05 WITH
     TEMPLATES
         raspbian="srf05.py.j2",
         riotos="srf05_riot.c.j2"
+    DEPENDENCIES
+        raspbian=["gpiozero", "pigpio"]
     ATTRIBUTES
         frequency[float] = 10
 ;

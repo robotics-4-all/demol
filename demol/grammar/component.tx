@@ -35,6 +35,7 @@ Actuator:
 	  'OP' operational=OperationalActuator
 	  'PINS' pins*=Pin[',']
 	  ('TEMPLATES' templates*=TemplateMapping[','])?
+      ('DEPENDENCIES' dependencies*=DependencyMapping[','])?
       ('ATTRIBUTES' attributes*=Attribute[','])?
     ';'
 ;
@@ -44,9 +45,31 @@ Sensor:
 	  'OP' operational=OperationalSensor
 	  'PINS' pins*=Pin[',']
 	  ('TEMPLATES' templates*=TemplateMapping[','])?
+      ('DEPENDENCIES' dependencies*=DependencyMapping[','])?
       ('ATTRIBUTES' attributes*=Attribute[','])?
     ';'
 ;
+
+DependencyMapping:
+    target=OperatingSystem '=' '[' items+=DependencyItem[','] ']'
+;
+
+DependencyItem:
+    DependencyObject | STRING
+;
+
+DependencyObject:
+    '{'
+        'package' '=' name=STRING ','?
+        ('version' '=' version=VersionSpec ','?)?
+        ('source' '=' source=STRING)?
+    '}'
+;
+
+VersionSpec:
+    STRING
+;
+
 
 Pin:
 	PowerPin | IOPin

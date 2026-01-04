@@ -21,7 +21,7 @@ class {{ peripheral.name }}Node:
             password="{{ broker.password}}"{% endif %}
         )
         self.node = Node(
-            node_name='sensors.{{ type }}.{{ class }}.{{ instance }}',
+            node_name='sensors.{{ class | lower }}.{{ instance | lower }}',
             connection_params=conn_params, heartbeats=False)
     
     def _initialize(self):

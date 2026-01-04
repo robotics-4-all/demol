@@ -1,4 +1,4 @@
-SENSOR[Distance] SonarSRF04 WITH
+SENSOR[Distance] SRF04 WITH
     OP
         vcc=5V,
         ioVcc=5V,

@@ -914,6 +914,40 @@ def validate_unique_pin_numbers(component) -> None:
             )
 
 
+def validate_dependency_sources(component) -> None:
+    """
+    Validate that dependency source values are valid.
+    
+    Ensures that the 'source' field in dependencies only contains
+    valid values: "pip" or "apt".
+    """
+    if not hasattr(component, 'dependencies') or not component.dependencies:
+        return
+    
+    valid_sources = {"pip", "apt"}
+    
+    for dep_mapping in component.dependencies:
+        if not hasattr(dep_mapping, 'items') or not dep_mapping.items:
+            continue
+            
+        for item in dep_mapping.items:
+            # Skip string-only dependencies (they don't have a source field)
+            if isinstance(item, str):
+                continue
+                
+            # Check if the item has a source field
+            if hasattr(item, 'source') and item.source:
+                source_value = item.source.strip('"').strip("'")
+                
+                if source_value not in valid_sources:
+                    raise_validation_error(
+                        component,
+                        f"Invalid dependency source '{source_value}' for package '{item.name}'. "
+                        f"Valid sources are: {', '.join(sorted(valid_sources))}",
+                        "InvalidDependencySourceError"
+                    )
+
+
 def validate_connections(model) -> None:
     """
     Validate all connections in the model.

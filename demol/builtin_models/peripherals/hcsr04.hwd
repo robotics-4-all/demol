@@ -1,19 +1,24 @@
 SENSOR[Distance] HCSR04 WITH
     OP
-        vcc=5V,
-        ioVcc=5V,
-        power.min=10 mW,
-        power.max=100 mW,
-        power.avg=75 mW,
-        freq.max=100 hz
+        vcc = 5V,
+        ioVcc = 5V,
+        power.min = 10 mW,
+        power.max = 100 mW,
+        power.avg = 75 mW,
+        freq.max = 100 hz
     PINS
         GND[GND] @ 1,
         echo[gpio] @ 2,
         trigger[gpio] @ 3,
         VCC[5V] @ 4
     TEMPLATES
-        raspbian="hcsr04.py.j2",
-        riotos="hcsr04.c.j2"
+        raspbian = "hcsr04.py.j2",
+        riotos = "hcsr04.c.j2"
+    DEPENDENCIES
+        raspbian = [
+            {package="gpiozero", version=">=2.0", source="pip"},
+            {package="pigpio", source="apt"}
+        ]
     ATTRIBUTES
         frequency[float] = 10,
         threshold_distance[float] = 0.3

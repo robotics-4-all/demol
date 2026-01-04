@@ -17,4 +17,6 @@ SENSOR[Distance] VL53L1X WITH
     TEMPLATES
         raspbian="vl53l1x.py.j2",
         riotos="vl53l1x_riot.c.j2"
+    DEPENDENCIES
+        raspbian=["vl53l1x"]
 ;

@@ -1,6 +1,7 @@
 BOARD[ESP] WemosD1Mini WITH
     OP
-        vcc=3V3,
+        vcc=5V,
+        ioVcc=3V3,
         memory.flash=16 mb,
         cpu.family=ESP8266,
         cpu.freq=160 mhz,

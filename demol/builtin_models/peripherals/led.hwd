@@ -14,6 +14,8 @@ ACTUATOR[Led] LedGeneric WITH
     TEMPLATES
         raspbian="led.py.j2",
         riotos="led.c.j2"
+    DEPENDENCIES
+        raspbian=["gpiozero"]
     ATTRIBUTES
         active_high[bool] = true,
         initial_value[bool] = false

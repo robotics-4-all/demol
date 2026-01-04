@@ -1,0 +1,9 @@
+{# gpiozero
+pigpio
+rpi-lgpio #}
+smbus2
+spidev
+commlib-py
+{% for dep in dependencies -%}
+{{ dep }}
+{% endfor -%}

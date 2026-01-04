@@ -258,6 +258,7 @@ class RPiCodeGenerator(BaseCodeGenerator):
         self.generate_peripheral_nodes()
         self.generate_common()
         self.generate_messages()
+        self.generate_docker_files()
         logger.info("Code generation complete!")
     
     def generate_peripheral_classes(self) -> None:
@@ -345,6 +346,76 @@ class RPiCodeGenerator(BaseCodeGenerator):
             self.output_dir / "common.py"
         )
     
+    def get_dependencies(self) -> Dict[str, List[str]]:
+        """Collect dependencies from all used peripherals.
+        
+        Returns:
+            Dict with 'pip' and 'apt' keys containing lists of package strings.
+        """
+        pip_deps = set()
+        apt_deps = set()
+        
+        for connection in self.get_connections():
+            peripheral_ref = connection.peripheral.ref
+            if hasattr(peripheral_ref, 'dependencies'):
+                for dep_mapping in peripheral_ref.dependencies:
+                    if dep_mapping.target == 'raspbian':
+                        for item in dep_mapping.items:
+                            if isinstance(item, str):
+                                # Default to pip if just a string
+                                pip_deps.add(item)
+                            else:
+                                # Structured dependency
+                                pkg = item.name
+                                if item.version:
+                                    # Check if version already contains an operator
+                                    version_str = item.version.strip('"').strip("'")
+                                    has_operator = any(op in version_str for op in ['>=', '<=', '==', '!=', '~=', '<', '>'])
+                                    
+                                    if item.source and item.source == 'apt':
+                                        # APT uses single '=' for version pinning
+                                        pkg = f"{pkg}={version_str}" if not has_operator else f"{pkg}{version_str}"
+                                    else:
+                                        # pip uses '==' for exact version, or keeps operator if present
+                                        pkg = f"{pkg}=={version_str}" if not has_operator else f"{pkg}{version_str}"
+                                
+                                if item.source and item.source == 'apt':
+                                    apt_deps.add(pkg)
+                                else:
+                                    pip_deps.add(pkg)
+                                    
+        return {
+            "pip": sorted(list(pip_deps)),
+            "apt": sorted(list(apt_deps))
+        }
+
+    def generate_docker_files(self) -> None:
+        """Generate Dockerfile, docker-compose.yml and install_deps.sh."""
+        # Collect dependencies
+        deps = self.get_dependencies()
+        
+        # Dockerfile
+        template = self.env.get_template("Dockerfile.j2")
+        context = {"apt_dependencies": deps["apt"]}
+        self._write_template(template, context, self.output_dir / "Dockerfile")
+        
+        # requirements.txt
+        template = self.env.get_template("requirements.txt.j2")
+        context = {"dependencies": deps["pip"]}
+        self._write_template(template, context, self.output_dir / "requirements.txt")
+        
+        # docker-compose.yml
+        template = self.env.get_template("docker-compose.yml.j2")
+        context = {"connections": self.get_connections()}
+        self._write_template(template, context, self.output_dir / "docker-compose.yml")
+
+        # install_deps.sh
+        template = self.env.get_template("install_deps.sh.j2")
+        context = {"apt_dependencies": deps["apt"]}
+        self._write_template(template, context, self.output_dir / "install_deps.sh")
+        # Make script executable
+        os.chmod(self.output_dir / "install_deps.sh", 0o755)
+
     def _write_template(
         self,
         template: jinja2.Template,

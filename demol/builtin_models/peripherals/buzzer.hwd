@@ -13,6 +13,8 @@ ACTUATOR[Buzzer] BuzzerGeneric WITH
     TEMPLATES
         raspbian="buzzer.py.j2",
         riotos="buzzer.c.j2"
+    DEPENDENCIES
+        raspbian=["gpiozero"]
     ATTRIBUTES
         initial_state[bool] = false
 ;

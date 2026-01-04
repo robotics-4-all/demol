@@ -26,6 +26,8 @@ ACTUATOR[DCMotor] MotorGeneric WITH
     TEMPLATES
         raspbian="motor.py.j2",
         riotos="motor.c.j2"
+    DEPENDENCIES
+        raspbian=["gpiozero"]
     ATTRIBUTES
         pwm[bool] = true  // Enable PWM control of pins forward and backward
 ;
