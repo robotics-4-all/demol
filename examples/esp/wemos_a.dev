@@ -11,7 +11,7 @@ BROKER[MQTT] MyMqttBroker WITH
     auth.password="guest";
 
 USE WemosD1Mini;
-USE HCSR04P[Sonar], WS281X[Ledstrip];
+USE HCSR04P[Sonar];
 
 CONNECT Sonar WITH
     POWER
@@ -21,11 +21,3 @@ CONNECT Sonar WITH
         gpio d3 -- trigger,
         gpio d4 -- echo
     @ "my_wemos.sensors.distance.sonar";
-
-CONNECT Ledstrip WITH
-    POWER
-        gnd -- gnd,
-        power_5v -- vcc
-    DATA
-        gpio d2 -- data_in
-    @ "my_wemos.actuators.visual.ledstrip";
