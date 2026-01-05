@@ -1,33 +1,7 @@
-IP_ADDRESS:
-	/([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}/
-;
-
-NID:
-	/(.*?)\n/
-;
-
 FQN: ID+['.'];
 FQNI: ID+['.']('.*')?;
 Import: 'import' importURI=FQNI ('as' name=ID)?;
 
-Description: /\#(.*?)$/;
-
-FQID[noskipws]:
-    /\s*/-
-    LID+['.']
-;
-
-// Language ID
-LID:
-    // Forbid keywords as IDs for better error reporting.
-    !Keyword ID
-;
-
-Keyword:
-    'import'
-;
-
-MULTILINE_STRING: /\"\"\"(.|\n)*?\"\"\"/;
 
 // Special rule for comments. Comments start with //
 
@@ -43,9 +17,6 @@ UNITS: ("kb" | "mb" | "gb" | "b");
 
 FrequencyUnit: "ghz" | "mhz" | "khz" | "hz";
 
-DistanceUnit: "m" | "cm" | "mm";
-
-TimeUnit: "h" | "min" | "s" | "ms" | "us" | "ns";
 
 PowerUnit: "W" | "mW" | "uW";
 
@@ -53,7 +24,6 @@ PowerUnit: "W" | "mW" | "uW";
 IPv4_ADDR: /([0-9]{1,3}\.){3}[0-9]{1,3}/;
 IPv6_ADDR: /([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}/;
 IP_ADDR: IPv4_ADDR | IPv6_ADDR;
-MAC_ADDR: /([0-9a-fA-F]{2}[:-]){5}([0-9a-fA-F]{2})/;
 
 // Value types
 VALUE: HEX | NUMBER | STRING | BOOL;

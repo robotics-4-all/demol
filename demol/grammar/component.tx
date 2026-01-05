@@ -62,13 +62,9 @@ DependencyItem:
 DependencyObject:
     '{'
         'package' '=' name=STRING ','?
-        ('version' '=' version=VersionSpec ','?)?
+        ('version' '=' version=STRING ','?)?
         ('source' '=' source=STRING)?
     '}'
-;
-
-VersionSpec:
-    STRING
 ;
 
 
