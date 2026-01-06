@@ -158,7 +158,10 @@ Bluetooth:
 
 
 SensorType:
-    // Environmental Sensors
+    EnvSensor | MotionSensor | OtherSensor
+;
+
+EnvSensor:
     "Temperature"   |
     "Humidity"      |
     "Gas"           |
@@ -167,37 +170,48 @@ SensorType:
     "AirQuality"    |
     "Light"         |
     "UV"            |
-    "Sound"         |
-    
-    // Motion & Position Sensors
+    "Sound"
+;
+
+MotionSensor:
     "Distance"      |
     "DistanceMatrix"|
     "Acceleration"  |
     "Gyroscope"     |
     "Magnetometer"  |
     "IMU"           |
-    "Tracker"	    |
+    "Tracker"
+;
+
+OtherSensor:
     "ADC"           |
     "Proximity"     |
     "Button"
 ;
 
 ActuatorType:
-	"MotorController"   |
+    MotorActuator | DisplayActuator | SoundActuator | AdvancedActuator
+;
+
+MotorActuator:
+    "MotorController"   |
     "ServoController"   |
     "Relay"             |
-    "Switch"            |
-    
-    // Display & Light Actuators
+    "Switch"
+;
+
+DisplayActuator:
     "LedArray"          |
     "Led"               |
-    "NeoPixel"          |
-    
-    // Sound Actuators
+    "NeoPixel"
+;
+
+SoundActuator:
     "Buzzer"            |
-    "Speaker"           |
-    
-    // Advanced Actuators
+    "Speaker"
+;
+
+AdvancedActuator:
     "Stepper"           |
     "DCMotor"           |
     "Pump"              |
@@ -245,20 +259,11 @@ WifiBand:
     '2.4GHz' | '5GHz' | '2.4Ghz' | '5Ghz'
 ;
 
-OperationalSensor:
-    (
-        ("vcc" "=" vcc=PowerType ","?)
-        ("ioVcc" "=" iovcc=PowerType ","?)?
-        ("power.min" "=" min=PowerConsumption ","?)?
-        ("power.max" "=" max=PowerConsumption ","?)?
-        ("power.avg" "=" avg=PowerConsumption ","?)?
-        ("freq.max" "=" freq_max=Frequency ","?)?
-        ("riotTpl" "=" riotTpl=STRING ","?)?
-        ("piTpl" "=" piTpl=STRING ","?)?
-    )#
-;
+OperationalSensor: OperationalPeripheral;
 
-OperationalActuator:
+OperationalActuator: OperationalPeripheral;
+
+OperationalPeripheral:
     (
         ("vcc" "=" vcc=PowerType ","?)
         ("ioVcc" "=" iovcc=PowerType ","?)?
