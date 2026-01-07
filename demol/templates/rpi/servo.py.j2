@@ -3,7 +3,7 @@ from .peripheral import Actuator
 from .msg import ServoControllerMessage
 
 
-class ServoGeneric(Actuator):
+class {{ driver_class_name }}(Actuator):
     """
     Generic PWM Angular Servo Actuator
     """
@@ -61,7 +61,7 @@ class ServoGeneric(Actuator):
 
 
 if __name__ == "__main__":
-    servo = ServoGeneric()
+    servo = {{ driver_class_name }}()
     servo.initialize()
     # Test: Move to 45 degrees
     print("Moving servo to 45 degrees...")

@@ -4,7 +4,7 @@ import serial
 from .peripheral import Sensor
 
 
-class TFMini(Sensor):
+class {{ driver_class_name }}(Sensor):
     """
     TFMini LiDAR distance sensor (UART-based)
     """

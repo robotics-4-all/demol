@@ -119,11 +119,16 @@ class RPiCodeGenerator(BaseCodeGenerator):
         op_attributes = self.get_operational_attributes(peripheral_ref)
         
         # Build base context
+        driver_class_name = f"{peripheral_ref.name}_{connection.peripheral.name}"
+        driver_module_name = f"{peripheral_ref.name.lower()}_{connection.peripheral.name.lower()}"
+        
         context = {
             "name": peripheral_ref.name,
             "instance": connection.peripheral.name,
             "type": type(peripheral_ref).__name__,
             "class": peripheral_ref.type,
+            "driver_class_name": driver_class_name,
+            "driver_module_name": driver_module_name,
             "board": board,
             "peripheral": peripheral_ref,
             "broker": broker_config,
@@ -320,7 +325,9 @@ class RPiCodeGenerator(BaseCodeGenerator):
         context = self.build_template_context(connection)
         # Render and write
         output = template.render(**context)
-        output_path = self.output_dir / f"{connection.peripheral.ref.name.lower()}.py"
+        
+        # Use unique module name
+        output_path = self.output_dir / f"{context['driver_module_name']}.py"
         
         with open(output_path, "w", encoding="utf-8") as f:
             f.write(output)

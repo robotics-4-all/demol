@@ -4,7 +4,7 @@ from .peripheral import Actuator
 from .msg import BuzzerMessage
 
 
-class BuzzerGeneric(Actuator):
+class {{ driver_class_name }}(Actuator):
     """
     Generic Buzzer Actuator (Tonal support)
     """
@@ -57,7 +57,7 @@ class BuzzerGeneric(Actuator):
 
 
 if __name__ == "__main__":
-    buzzer = BuzzerGeneric()
+    buzzer = {{ driver_class_name }}()
     buzzer.initialize()
     # Test: Play 440Hz tone for 1 second
     print("Playing 440Hz tone...")

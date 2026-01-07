@@ -3,7 +3,7 @@ from .peripheral import Sensor
 from .msg import ProximityMessage
 
 
-class TCRT5000(Sensor):
+class {{ driver_class_name }}(Sensor):
     """
     IR reflective sensor - detects black vs white/reflective surfaces
     """
@@ -39,7 +39,7 @@ class TCRT5000(Sensor):
 
 
 if __name__ == "__main__":
-    sensor = TCRT5000()
+    sensor = {{ driver_class_name }}()
     sensor.initialize()
     sensor.read()
     print("TCRT5000: ", sensor.current_state['data'])

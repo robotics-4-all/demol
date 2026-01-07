@@ -3,7 +3,7 @@ from .peripheral import Sensor
 from .msg import ButtonMessage
 
 
-class Button(Sensor):
+class {{ driver_class_name }}(Sensor):
     """
     Tactile Button Sensor
     """
@@ -34,7 +34,7 @@ class Button(Sensor):
 
 
 if __name__ == "__main__":
-    sensor = Button()
+    sensor = {{ driver_class_name }}()
     sensor.initialize()
     sensor.read()
     print("Button: ", sensor.current_state['data'])

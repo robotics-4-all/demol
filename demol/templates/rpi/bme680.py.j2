@@ -4,7 +4,7 @@ from .peripheral import Sensor
 from .msg import EnvMessage
 
 
-class BME680(Sensor):
+class {{ driver_class_name }}(Sensor):
     """
     BME680 Environmental Sensor (Temperature, Humidity, Pressure, Gas)
     """

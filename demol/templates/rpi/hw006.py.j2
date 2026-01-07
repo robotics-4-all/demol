@@ -2,7 +2,7 @@ from gpiozero import DigitalInputDevice as DInD
 from .peripheral import Sensor
 
 
-class HW006(Sensor):
+class {{ driver_class_name }}(Sensor):
     """
     IR reflective sensor - detects black vs white/reflective surfaces
     """
@@ -38,7 +38,7 @@ class HW006(Sensor):
 
 
 if __name__ == "__main__":
-    sensor = HW006()
+    sensor = {{ driver_class_name }}()
     sensor.initialize()
     sensor.read()
     print("HW006: ", sensor.current_state['data'])

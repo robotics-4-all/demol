@@ -2,14 +2,14 @@ from commlib.node import Node
 from commlib.transports.mqtt import ConnectionParameters
 from commlib.utils import Rate
 from .msg import {{class}}Message
-from .{{ peripheral.name.lower() }} import {{ peripheral.name }}
+from .{{ driver_module_name }} import {{ driver_class_name }}
 
 
 class {{ peripheral.name }}Node:
     _FREQUENCY = {{ attributes.get("frequency", 100.0) }}
 
     def __init__(self):
-        self.actuator = {{ peripheral.name }}(attributes={{ attributes }}, conn={{ conn }})
+        self.actuator = {{ driver_class_name }}()
         self.actuator.initialize()
         self.conn_params = ConnectionParameters(
             host="{{ broker.host }}",

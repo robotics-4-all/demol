@@ -2,7 +2,7 @@ from commlib.node import Node
 from commlib.utils import get_timestamp_ns, Rate
 from commlib.transports.mqtt import ConnectionParameters
 from .msg import {{class}}Message
-from .{{ peripheral.name.lower() }} import {{ peripheral.name }}
+from .{{ driver_module_name }} import {{ driver_class_name }}
 
 
 class {{ peripheral.name }}Node:
@@ -10,7 +10,7 @@ class {{ peripheral.name }}Node:
     _MAX_FREQUENCY = {{ op.get('freq_max', {}).get('value', 100.0) }}
 
     def __init__(self):
-        self.sensor = {{ peripheral.name }}()
+        self.sensor = {{ driver_class_name }}()
         self.sensor.initialize()
         self.rate = Rate(self._FREQUENCY)
         conn_params = ConnectionParameters(

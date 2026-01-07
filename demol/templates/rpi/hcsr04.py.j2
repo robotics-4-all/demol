@@ -3,7 +3,7 @@ from gpiozero.pins.pigpio import PiGPIOFactory
 from .peripheral import Sensor
 from .msg import DistanceMessage
 
-class HCSR04(Sensor):
+class {{ driver_class_name }}(Sensor):
     """
     Ultrasonic distance sensor (HC-SR04)
     """
@@ -50,7 +50,7 @@ class HCSR04(Sensor):
 
 
 if __name__ == "__main__":
-    sensor = HCSR04()
+    sensor = {{ driver_class_name }}()
     sensor.initialize()
     sensor.read()
     print("HCSR04: ", sensor.current_state['data'])

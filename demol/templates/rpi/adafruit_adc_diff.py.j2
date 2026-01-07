@@ -9,7 +9,7 @@ PRIMARY_SLAVE_ADDRESS = 0x{{slaveAddr | default(68)}}
 SECONDARY_SLAVE_ADDRESS = 0x{{secondary_slave_address | default(69)}}
 MAX_FREQUENCY = {{max_frequency | default(240)}}
 
-class DifferentialADC:
+class {{ driver_class_name }}:
     def __init__(self):
         self.adc = ADCimported(PRIMARY_SLAVE_ADDRESS, SECONDARY_SLAVE_ADDRESS)
         self.adc.set_pga(PGA)
@@ -26,6 +26,3 @@ class DifferentialADC:
 
     def disconnect(self):
         pass
-
-class ADCDifferentialPi(DifferentialADC):
-    pass

@@ -6,7 +6,7 @@ from adafruit_pca9685 import PCA9685 as PCA
 from .peripheral import Actuator
 
 
-class PCA9685(Actuator):
+class {{ driver_class_name }}(Actuator):
     """
     PCA9685 PWM/Servo Controller
     """

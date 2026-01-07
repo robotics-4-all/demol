@@ -287,13 +287,16 @@ class BaseCodeGenerator(ABC):
         return pins
 
     def _get_board_and_periph_pins(self, conn, pin_map):
-        """Helper to identify which pin is the board pin and which is the peripheral pin."""
-        board = self.get_board()
-        if hasattr(conn, '_from_ref') and conn._from_ref == board:
-            return pin_map.fromPin, pin_map.toPin
-        if hasattr(conn, '_to_ref') and conn._to_ref == board:
-            return pin_map.toPin, pin_map.fromPin
-        # Default to old behavior if board not found or neither side is board
+        """Helper to identify which pin is the board pin and which is the peripheral pin.
+        
+        Pin connections are ALWAYS written as: board_pin -- peripheral_pin
+        This is true regardless of the CONNECT statement order (CONNECT Peripheral or CONNECT Board:Peripheral).
+        
+        So fromPin is ALWAYS the board pin, and toPin is ALWAYS the peripheral pin.
+        """
+        # Pin syntax is always: board_pin -- peripheral_pin
+        # fromPin = board pin name
+        # toPin = peripheral pin name
         return pin_map.fromPin, pin_map.toPin
     
     def _get_bus_from_pin(self, board_pin, function_type: str) -> int:

@@ -4,7 +4,7 @@ from .peripheral import Actuator
 from .msg import SpeakerMessage
 
 
-class TTSSpeaker(Actuator):
+class {{ driver_class_name }}(Actuator):
     """
     Lightweight Text-to-Speech Actuator using espeak-ng/espeak.
     Designed for low-resource devices like Raspberry Pi.
@@ -81,7 +81,7 @@ class TTSSpeaker(Actuator):
 
 
 if __name__ == "__main__":
-    tts = TTSSpeaker()
+    tts = {{ driver_class_name }}()
     tts.initialize()
     test_text = "System initialized. Low resource text to speech is ready."
     print(f"Speaking: {test_text}")
