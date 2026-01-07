@@ -156,11 +156,11 @@ class BaseCodeGenerator(ABC):
             
         return result
     
-    def get_pin_mappings(self, data_connections, board) -> Dict[str, Any]:
+    def get_pin_mappings(self, connection, board) -> Dict[str, Any]:
         """Extract pin mappings from data connections.
         
         Args:
-            data_connections: List of data connection objects
+            connection: Connection object
             board: Board object for pin lookups
             
         Returns:
@@ -169,17 +169,19 @@ class BaseCodeGenerator(ABC):
         pins = {}
         board_pins_map = {pin.name: pin for pin in board.pins}
         
+        data_connections = connection.dataConns if hasattr(connection, 'dataConns') else connection
+        
         for data_conn in data_connections:
             conn_type = data_conn.type
             
             if conn_type == "gpio":
-                pins.update(self._extract_gpio_pins(data_conn, board_pins_map))
+                pins.update(self._extract_gpio_pins(connection, data_conn, board_pins_map))
             elif conn_type == "i2c":
-                pins.update(self._extract_i2c_pins(data_conn, board_pins_map))
+                pins.update(self._extract_i2c_pins(connection, data_conn, board_pins_map))
             elif conn_type == "spi":
-                pins.update(self._extract_spi_pins(data_conn, board_pins_map))
+                pins.update(self._extract_spi_pins(connection, data_conn, board_pins_map))
             elif conn_type == "uart":
-                pins.update(self._extract_uart_pins(data_conn, board_pins_map))
+                pins.update(self._extract_uart_pins(connection, data_conn, board_pins_map))
             else:
                 raise TypeError(f"Not a valid IO Connection Type: {conn_type}")
         
@@ -187,16 +189,8 @@ class BaseCodeGenerator(ABC):
     
     # ===== Helper Methods for Pin Extraction =====
     
-    def _extract_gpio_pins(self, data_conn, board_pins_map) -> Dict[str, Any]:
-        """Extract GPIO pin mappings and properties.
-        
-        Args:
-            data_conn: GPIO data connection object
-            board_pins_map: Dictionary mapping pin names to pin objects
-            
-        Returns:
-            Dictionary with GPIO pin mappings and properties
-        """
+    def _extract_gpio_pins(self, conn, data_conn, board_pins_map) -> Dict[str, Any]:
+        """Extract GPIO pin mappings and properties."""
         pins = {}
         
         # Extract GPIO properties
@@ -207,22 +201,14 @@ class BaseCodeGenerator(ABC):
         
         # Handle pins based on peripheral pin name
         for pin_map in data_conn.pins:
-            key = pin_map.toPin
-            pins[key] = pin_map.fromPin
-            pins[f"{key}_props"] = gpio_props
+            board_pin, periph_pin = self._get_board_and_periph_pins(conn, pin_map)
+            pins[periph_pin] = board_pin
+            pins[f"{periph_pin}_props"] = gpio_props
         
         return pins
     
-    def _extract_i2c_pins(self, data_conn, board_pins_map) -> Dict[str, Any]:
-        """Extract I2C pin mappings, bus info, and properties.
-        
-        Args:
-            data_conn: I2C data connection object
-            board_pins_map: Dictionary mapping pin names to pin objects
-            
-        Returns:
-            Dictionary with I2C pin mappings, bus number, and properties
-        """
+    def _extract_i2c_pins(self, conn, data_conn, board_pins_map) -> Dict[str, Any]:
+        """Extract I2C pin mappings, bus info, and properties."""
         pins = {}
         
         # Extract I2C properties
@@ -232,29 +218,22 @@ class BaseCodeGenerator(ABC):
                 i2c_props[prop.name] = prop.value
         
         for pin_map in data_conn.pins:
-            board_pin = board_pins_map.get(pin_map.fromPin)
+            board_pin_name, periph_pin_name = self._get_board_and_periph_pins(conn, pin_map)
+            board_pin = board_pins_map.get(board_pin_name)
             
             if pin_map.function == "sda":
-                pins["sda"] = pin_map.fromPin
+                pins["sda"] = board_pin_name
                 # Extract I2C bus from board pin's function definition
                 if board_pin:
                     pins["i2c_bus"] = self._get_bus_from_pin(board_pin, "sda")
             elif pin_map.function == "scl":
-                pins["scl"] = pin_map.fromPin
+                pins["scl"] = board_pin_name
             pins[f"{pin_map.function}_props"] = i2c_props
         
         return pins
     
-    def _extract_spi_pins(self, data_conn, board_pins_map) -> Dict[str, Any]:
-        """Extract SPI pin mappings, bus info, and properties.
-        
-        Args:
-            data_conn: SPI data connection object
-            board_pins_map: Dictionary mapping pin names to pin objects
-            
-        Returns:
-            Dictionary with SPI pin mappings, bus number, and properties
-        """
+    def _extract_spi_pins(self, conn, data_conn, board_pins_map) -> Dict[str, Any]:
+        """Extract SPI pin mappings, bus info, and properties."""
         pins = {}
         
         # Extract SPI properties
@@ -264,33 +243,26 @@ class BaseCodeGenerator(ABC):
                 spi_props[prop.name] = prop.value
         
         for pin_map in data_conn.pins:
-            board_pin = board_pins_map.get(pin_map.fromPin)
+            board_pin_name, periph_pin_name = self._get_board_and_periph_pins(conn, pin_map)
+            board_pin = board_pins_map.get(board_pin_name)
             
             if pin_map.function == "mosi":
-                pins["mosi"] = pin_map.fromPin
+                pins["mosi"] = board_pin_name
                 # Extract SPI bus from board pin's function definition
                 if board_pin:
                     pins["spi_bus"] = self._get_bus_from_pin(board_pin, "mosi")
             elif pin_map.function == "miso":
-                pins["miso"] = pin_map.fromPin
+                pins["miso"] = board_pin_name
             elif pin_map.function == "sck":
-                pins["sck"] = pin_map.fromPin
+                pins["sck"] = board_pin_name
             elif pin_map.function == "cs":
-                pins["cs"] = pin_map.fromPin
+                pins["cs"] = board_pin_name
             pins[f"{pin_map.function}_props"] = spi_props
         
         return pins
     
-    def _extract_uart_pins(self, data_conn, board_pins_map) -> Dict[str, Any]:
-        """Extract UART pin mappings, port info, and properties.
-        
-        Args:
-            data_conn: UART data connection object
-            board_pins_map: Dictionary mapping pin names to pin objects
-            
-        Returns:
-            Dictionary with UART pin mappings, port number, and properties
-        """
+    def _extract_uart_pins(self, conn, data_conn, board_pins_map) -> Dict[str, Any]:
+        """Extract UART pin mappings, port info, and properties."""
         pins = {}
         
         # Extract UART properties
@@ -300,18 +272,29 @@ class BaseCodeGenerator(ABC):
                 uart_props[prop.name] = prop.value
         
         for pin_map in data_conn.pins:
-            board_pin = board_pins_map.get(pin_map.fromPin)
+            board_pin_name, periph_pin_name = self._get_board_and_periph_pins(conn, pin_map)
+            board_pin = board_pins_map.get(board_pin_name)
             
             if pin_map.function == "tx":
-                pins["tx"] = pin_map.fromPin
+                pins["tx"] = board_pin_name
                 # Extract UART port from board pin's function definition
                 if board_pin:
                     pins["uart_port"] = self._get_bus_from_pin(board_pin, "tx")
             elif pin_map.function == "rx":
-                pins["rx"] = pin_map.fromPin
+                pins["rx"] = board_pin_name
             pins[f"{pin_map.function}_props"] = uart_props
         
         return pins
+
+    def _get_board_and_periph_pins(self, conn, pin_map):
+        """Helper to identify which pin is the board pin and which is the peripheral pin."""
+        board = self.get_board()
+        if hasattr(conn, '_from_ref') and conn._from_ref == board:
+            return pin_map.fromPin, pin_map.toPin
+        if hasattr(conn, '_to_ref') and conn._to_ref == board:
+            return pin_map.toPin, pin_map.fromPin
+        # Default to old behavior if board not found or neither side is board
+        return pin_map.fromPin, pin_map.toPin
     
     def _get_bus_from_pin(self, board_pin, function_type: str) -> int:
         """Extract bus/port number from board pin's function definition.

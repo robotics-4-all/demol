@@ -114,7 +114,7 @@ class RPiCodeGenerator(BaseCodeGenerator):
         peripheral_ref = connection.peripheral.ref
         board = self.get_board()
         broker_config = self.get_broker_config()
-        pins = self.get_pin_mappings(connection.dataConns, board)
+        pins = self.get_pin_mappings(connection, board)
         attributes = self.get_peripheral_attributes(peripheral_ref)
         op_attributes = self.get_operational_attributes(peripheral_ref)
         

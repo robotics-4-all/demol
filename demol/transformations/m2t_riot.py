@@ -117,7 +117,7 @@ class RiotCodeGenerator(BaseCodeGenerator):
             # Build args for this connection
             conn_args = {}
             conn_args.update(attrs)
-            pins = self.get_pin_mappings(conn.dataConns, board)
+            pins = self.get_pin_mappings(conn, board)
             board_pins_map = {pin.name: pin for pin in board.pins}
             for k, v in pins.items():
                 if not k.endswith("_props"):

@@ -53,25 +53,21 @@ EthNetwork:
 
 
 Use:
-    "USE" (components+=ComponentDef | board=[Board:FQN|+m:component]) (',' (components+=ComponentDef | board=[Board:FQN|+m:component]))* ';'
+    "USE" components+=ComponentInstance (',' components+=ComponentInstance)* ';'
 ;
 
-ComponentDef:
-    ref=[Component:FQN|+m:component] '[' name=ID ']' ('WITH' attributes*=AttributeSet[','])?
+ComponentInstance:
+    ref=[Component:FQN|+m:component] ('[' name=ID ']')? ('WITH' attributes*=AttributeSet[','])?
 ;
 
 Connect:
-	/[Cc][Oo][Nn][Nn][Ee][Cc][Tt]/ target=ConnectTarget /[Ww][Ii][Tt][Hh]/
+	'CONNECT' from_comp=[ComponentInstance:FQN] (':' to_comp=[ComponentInstance:FQN])? 'WITH'
 	(
-	    (/[Pp][Oo][Ww][Ee][Rr]/ powerConns*=PowerConnection[','])?
-        (/[Dd][Aa][Tt][Aa]/ dataConns+=DataConnection[','])?
+	    ('POWER' powerConns*=PowerConnection[','])?
+        ('DATA' dataConns+=DataConnection[','])?
 	    ("@" remote=STRING)?
     )#
     ';'
-;
-
-ConnectTarget:
-    target=[ComponentDef:FQN|~uses.components]
 ;
 
 PinConnection:

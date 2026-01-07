@@ -189,24 +189,19 @@ def enrich_model(model):
     power_sources = []
     
     for use in model.uses:
-        if hasattr(use, 'board') and use.board:
-            if not board:
-                if isinstance(use.board, list):
-                    board = use.board[0]
-                else:
-                    board = use.board
         if hasattr(use, 'components') and use.components:
-            for comp_def in use.components:
-                # Check the type of the referenced component
-                ref_type = comp_def.ref.__class__.__name__.lower()
-                if 'powersource' in ref_type:
-                    power_sources.append(comp_def)
-                elif 'board' in ref_type:
+            for comp_inst in use.components:
+                # Determine type based on the referenced component
+                ref_class = comp_inst.ref.__class__.__name__
+                if 'Board' in ref_class:
                     if not board:
-                        board = comp_def.ref
-                else:
-                    # Default to peripheral
-                    peripherals.append(comp_def)
+                        board = comp_inst.ref
+                    if not comp_inst.name:
+                        comp_inst.name = comp_inst.ref.name
+                elif 'PowerSource' in ref_class:
+                    power_sources.append(comp_inst)
+                else:  # Peripheral (Sensor or Actuator)
+                    peripherals.append(comp_inst)
     
     # Create a synthetic 'components' object for backward compatibility
     model.components = SimpleNamespace(
@@ -221,24 +216,44 @@ def enrich_model(model):
         # Set the board for easy navigation in M2M and M2T transformations
         setattr(c, 'board', board)
         
-        # Backward compatibility for 'peripheral' attribute
-        target_ref = None
-        target_name = "unknown"
+        def resolve_target(comp_inst):
+            if not comp_inst:
+                return None, "unknown", None
+            # comp_inst is now a ComponentInstance (BoardDef, PeripheralDef, or PowerSourceDef)
+            if hasattr(comp_inst, 'ref'):
+                return comp_inst.ref, getattr(comp_inst, 'name', comp_inst.ref.name), comp_inst
+            else:
+                return comp_inst, getattr(comp_inst, 'name', 'unknown'), None
+
+        from_ref, from_name, from_inst = resolve_target(c.from_comp)
         
-        if hasattr(c, 'target') and c.target:
-            target_obj = c.target.target
-            if target_obj:
-                # target_obj is now a ComponentDef
-                if hasattr(target_obj, 'ref'):
-                    target_ref = target_obj.ref
-                    target_name = target_obj.name
-                    # Backward compatibility: set 'peripheral' attribute
-                    setattr(c, 'peripheral', target_obj)
-                else:
-                    # Direct reference (e.g. Board)
-                    target_ref = target_obj
-                    target_name = target_obj.name
+        if hasattr(c, 'to_comp') and c.to_comp:
+            to_ref, to_name, to_inst = resolve_target(c.to_comp)
+        else:
+            # Default to board if to_comp is missing
+            to_ref, to_name, to_inst = board, board.name if board else "board", None
+
+        # Store resolved endpoints on the connection object
+        setattr(c, '_from_ref', from_ref)
+        setattr(c, '_from_name', from_name)
+        setattr(c, '_from_inst', from_inst)
+        setattr(c, '_to_ref', to_ref)
+        setattr(c, '_to_name', to_name)
+        setattr(c, '_to_inst', to_inst)
+
+        # Backward compatibility: set 'peripheral' and 'target' attributes
+        # We assume the 'from_comp' is the primary peripheral if it's not the board
+        # Otherwise, we check 'to_comp'.
+        primary_inst = from_inst if from_inst else to_inst
+        if primary_inst:
+            setattr(c, 'peripheral', primary_inst)
+            # 'target' attribute for backward compatibility with some older logic
+            # that might expect c.target.target
+            setattr(c, 'target', SimpleNamespace(target=primary_inst))
         
+        target_ref = from_ref if from_inst else to_ref
+        target_name = from_name if from_inst else to_name
+
         # ====================================================================
         # Auto-generate topic if not specified
         # ====================================================================
@@ -276,13 +291,11 @@ def get_device_mm(debug: bool = False, global_repo: bool = False, skip_semantics
         {
             "*.*": scoping_providers.FQN(),
             "*.*": scoping_providers.FQNImportURI(importAs=True),
-            "Use.board": scoping_providers.FQNGlobalRepo(
-                os.path.join(BOARD_MODEL_REPO_PATH, '*.hwd')
+            "ComponentInstance.ref": scoping_providers.FQNGlobalRepo(
+                os.path.join(DEVICES_MODEL_REPO_PATH, '*/*.hwd')
             ),
-            "Use.components": scoping_providers.FQNGlobalRepo(
-                os.path.join(PERIPHERAL_MODEL_REPO_PATH, '*.hwd')
-            ),
-            "ConnectTarget.target": scoping_providers.FQN(),
+            "Connect.from_comp": "~uses.components",
+            "Connect.to_comp": "~uses.components"
         }
     )
 

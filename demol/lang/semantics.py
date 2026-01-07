@@ -92,20 +92,35 @@ def check_validation_errors(model, skip_semantics=False):
 
 def get_connection_target(connection):
     """Helper to get the target object and its instance name from a connection"""
+    if hasattr(connection, '_from_inst') and connection._from_inst:
+        return connection._from_ref, connection._from_name
+    if hasattr(connection, '_to_inst') and connection._to_inst:
+        return connection._to_ref, connection._to_name
+        
+    # Fallback for older logic
     if hasattr(connection, 'target') and connection.target:
         target_obj = connection.target.target
         if target_obj:
-            # target_obj is a ComponentDef
             if hasattr(target_obj, 'ref'):
                 return target_obj.ref, target_obj.name
-            # Direct reference (e.g. Board)
             return target_obj, target_obj.name
     
-    # Backward compatibility for models that might still use 'peripheral' attribute
     if hasattr(connection, 'peripheral') and connection.peripheral:
         return connection.peripheral.ref, connection.peripheral.name
         
     return None, "unknown"
+
+
+def get_connection_endpoints(connection):
+    """Helper to get both endpoints of a connection"""
+    if hasattr(connection, '_from_ref'):
+        return (connection._from_ref, connection._from_name, 
+                connection._to_ref, connection._to_name)
+    
+    # Fallback
+    target_ref, target_name = get_connection_target(connection)
+    board = getattr(connection, 'board', None)
+    return target_ref, target_name, board, board.name if board else "board"
 
 
 # ============================================================================
@@ -1103,51 +1118,81 @@ def validate_connections(model) -> None:
     power_sources_map = {ps.name: ps.ref for ps in model.components.powerSources}
     
     for c in model.connections:
-        target_ref, target_name = get_connection_target(c)
-        if target_ref is None:
+        from_ref, from_name, to_ref, to_name = get_connection_endpoints(c)
+        
+        if from_ref is None or to_ref is None:
             continue
-            
-        target_pins_map = {p.name: p for p in target_ref.pins}
-        target_pin_names = set(target_pins_map.keys())
+        
+        # Determine which component is the board and which is the peripheral/power source
+        # This is needed because pin connections are always written from the power source
+        # perspective (board_pin -- peripheral_pin), regardless of CONNECT statement order
+        is_from_board = (from_ref == board)
+        is_to_board = (to_ref == board)
+        
+        # Build pin maps for both components
+        from_pins_map = {p.name: p for p in from_ref.pins}
+        to_pins_map = {p.name: p for p in to_ref.pins}
+        from_pin_names = set(from_pins_map.keys())
+        to_pin_names = set(to_pins_map.keys())
         
         # ====================================================================
         # Validate Power Connections
         # ====================================================================
         for pconn in c.powerConns:
-            # Check if fromPin exists on board or any power source
-            from_pin_obj = None
-            from_owner_name = "Board"
+            # Determine actual pin ownership based on connection semantics
+            # Power connections are ALWAYS: source_pin -- sink_pin
+            # where source is typically the board or power source
             
-            if pconn.fromPin in board_pin_names:
-                from_pin_obj = board_pins_map[pconn.fromPin]
-                from_owner_name = board.name
+            if is_to_board:
+                # CONNECT Peripheral:Board or CONNECT PowerSource:Board
+                # Pin syntax: board_pin -- peripheral_pin
+                # So fromPin is on the board (to_ref), toPin is on peripheral (from_ref)
+                source_pins_map = to_pins_map
+                source_pin_names = to_pin_names
+                source_name = to_name
+                sink_pins_map = from_pins_map
+                sink_pin_names = from_pin_names
+                sink_name = from_name
+            elif is_from_board:
+                # CONNECT Board:Peripheral (explicit board first)
+                # Pin syntax: board_pin -- peripheral_pin
+                # So fromPin is on the board (from_ref), toPin is on peripheral (to_ref)
+                source_pins_map = from_pins_map
+                source_pin_names = from_pin_names
+                source_name = from_name
+                sink_pins_map = to_pins_map
+                sink_pin_names = to_pin_names
+                sink_name = to_name
             else:
-                # Check power sources
-                for ps_name, ps_ref in power_sources_map.items():
-                    ps_pins = {p.name: p for p in ps_ref.pins}
-                    if pconn.fromPin in ps_pins:
-                        from_pin_obj = ps_pins[pconn.fromPin]
-                        from_owner_name = ps_name
-                        break
+                # CONNECT PowerSource:Peripheral or other combinations
+                # Use the original logic (from_comp owns fromPin)
+                source_pins_map = from_pins_map
+                source_pin_names = from_pin_names
+                source_name = from_name
+                sink_pins_map = to_pins_map
+                sink_pin_names = to_pin_names
+                sink_name = to_name
             
-            if from_pin_obj is None:
+            # Check if fromPin exists on source component
+            if pconn.fromPin not in source_pin_names:
                 raise_validation_error(
                     pconn,
-                    f"Source pin '{pconn.fromPin}' not found on board or any power source."
+                    f"Source pin '{pconn.fromPin}' not found on '{source_name}'."
                 )
             
-            # Check if toPin exists on target
-            if pconn.toPin not in target_pin_names:
+            # Check if toPin exists on sink component
+            if pconn.toPin not in sink_pin_names:
                 raise_validation_error(
                     pconn,
-                    f"Target '{target_name}' does not have a pin named '{pconn.toPin}'"
+                    f"Target pin '{pconn.toPin}' not found on '{sink_name}'."
                 )
             
-            to_pin_obj = target_pins_map[pconn.toPin]
+            source_pin_obj = source_pins_map[pconn.fromPin]
+            sink_pin_obj = sink_pins_map[pconn.toPin]
             
             # Validate power connection
-            if hasattr(from_pin_obj, 'ptype') and hasattr(to_pin_obj, 'ptype'):
-                validate_power_connection(from_pin_obj, to_pin_obj, pconn)
+            if hasattr(source_pin_obj, 'ptype') and hasattr(sink_pin_obj, 'ptype'):
+                validate_power_connection(source_pin_obj, sink_pin_obj, pconn)
         
         # ====================================================================
         # Validate IO Connections
@@ -1175,28 +1220,59 @@ def validate_connections(model) -> None:
                         return p
                 return None
 
+            # Determine pin ownership for data connections (same logic as power)
+            # Data connections also follow: board_pin -- peripheral_pin
+            if is_to_board:
+                # CONNECT Peripheral:Board
+                # Pin syntax: board_pin -- peripheral_pin
+                # So fromPin is on board (to_ref), toPin is on peripheral (from_ref)
+                data_source_pins_map = to_pins_map
+                data_source_pin_names = to_pin_names
+                data_source_name = to_name
+                data_sink_pins_map = from_pins_map
+                data_sink_pin_names = from_pin_names
+                data_sink_name = from_name
+            elif is_from_board:
+                # CONNECT Board:Peripheral
+                # Pin syntax: board_pin -- peripheral_pin
+                # So fromPin is on board (from_ref), toPin is on peripheral (to_ref)
+                data_source_pins_map = from_pins_map
+                data_source_pin_names = from_pin_names
+                data_source_name = from_name
+                data_sink_pins_map = to_pins_map
+                data_sink_pin_names = to_pin_names
+                data_sink_name = to_name
+            else:
+                # Other combinations - use original logic
+                data_source_pins_map = from_pins_map
+                data_source_pin_names = from_pin_names
+                data_source_name = from_name
+                data_sink_pins_map = to_pins_map
+                data_sink_pin_names = to_pin_names
+                data_sink_name = to_name
+
             # Collect all used pins for this data connection
             for pin_map in data_conn.pins:
-                # Check if board pin exists
-                if pin_map.fromPin not in board_pin_names:
+                # Check if fromPin exists on source component
+                if pin_map.fromPin not in data_source_pin_names:
                     raise_validation_error(
                         pin_map,
-                        f'Board {board.name} does not have a pin named {pin_map.fromPin}'
+                        f"Source pin '{pin_map.fromPin}' not found on '{data_source_name}'."
                     )
-                # Check if target pin exists
-                if pin_map.toPin not in target_pin_names:
+                # Check if toPin exists on sink component
+                if pin_map.toPin not in data_sink_pin_names:
                     raise_validation_error(
                         pin_map,
-                        f"Target '{target_name}' does not have a pin named '{pin_map.toPin}'"
+                        f"Target pin '{pin_map.toPin}' not found on '{data_sink_name}'."
                     )
 
             if conn_type == 'gpio':
                 pin_conn = data_conn.pins[0] # Assuming single pin for GPIO for now
                 
                 # Enhanced validation: Check GPIO functionality
-                board_pin = board_pins_map[pin_conn.fromPin]
-                target_pin = target_pins_map[pin_conn.toPin]
-                validate_gpio_connection(board_pin, target_pin, data_conn)
+                source_pin = data_source_pins_map[pin_conn.fromPin]
+                sink_pin = data_sink_pins_map[pin_conn.toPin]
+                validate_gpio_connection(source_pin, sink_pin, data_conn)
                 
             elif conn_type == 'i2c':
                 sda = get_pin('sda')
@@ -1207,27 +1283,13 @@ def validate_connections(model) -> None:
                      # TODO: Better error handling for missing pins
                      continue
                 
-                # Check if pins exist
-                pin_conns = [sda, scl]
-                for pc in pin_conns:
-                    if pc.fromPin not in board_pin_names:
-                        raise_validation_error(
-                            pc,
-                            f'Board {board.name} does not have a pin named {pc.fromPin}'
-                        )
-                    if pc.toPin not in target_pin_names:
-                        raise_validation_error(
-                            pc,
-                            f"Target '{target_name}' does not have a pin named '{pc.toPin}'"
-                        )
-                
                 # Enhanced validation: Check I2C functionality and address range
-                board_sda = board_pins_map[sda.fromPin]
-                board_scl = board_pins_map[scl.fromPin]
-                target_sda = target_pins_map[sda.toPin]
-                target_scl = target_pins_map[scl.toPin]
+                source_sda = data_source_pins_map[sda.fromPin]
+                source_scl = data_source_pins_map[scl.fromPin]
+                sink_sda = data_sink_pins_map[sda.toPin]
+                sink_scl = data_sink_pins_map[scl.toPin]
                 validate_i2c_connection(
-                    board_sda, board_scl, target_sda, target_scl,
+                    source_sda, source_scl, sink_sda, sink_scl,
                     slave_addr, data_conn
                 )
                 
@@ -1237,34 +1299,20 @@ def validate_connections(model) -> None:
                 sck = get_pin('sck')
                 cs = get_pin('cs')
                 
-                # Check if pins exist
-                pin_conns = [p for p in [miso, mosi, sck, cs] if p]
-                for pc in pin_conns:
-                    if pc.fromPin not in board_pin_names:
-                        raise_validation_error(
-                            pc,
-                            f'Board {board.name} does not have a pin named {pc.fromPin}'
-                        )
-                    if pc.toPin not in target_pin_names:
-                        raise_validation_error(
-                            pc,
-                            f"Target '{target_name}' does not have a pin named '{pc.toPin}'"
-                        )
-                
                 # Enhanced validation: Check SPI functionality
-                spi_pins = {
-                    'mosi': board_pins_map[mosi.fromPin] if mosi else None,
-                    'miso': board_pins_map[miso.fromPin] if miso else None,
-                    'sck': board_pins_map[sck.fromPin] if sck else None,
-                    'cs': board_pins_map[cs.fromPin] if cs else None
+                source_spi_pins = {
+                    'mosi': data_source_pins_map[mosi.fromPin] if mosi else None,
+                    'miso': data_source_pins_map[miso.fromPin] if miso else None,
+                    'sck': data_source_pins_map[sck.fromPin] if sck else None,
+                    'cs': data_source_pins_map[cs.fromPin] if cs else None
                 }
-                target_spi_pins = {
-                    'mosi': target_pins_map[mosi.toPin] if mosi else None,
-                    'miso': target_pins_map[miso.toPin] if miso else None,
-                    'sck': target_pins_map[sck.toPin] if sck else None,
-                    'cs': target_pins_map[cs.toPin] if cs else None
+                sink_spi_pins = {
+                    'mosi': data_sink_pins_map[mosi.toPin] if mosi else None,
+                    'miso': data_sink_pins_map[miso.toPin] if miso else None,
+                    'sck': data_sink_pins_map[sck.toPin] if sck else None,
+                    'cs': data_sink_pins_map[cs.toPin] if cs else None
                 }
-                validate_spi_connection(spi_pins, target_spi_pins, data_conn)
+                validate_spi_connection(source_spi_pins, sink_spi_pins, data_conn)
                 
             elif conn_type == 'uart':
                 tx = get_pin('tx')
@@ -1274,27 +1322,13 @@ def validate_connections(model) -> None:
                 if not tx or not rx:
                     continue
 
-                # Check if pins exist
-                pin_conns = [p for p in [tx, rx] if p]
-                for pc in pin_conns:
-                    if pc.fromPin not in board_pin_names:
-                        raise_validation_error(
-                            pc,
-                            f'Board {board.name} does not have a pin named {pc.fromPin}'
-                        )
-                    if pc.toPin not in target_pin_names:
-                        raise_validation_error(
-                            pc,
-                            f"Target '{target_name}' does not have a pin named '{pc.toPin}'"
-                        )
-                
                 # Enhanced validation: Check UART functionality
-                board_tx = board_pins_map[tx.fromPin] if tx else None
-                board_rx = board_pins_map[rx.fromPin] if rx else None
-                target_tx = target_pins_map[tx.toPin] if tx else None
-                target_rx = target_pins_map[rx.toPin] if rx else None
+                source_tx = data_source_pins_map[tx.fromPin] if tx else None
+                source_rx = data_source_pins_map[rx.fromPin] if rx else None
+                sink_tx = data_sink_pins_map[tx.toPin] if tx else None
+                sink_rx = data_sink_pins_map[rx.toPin] if rx else None
                 validate_uart_connection(
-                    board_tx, board_rx, target_tx, target_rx,
+                    source_tx, source_rx, sink_tx, sink_rx,
                     baudrate, data_conn
                 )
 
@@ -1329,17 +1363,10 @@ def validate_single_board(model) -> None:
     """
     all_boards = []
     for use in model.uses:
-        if hasattr(use, 'boards') and use.boards:
-            all_boards.extend(use.boards)
-        if hasattr(use, 'board') and use.board:
-            if isinstance(use.board, list):
-                all_boards.extend(use.board)
-            else:
-                all_boards.append(use.board)
-        if hasattr(use, 'components'):
+        if hasattr(use, 'components') and use.components:
             for comp in use.components:
                 if 'Board' in comp.ref.__class__.__name__:
-                    all_boards.append(comp.ref)
+                    all_boards.append(comp)
     
     if len(all_boards) == 0:
         raise_validation_error(

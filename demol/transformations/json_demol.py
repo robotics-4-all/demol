@@ -158,19 +158,9 @@ def device_to_json(model) -> Dict[str, Any]:
             
     # Connections
     for conn in model.connections:
-        target_name = "unknown"
-        if hasattr(conn, 'target') and conn.target:
-            target_obj = conn.target.target
-            if target_obj:
-                target_name = target_obj.name
-                # Try to find instance name if it's a peripheral
-                if hasattr(conn, 'peripheral') and conn.peripheral:
-                    target_name = conn.peripheral.name
-        elif hasattr(conn, 'peripheral') and conn.peripheral:
-            target_name = conn.peripheral.name
-            
         c_data = {
-            "targetName": target_name,
+            "fromName": getattr(conn, '_from_name', "unknown"),
+            "toName": getattr(conn, '_to_name', "unknown"),
             "type": "io",
             "mappings": []
         }
@@ -373,11 +363,14 @@ def json_to_demol(model_data) -> str:
     # 4. Connections
     connections = get_val(model_data, 'connections', [])
     for conn in connections:
-        target_id = get_val(conn, 'targetNodeId') or get_val(conn, 'targetId')
-        target_name = instance_map.get(target_id, get_val(conn, 'targetName', 'target')).replace(" ", "_")
+        from_name = get_val(conn, 'fromName', 'unknown').replace(" ", "_")
+        to_name = get_val(conn, 'toName', 'unknown').replace(" ", "_")
         c_type = get_val(conn, 'type', 'io')
         
-        content += f'CONNECT {target_name} WITH\n'
+        if to_name == board_name or to_name == "board":
+            content += f'CONNECT {from_name} WITH\n'
+        else:
+            content += f'CONNECT {from_name} : {to_name} WITH\n'
         
         mappings = get_val(conn, 'mappings', [])
         power_mappings = [m for m in mappings if get_val(m, 'section') == 'power']
