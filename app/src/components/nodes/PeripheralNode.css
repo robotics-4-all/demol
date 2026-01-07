@@ -1,0 +1,147 @@
+.peripheral-node {
+    min-width: 220px;
+    background: var(--bg-card);
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    padding: 0.875rem;
+    box-shadow: var(--shadow-md);
+    transition: all 0.3s ease;
+}
+
+.peripheral-node.selected {
+    border-color: var(--accent);
+    box-shadow: 0 12px 32px rgba(236, 72, 153, 0.3);
+    transform: scale(1.02);
+}
+
+.sensor-node {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.05), rgba(5, 150, 105, 0.02));
+    border-color: var(--success);
+}
+
+.actuator-node {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.05), rgba(217, 119, 6, 0.02));
+    border-color: var(--warning);
+}
+
+.peripheral-node .node-header {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.625rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.peripheral-node .node-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 6px;
+    color: white;
+}
+
+.sensor-icon {
+    background: linear-gradient(135deg, var(--success), #059669);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.actuator-icon {
+    background: linear-gradient(135deg, var(--warning), #d97706);
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+}
+
+.peripheral-node .node-title {
+    flex: 1;
+    min-width: 0;
+}
+
+.peripheral-node .node-name {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.25rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.peripheral-node .node-type {
+    font-size: 0.6875rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.sensor-node .node-type {
+    color: var(--success);
+}
+
+.actuator-node .node-type {
+    color: var(--warning);
+}
+
+.peripheral-node .node-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.peripheral-node .node-specs {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+}
+
+.peripheral-node .spec-item {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.375rem 0.5rem;
+    background: var(--bg-secondary);
+    border-radius: 4px;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.peripheral-node .spec-item svg {
+    flex-shrink: 0;
+}
+
+.sensor-node .spec-item svg {
+    color: var(--success);
+}
+
+.actuator-node .spec-item svg {
+    color: var(--warning);
+}
+
+.spec-label {
+    font-weight: 500;
+    color: var(--text-muted);
+}
+
+.peripheral-node .node-pins {
+    padding: 0.375rem 0.5rem;
+    background: var(--bg-secondary);
+    border-radius: 4px;
+    text-align: center;
+}
+
+.peripheral-node .pins-label {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+.handle-power {
+    background: var(--error) !important;
+    border-color: var(--bg-primary) !important;
+}
+
+.handle-io {
+    background: var(--primary) !important;
+    border-color: var(--bg-primary) !important;
+}

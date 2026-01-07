@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  api:
+    build:
+      context: ..
+      dockerfile: app/api/Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - ../demol:/app/demol
+      - ./api:/app/api
+    environment:
+      - PYTHONPATH=/app
+    restart: always
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "5173:80"
+    depends_on:
+      - api
+    restart: always
