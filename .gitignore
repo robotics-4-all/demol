@@ -112,3 +112,12 @@ ENV/
 gen/
 
 rpi_out/
+
+# Web App
+app/node_modules/
+app/dist/
+app/dist-ssr/
+app/.env
+app/*.log
+app/.eslintcache
+app/tsconfig.tsbuildinfo
