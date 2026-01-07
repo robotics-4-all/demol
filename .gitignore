@@ -121,3 +121,5 @@ app/.env
 app/*.log
 app/.eslintcache
 app/tsconfig.tsbuildinfo
+
+tests/output/

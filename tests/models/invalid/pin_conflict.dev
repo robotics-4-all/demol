@@ -1,0 +1,28 @@
+// Invalid test model: Pin conflict
+// This model should FAIL validation with pin conflict error
+// Both LEDs try to use the same GPIO pin
+
+DEVICE PinConflict WITH description="Pin conflict test", author="test", os=raspbian;
+
+USE RaspberryPi_5_8GB;
+USE LedGeneric[LED1], LedGeneric[LED2];
+
+NETWORK[WiFi] WITH ssid="test", password="test123";
+
+BROKER[MQTT] TestBroker WITH host="localhost", port=1883, auth.username="test", auth.password="test", ssl=False;
+
+CONNECT LED1 WITH
+    POWER
+        GND_1 -- gnd,
+        power_3v3_a -- vcc
+    DATA
+        gpio[mode="output"] GPIO17 -- vin
+;
+
+CONNECT LED2 WITH
+    POWER
+        GND_2 -- gnd,
+        power_3v3_b -- vcc
+    DATA
+        gpio[mode="output"] GPIO17 -- vin
+;

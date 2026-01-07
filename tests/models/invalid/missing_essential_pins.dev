@@ -1,0 +1,18 @@
+// Invalid test model: Missing essential pins
+// This model should FAIL validation with MissingEssentialConnectionError
+// BME680 requires gnd, vcc, sda, scl pins but we're missing sda and scl
+
+DEVICE MissingPins WITH description="Missing essential pins test", author="test", os=raspbian;
+
+USE RaspberryPi_5_8GB;
+USE BME680[TempSensor];
+
+NETWORK[WiFi] WITH ssid="test", password="test123";
+
+BROKER[MQTT] TestBroker WITH host="localhost", port=1883, auth.username="test", auth.password="test", ssl=False;
+
+CONNECT TempSensor WITH
+    POWER
+        GND_1 -- gnd,
+        power_3v3_a -- vcc
+;

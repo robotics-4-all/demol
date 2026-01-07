@@ -1,0 +1,28 @@
+// Invalid test model: I2C address conflict
+// This model should FAIL validation with I2C address conflict error
+// Both sensors use the same I2C address on the same bus
+
+DEVICE I2CConflict WITH description="I2C address conflict test", author="test", os=raspbian;
+
+USE RaspberryPi_5_8GB;
+USE BME680[Sensor1], BME680[Sensor2];
+
+NETWORK[WiFi] WITH ssid="test", password="test123";
+
+BROKER[MQTT] TestBroker WITH host="localhost", port=1883, auth.username="test", auth.password="test", ssl=False;
+
+CONNECT Sensor1 WITH
+    POWER
+        GND_1 -- gnd,
+        power_3v3_a -- vcc
+    DATA
+        i2c[slave_address=0x76] sda GPIO2 -- sda, scl GPIO3 -- scl
+;
+
+CONNECT Sensor2 WITH
+    POWER
+        GND_2 -- gnd,
+        power_3v3_b -- vcc
+    DATA
+        i2c[slave_address=0x76] sda GPIO2 -- sda, scl GPIO3 -- scl
+;
