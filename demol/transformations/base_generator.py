@@ -207,8 +207,8 @@ class BaseCodeGenerator(ABC):
         
         # Handle pins based on peripheral pin name
         for pin_map in data_conn.pins:
-            key = pin_map.peripheralPin
-            pins[key] = pin_map.boardPin
+            key = pin_map.toPin
+            pins[key] = pin_map.fromPin
             pins[f"{key}_props"] = gpio_props
         
         return pins
@@ -232,15 +232,15 @@ class BaseCodeGenerator(ABC):
                 i2c_props[prop.name] = prop.value
         
         for pin_map in data_conn.pins:
-            board_pin = board_pins_map.get(pin_map.boardPin)
+            board_pin = board_pins_map.get(pin_map.fromPin)
             
             if pin_map.function == "sda":
-                pins["sda"] = pin_map.boardPin
+                pins["sda"] = pin_map.fromPin
                 # Extract I2C bus from board pin's function definition
                 if board_pin:
                     pins["i2c_bus"] = self._get_bus_from_pin(board_pin, "sda")
             elif pin_map.function == "scl":
-                pins["scl"] = pin_map.boardPin
+                pins["scl"] = pin_map.fromPin
             pins[f"{pin_map.function}_props"] = i2c_props
         
         return pins
@@ -264,19 +264,19 @@ class BaseCodeGenerator(ABC):
                 spi_props[prop.name] = prop.value
         
         for pin_map in data_conn.pins:
-            board_pin = board_pins_map.get(pin_map.boardPin)
+            board_pin = board_pins_map.get(pin_map.fromPin)
             
             if pin_map.function == "mosi":
-                pins["mosi"] = pin_map.boardPin
+                pins["mosi"] = pin_map.fromPin
                 # Extract SPI bus from board pin's function definition
                 if board_pin:
                     pins["spi_bus"] = self._get_bus_from_pin(board_pin, "mosi")
             elif pin_map.function == "miso":
-                pins["miso"] = pin_map.boardPin
+                pins["miso"] = pin_map.fromPin
             elif pin_map.function == "sck":
-                pins["sck"] = pin_map.boardPin
+                pins["sck"] = pin_map.fromPin
             elif pin_map.function == "cs":
-                pins["cs"] = pin_map.boardPin
+                pins["cs"] = pin_map.fromPin
             pins[f"{pin_map.function}_props"] = spi_props
         
         return pins
@@ -300,15 +300,15 @@ class BaseCodeGenerator(ABC):
                 uart_props[prop.name] = prop.value
         
         for pin_map in data_conn.pins:
-            board_pin = board_pins_map.get(pin_map.boardPin)
+            board_pin = board_pins_map.get(pin_map.fromPin)
             
             if pin_map.function == "tx":
-                pins["tx"] = pin_map.boardPin
+                pins["tx"] = pin_map.fromPin
                 # Extract UART port from board pin's function definition
                 if board_pin:
                     pins["uart_port"] = self._get_bus_from_pin(board_pin, "tx")
             elif pin_map.function == "rx":
-                pins["rx"] = pin_map.boardPin
+                pins["rx"] = pin_map.fromPin
             pins[f"{pin_map.function}_props"] = uart_props
         
         return pins

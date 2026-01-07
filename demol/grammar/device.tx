@@ -53,15 +53,15 @@ EthNetwork:
 
 
 Use:
-    "USE" (peripherals+=PeripheralDef[','] | board=[Board:FQN|+m:component]) ';'
+    "USE" (components+=ComponentDef | board=[Board:FQN|+m:component]) (',' (components+=ComponentDef | board=[Board:FQN|+m:component]))* ';'
 ;
 
-PeripheralDef:
-    ref=[Peripheral:FQN|+m:component] '[' name=ID ']' ('WITH' attributes*=AttributeSet[','])?
+ComponentDef:
+    ref=[Component:FQN|+m:component] '[' name=ID ']' ('WITH' attributes*=AttributeSet[','])?
 ;
 
 Connect:
-	/[Cc][Oo][Nn][Nn][Ee][Cc][Tt]/ peripheral=[PeripheralDef:FQN|~uses.peripherals] /[Ww][Ii][Tt][Hh]/
+	/[Cc][Oo][Nn][Nn][Ee][Cc][Tt]/ target=ConnectTarget /[Ww][Ii][Tt][Hh]/
 	(
 	    (/[Pp][Oo][Ww][Ee][Rr]/ powerConns*=PowerConnection[','])?
         (/[Dd][Aa][Tt][Aa]/ dataConns+=DataConnection[','])?
@@ -70,8 +70,12 @@ Connect:
     ';'
 ;
 
+ConnectTarget:
+    target=[ComponentDef:FQN|~uses.components]
+;
+
 PinConnection:
-    boardPin=ID "--" peripheralPin=ID
+    fromPin=ID "--" toPin=ID
 ;
 
 PowerConnection: PinConnection;
@@ -97,5 +101,5 @@ UARTConnection:
 ;
 
 PinMapping:
-    (function=ID boardPin=ID '--' peripheralPin=ID)
+    (function=ID fromPin=ID '--' toPin=ID)
 ;

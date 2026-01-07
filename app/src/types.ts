@@ -2,6 +2,7 @@ export interface Pin {
     name: string;
     type: 'power' | 'io' | 'vcc' | 'gnd';
     number: number;
+    status: 'essential' | 'optional';
     functions?: string[];
 }
 
@@ -38,6 +39,21 @@ export interface Peripheral {
     pins: Pin[];
     operational: OperationalSpecs;
     attributes?: Record<string, any>;
+    raw_content?: string;
+}
+
+export interface PowerSource {
+    id: string;
+    name: string;
+    instanceName?: string;
+    nodeId?: string;
+    type: string;
+    pins: Pin[];
+    operational: {
+        voltage: string;
+        capacity?: string;
+        max_current?: string;
+    };
     raw_content?: string;
 }
 
@@ -86,6 +102,7 @@ export interface DeviceModel {
     os: string;
     board: Board | null;
     peripherals: Peripheral[];
+    powerSources: PowerSource[];
     connections: Connection[];
     network?: Network;
     broker?: Broker;

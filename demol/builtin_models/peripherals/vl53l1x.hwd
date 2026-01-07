@@ -7,13 +7,13 @@ SENSOR[Distance] VL53L1X WITH
         power.avg=20 mW,
         freq.max=50 hz
     PINS
-        VDD[2.8V] @ 1,
+        ?VDD[2.8V] @ 1,
         VIN[3V3] @ 2,
         GND[GND] @ 3,
         SDA[sda-0] @ 4,
         SCL[scl-0] @ 5,
-        XSHUT[gpio] @ 6,
-        GPIO1[gpio] @ 7
+        ?XSHUT[gpio] @ 6,
+        ?GPIO1[gpio] @ 7
     TEMPLATES
         raspbian="vl53l1x.py.j2",
         riotos="vl53l1x_riot.c.j2"

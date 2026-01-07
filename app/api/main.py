@@ -34,6 +34,7 @@ class Pin(BaseModel):
     name: str
     type: str
     number: int
+    status: Optional[str] = 'essential'
     functions: Optional[List[str]] = None
 
 class OperationalSpecs(BaseModel):
@@ -61,6 +62,16 @@ class Peripheral(BaseModel):
     pins: List[Pin]
     operational: OperationalSpecs
     attributes: Optional[Dict[str, Any]] = None
+    raw_content: Optional[str] = None
+
+class PowerSource(BaseModel):
+    id: str
+    name: str
+    instanceName: Optional[str] = None
+    nodeId: Optional[str] = None
+    type: str
+    pins: List[Pin]
+    operational: Dict[str, Any]
     raw_content: Optional[str] = None
 
 class Network(BaseModel):
@@ -94,6 +105,7 @@ class DeviceModel(BaseModel):
     os: str
     board: Optional[Board]
     peripherals: List[Peripheral]
+    powerSources: List[PowerSource] = []
     connections: List[Dict[str, Any]]
     network: Optional[Network] = None
     broker: Optional[Broker] = None

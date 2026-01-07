@@ -90,6 +90,24 @@ def check_validation_errors(model, skip_semantics=False):
         raise ValidationError("Model validation failed.")
 
 
+def get_connection_target(connection):
+    """Helper to get the target object and its instance name from a connection"""
+    if hasattr(connection, 'target') and connection.target:
+        target_obj = connection.target.target
+        if target_obj:
+            # target_obj is a ComponentDef
+            if hasattr(target_obj, 'ref'):
+                return target_obj.ref, target_obj.name
+            # Direct reference (e.g. Board)
+            return target_obj, target_obj.name
+    
+    # Backward compatibility for models that might still use 'peripheral' attribute
+    if hasattr(connection, 'peripheral') and connection.peripheral:
+        return connection.peripheral.ref, connection.peripheral.name
+        
+    return None, "unknown"
+
+
 # ============================================================================
 # Power Connection Validation
 # ============================================================================
@@ -106,7 +124,9 @@ def parse_voltage(power_type: str) -> Optional[float]:
         3.3V -> 3.3
         2.5V -> 2.5
     """
-    power_type_upper = power_type.upper()
+    if power_type is None:
+        return None
+    power_type_upper = str(power_type).upper()
     
     if power_type_upper == 'GND':
         return 0.0
@@ -555,7 +575,7 @@ def validate_no_pin_conflicts(connections: List) -> None:
     board_pin_usage: Dict[str, List[Tuple[str, str]]] = {}
     
     for connection in connections:
-        peripheral_name = connection.peripheral.name
+        target_ref, target_name = get_connection_target(connection)
         
         # Collect all board pins used in this connection with their usage type
         # List of (pin_name, usage_type)
@@ -574,7 +594,7 @@ def validate_no_pin_conflicts(connections: List) -> None:
             # However, validate_power_connection already checks types.
             # Let's assume 'GND' sharing is always allowed.
             # And 'VCC' sharing is allowed (parallel power).
-            used_pins.append((pconn.boardPin, 'POWER'))
+            used_pins.append((pconn.fromPin, 'POWER'))
         
         # IO connections
         for data_conn in connection.dataConns:
@@ -583,27 +603,27 @@ def validate_no_pin_conflicts(connections: List) -> None:
             for pin_map in data_conn.pins:
                 if conn_type == 'gpio':
                     # GPIO uses PinConnection (no function attribute)
-                    used_pins.append((pin_map.boardPin, 'GPIO'))
+                    used_pins.append((pin_map.fromPin, 'GPIO'))
                 elif conn_type == 'i2c':
                     # I2C uses PinMapping (has function attribute)
                     if pin_map.function == 'sda':
-                        used_pins.append((pin_map.boardPin, 'I2C-SDA'))
+                        used_pins.append((pin_map.fromPin, 'I2C-SDA'))
                     elif pin_map.function == 'scl':
-                        used_pins.append((pin_map.boardPin, 'I2C-SCL'))
+                        used_pins.append((pin_map.fromPin, 'I2C-SCL'))
                 elif conn_type == 'spi':
                     if pin_map.function == 'mosi':
-                        used_pins.append((pin_map.boardPin, 'SPI-MOSI'))
+                        used_pins.append((pin_map.fromPin, 'SPI-MOSI'))
                     elif pin_map.function == 'miso':
-                        used_pins.append((pin_map.boardPin, 'SPI-MISO'))
+                        used_pins.append((pin_map.fromPin, 'SPI-MISO'))
                     elif pin_map.function == 'sck':
-                        used_pins.append((pin_map.boardPin, 'SPI-SCK'))
+                        used_pins.append((pin_map.fromPin, 'SPI-SCK'))
                     elif pin_map.function == 'cs':
-                        used_pins.append((pin_map.boardPin, 'SPI-CS'))
+                        used_pins.append((pin_map.fromPin, 'SPI-CS'))
                 elif conn_type == 'uart':
                     if pin_map.function == 'tx':
-                        used_pins.append((pin_map.boardPin, 'UART-TX'))
+                        used_pins.append((pin_map.fromPin, 'UART-TX'))
                     elif pin_map.function == 'rx':
-                        used_pins.append((pin_map.boardPin, 'UART-RX'))
+                        used_pins.append((pin_map.fromPin, 'UART-RX'))
         
         # Check for conflicts
         for pin, usage in used_pins:
@@ -626,15 +646,15 @@ def validate_no_pin_conflicts(connections: List) -> None:
                         raise_validation_error(
                             connection,
                             f"[Safety-Pin-Conflicts] Pin conflict detected: Board pin '{pin}' is already used by "
-                            f"peripheral '{existing_peripheral}' as '{existing_usage}'. "
-                            f"Cannot reuse for peripheral '{peripheral_name}' as '{usage}'.",
+                            f"target '{existing_peripheral}' as '{existing_usage}'. "
+                            f"Cannot reuse for target '{target_name}' as '{usage}'.",
                             "PinConflictError"
                         )
                 
                 # If we get here, sharing is allowed with all existing users
-                board_pin_usage[pin].append((peripheral_name, usage))
+                board_pin_usage[pin].append((target_name, usage))
             else:
-                board_pin_usage[pin] = [(peripheral_name, usage)]
+                board_pin_usage[pin] = [(target_name, usage)]
 
 
 def validate_i2c_address_uniqueness(connections: List) -> None:
@@ -661,20 +681,18 @@ def validate_i2c_address_uniqueness(connections: List) -> None:
                                 pass
                         break
                 
-                if addr is None:
-                    continue
-                peripheral_name = connection.peripheral.name
+                target_ref, target_name = get_connection_target(connection)
                 
                 if addr in i2c_addresses:
                     raise_validation_error(
                         connection,
                         f"[Safety-I2C-Address] I2C address conflict: Address 0x{addr:02X} is already used by "
-                        f"peripheral(s): {', '.join(i2c_addresses[addr])}. "
-                        f"Cannot reuse for peripheral '{peripheral_name}'.",
+                        f"target(s): {', '.join(i2c_addresses[addr])}. "
+                        f"Cannot reuse for target '{target_name}'.",
                         "I2CAddressConflictError"
                     )
                 else:
-                    i2c_addresses.setdefault(addr, []).append(peripheral_name)
+                    i2c_addresses.setdefault(addr, []).append(target_name)
 
 
 def validate_voltage_limits(model) -> None:
@@ -686,24 +704,33 @@ def validate_voltage_limits(model) -> None:
             voltage(p) ≤ p.vcc.toVolts()
     """
     for connection in model.connections:
-        peripheral = connection.peripheral.ref
-        peripheral_vcc = parse_voltage(peripheral.operational.vcc)
+        target_ref, target_name = get_connection_target(connection)
+        if target_ref is None or not hasattr(target_ref, 'operational'):
+            continue
         
-        if peripheral_vcc is None:
+        if hasattr(target_ref.operational, 'vcc'):
+            target_vcc_str = target_ref.operational.vcc
+        elif hasattr(target_ref.operational, 'voltage'):
+            target_vcc_str = target_ref.operational.voltage
+        else:
+            continue
+
+        target_vcc = parse_voltage(target_vcc_str)
+        
+        if target_vcc is None:
             continue
         
         # Check if any power connections exceed peripheral's VCC rating
         for pconn in connection.powerConns:
             board_pin = next((p for p in model.components.board.pins 
-                            if p.name == pconn.boardPin), None)
+                            if p.name == pconn.fromPin), None)
             if board_pin and hasattr(board_pin, 'ptype'):
-                board_voltage = parse_voltage(board_pin.ptype)
-                if board_voltage and board_voltage > peripheral_vcc + 0.5:
+                voltage = parse_voltage(board_pin.ptype)
+                if voltage is not None and voltage > target_vcc + 0.5:
                     raise_validation_error(
-                        connection,
-                        f"[Safety-Voltage-Limits] Voltage limit exceeded: Board pin {pconn.boardPin} provides "
-                        f"{board_voltage}V but peripheral {peripheral.name} is rated for "
-                        f"{peripheral_vcc}V maximum.",
+                        pconn,
+                        f"[Safety-Voltage-Limits] Voltage limit exceeded for target '{target_name}': "
+                        f"Supplied voltage {voltage}V exceeds target's rated VCC of {target_vcc}V.",
                         "VoltageLimitError"
                     )
 
@@ -727,31 +754,30 @@ def validate_io_voltage_compatibility(model) -> None:
     
     # Determine Board IO Voltage
     board_io_vcc_str = board.operational.iovcc if hasattr(board.operational, 'iovcc') and board.operational.iovcc else board.operational.vcc
-    board_io_v = parse_voltage(board_io_vcc_str)
+    board_iovcc = parse_voltage(board_io_vcc_str)
     
-    if board_io_v is None:
+    if board_iovcc is None:
         # Should be caught by other validations, but safe to skip or warn
         return
 
     for connection in model.connections:
-        peripheral = connection.peripheral.ref
+        target_ref, target_name = get_connection_target(connection)
+        if target_ref is None or not hasattr(target_ref, 'operational') or not getattr(target_ref.operational, 'iovcc', None):
+            continue
+            
+        target_iovcc = parse_voltage(target_ref.operational.iovcc)
         
-        # Determine Peripheral IO Voltage
-        # Peripherals might not have ioVcc defined in all cases, fallback to vcc
-        periph_io_vcc_str = peripheral.operational.iovcc if hasattr(peripheral.operational, 'iovcc') and peripheral.operational.iovcc else peripheral.operational.vcc
-        periph_io_v = parse_voltage(periph_io_vcc_str)
-        
-        if periph_io_v is None:
+        if target_iovcc is None:
             continue
             
         # Check compatibility
-        if not are_voltages_compatible(board_io_v, periph_io_v):
+        if abs(board_iovcc - target_iovcc) > 0.5:
             raise_validation_warning(
                 connection,
-                f"Board '{board.name}' operates at {board_io_v}V (IO), "
-                f"but peripheral '{peripheral.name}' operates at {periph_io_v}V (IO). "
-                f"This may cause communication errors or damage.",
-                "Safety-IO-Voltage"
+                f"[Safety-IO-Voltage] Board '{board.name}' operates at {board_iovcc}V (IO), "
+                f"but target '{target_name}' operates at {target_iovcc}V (IO). "
+                "This may cause communication errors or damage.",
+                "IOVoltageWarning"
             )
 
 
@@ -770,14 +796,15 @@ def validate_common_ground(model) -> None:
     may have alternative grounding through other means (e.g., USB connections).
     """
     for connection in model.connections:
-        peripheral = connection.peripheral.ref
-        peripheral_name = connection.peripheral.name
-        
+        target_ref, target_name = get_connection_target(connection)
+        if target_ref is None:
+            continue
+            
         # Check if there are any power connections
         if not hasattr(connection, 'powerConns') or not connection.powerConns:
             raise_validation_warning(
                 connection,
-                f"Peripheral '{peripheral_name}' (type: {peripheral.name}) has no power "
+                f"Target '{target_name}' has no power "
                 f"connections to the board. Ensure proper grounding through external means "
                 f"or add a GND power connection for electrical safety.",
                 "WF-Common-Ground"
@@ -785,29 +812,96 @@ def validate_common_ground(model) -> None:
             continue
         
         # Check if any power connection is GND
-        has_ground = False
+        has_gnd = False
         for pconn in connection.powerConns:
             # Get the board pin
             board_pin = next(
-                (p for p in model.components.board.pins if p.name == pconn.boardPin),
+                (p for p in model.components.board.pins if p.name == pconn.fromPin),
                 None
             )
             
             if board_pin and hasattr(board_pin, 'ptype'):
                 board_voltage = parse_voltage(board_pin.ptype)
                 if board_voltage == 0.0:  # GND connection
-                    has_ground = True
+                    has_gnd = True
                     break
         
         # If no ground connection found, emit warning
-        if not has_ground:
+        if not has_gnd:
             raise_validation_warning(
                 connection,
-                f"Peripheral '{peripheral_name}' (type: {peripheral.name}) does not have "
-                f"a GND (ground) power connection to the board. This may cause electrical "
-                f"issues, signal integrity problems, or device malfunction. "
-                f"Please add a GND power connection between the board and peripheral.",
-                "WF-Common-Ground"
+                f"[Safety-Common-Ground] Target '{target_name}' does not have a common ground (GND) "
+                "connection with the board. This is essential for signal integrity.",
+                "CommonGroundWarning"
+            )
+
+
+def validate_power_paths(model) -> None:
+    """
+    Validate that all components requiring power have a path to a PowerSource.
+    """
+    # 1. Identify all PowerSources
+    power_sources = {ps.name for ps in model.components.powerSources}
+    
+    # 2. Build a power graph
+    # Nodes: Component names (Board, Peripherals, PowerSources)
+    # Edges: Power connections
+    power_graph = {} # target -> set of sources
+    
+    for conn in model.connections:
+        target_ref, target_name = get_connection_target(conn)
+        if not hasattr(conn, 'powerConns') or not conn.powerConns:
+            continue
+            
+        for pconn in conn.powerConns:
+            # We need to find who owns fromPin
+            from_owner = "Board" # Default
+            if model.components.board and pconn.fromPin in {p.name for p in model.components.board.pins}:
+                from_owner = model.components.board.name
+            else:
+                # Check if it's a PowerSource
+                for ps in model.components.powerSources:
+                    ps_pins = {p.name for p in ps.ref.pins}
+                    if pconn.fromPin in ps_pins:
+                        from_owner = ps.name
+                        break
+            
+            # Add edge from_owner -> target_name
+            power_graph.setdefault(target_name, set()).add(from_owner)
+            
+    # 3. Check reachability from any PowerSource
+    def is_powered(node, visited=None):
+        if node in power_sources:
+            return True
+        if visited is None:
+            visited = set()
+        if node in visited:
+            return False
+        visited.add(node)
+        
+        sources = power_graph.get(node, set())
+        for s in sources:
+            if is_powered(s, visited):
+                return True
+        return False
+
+    # Check Board
+    if model.components.board:
+        board_name = model.components.board.name
+        if not is_powered(board_name):
+            raise_validation_warning(
+                model.components.board,
+                f"[Safety-Power-Path] Board '{board_name}' is not connected to any power source.",
+                "MissingPowerSourceWarning"
+            )
+        
+    # Check Peripherals
+    for p in model.components.peripherals:
+        if not is_powered(p.name):
+             raise_validation_warning(
+                p,
+                f"[Safety-Power-Path] Peripheral '{p.name}' is not connected to any power source.",
+                "MissingPowerSourceWarning"
             )
 
 # ============================================================================
@@ -821,18 +915,62 @@ def validate_all_peripherals_connected(model) -> None:
     From SEMANTICS.md Section 8.4:
         ∀p ∈ components.peripherals. ∃k ∈ connections. k.peripheral = p
     """
-    connected_peripherals = {conn.peripheral.name for conn in model.connections}
+    connected_targets = {get_connection_target(conn)[1] for conn in model.connections}
     all_peripherals = {p.name for p in model.components.peripherals}
+    all_power_sources = {ps.name for ps in model.components.powerSources}
     
-    unconnected = all_peripherals - connected_peripherals
+    unconnected_periphs = all_peripherals - connected_targets
+    unconnected_sources = all_power_sources - connected_targets
     
-    if unconnected:
+    if unconnected_periphs:
         raise_validation_error(
             model,
-            f"[WF-All-Peripherals-Connected] Unconnected peripherals detected: {', '.join(unconnected)}. "
+            f"[WF-All-Peripherals-Connected] Unconnected peripherals detected: {', '.join(unconnected_periphs)}. "
             f"All peripherals must have at least one connection defined.",
             "UnconnectedPeripheralError"
         )
+    
+    if unconnected_sources:
+        raise_validation_warning(
+            model,
+            f"[WF-Power-Sources-Connected] Unconnected power sources detected: {', '.join(unconnected_sources)}. "
+            f"Power sources should be connected to the board or a peripheral.",
+            "UnconnectedPowerSourceWarning"
+        )
+
+
+def validate_essential_pins_connected(model) -> None:
+    """
+    Validate that all pins marked as 'essential' in the peripheral definition
+    are actually connected in the device model.
+    """
+    for periph_def in model.components.peripherals:
+        peripheral_ref = periph_def.ref
+        # A pin is essential if 'optional' is NOT '?'
+        essential_pins = [p for p in peripheral_ref.pins if getattr(p, 'optional', None) != '?']
+        
+        if not essential_pins:
+            continue
+            
+        # Find all connections for this peripheral instance
+        instance_connections = [c for c in model.connections if get_connection_target(c)[1] == periph_def.name]
+        
+        connected_pin_names = set()
+        for conn in instance_connections:
+            for pconn in conn.powerConns:
+                connected_pin_names.add(pconn.toPin)
+            for dconn in conn.dataConns:
+                for pin_map in dconn.pins:
+                    connected_pin_names.add(pin_map.toPin)
+        
+        for pin in essential_pins:
+            if pin.name not in connected_pin_names:
+                raise_validation_error(
+                    periph_def,
+                    f"[WF-Essential-Pins] Essential pin '{pin.name}' of peripheral '{periph_def.name}' "
+                    f"(type: {peripheral_ref.name}) is not connected.",
+                    "MissingEssentialConnectionError"
+                )
 
 
 def validate_broker_requirements(model) -> None:
@@ -961,34 +1099,55 @@ def validate_connections(model) -> None:
     board_pins_map = {p.name: p for p in board.pins}
     board_pin_names = set(board_pins_map.keys())
     
+    # Also collect power sources for pin lookup
+    power_sources_map = {ps.name: ps.ref for ps in model.components.powerSources}
+    
     for c in model.connections:
-        peripheral = c.peripheral.ref
-        peripheral_pins_map = {p.name: p for p in peripheral.pins}
-        peripheral_pin_names = set(peripheral_pins_map.keys())
+        target_ref, target_name = get_connection_target(c)
+        if target_ref is None:
+            continue
+            
+        target_pins_map = {p.name: p for p in target_ref.pins}
+        target_pin_names = set(target_pins_map.keys())
         
         # ====================================================================
         # Validate Power Connections
         # ====================================================================
         for pconn in c.powerConns:
-            # Check if pins exist
-            if pconn.boardPin not in board_pin_names:
+            # Check if fromPin exists on board or any power source
+            from_pin_obj = None
+            from_owner_name = "Board"
+            
+            if pconn.fromPin in board_pin_names:
+                from_pin_obj = board_pins_map[pconn.fromPin]
+                from_owner_name = board.name
+            else:
+                # Check power sources
+                for ps_name, ps_ref in power_sources_map.items():
+                    ps_pins = {p.name: p for p in ps_ref.pins}
+                    if pconn.fromPin in ps_pins:
+                        from_pin_obj = ps_pins[pconn.fromPin]
+                        from_owner_name = ps_name
+                        break
+            
+            if from_pin_obj is None:
                 raise_validation_error(
                     pconn,
-                    f'Board {board.name} does not have a pin named {pconn.boardPin}'
+                    f"Source pin '{pconn.fromPin}' not found on board or any power source."
                 )
-            if pconn.peripheralPin not in peripheral_pin_names:
+            
+            # Check if toPin exists on target
+            if pconn.toPin not in target_pin_names:
                 raise_validation_error(
                     pconn,
-                    f'Peripheral {c.peripheral.name} does not have a pin named {pconn.peripheralPin}'
+                    f"Target '{target_name}' does not have a pin named '{pconn.toPin}'"
                 )
             
-            # Enhanced validation: Check power compatibility
-            board_pin = board_pins_map[pconn.boardPin]
-            peripheral_pin = peripheral_pins_map[pconn.peripheralPin]
+            to_pin_obj = target_pins_map[pconn.toPin]
             
-            # Only validate if both are power pins
-            if (hasattr(board_pin, 'ptype') and hasattr(peripheral_pin, 'ptype')):
-                validate_power_connection(board_pin, peripheral_pin, pconn)
+            # Validate power connection
+            if hasattr(from_pin_obj, 'ptype') and hasattr(to_pin_obj, 'ptype'):
+                validate_power_connection(from_pin_obj, to_pin_obj, pconn)
         
         # ====================================================================
         # Validate IO Connections
@@ -1019,25 +1178,25 @@ def validate_connections(model) -> None:
             # Collect all used pins for this data connection
             for pin_map in data_conn.pins:
                 # Check if board pin exists
-                if pin_map.boardPin not in board_pin_names:
+                if pin_map.fromPin not in board_pin_names:
                     raise_validation_error(
                         pin_map,
-                        f'Board {board.name} does not have a pin named {pin_map.boardPin}'
+                        f'Board {board.name} does not have a pin named {pin_map.fromPin}'
                     )
-                # Check if peripheral pin exists
-                if pin_map.peripheralPin not in peripheral_pin_names:
+                # Check if target pin exists
+                if pin_map.toPin not in target_pin_names:
                     raise_validation_error(
                         pin_map,
-                        f'Peripheral {peripheral.name} does not have a pin named {pin_map.peripheralPin}'
+                        f"Target '{target_name}' does not have a pin named '{pin_map.toPin}'"
                     )
 
             if conn_type == 'gpio':
                 pin_conn = data_conn.pins[0] # Assuming single pin for GPIO for now
                 
                 # Enhanced validation: Check GPIO functionality
-                board_pin = board_pins_map[pin_conn.boardPin]
-                peripheral_pin = peripheral_pins_map[pin_conn.peripheralPin]
-                validate_gpio_connection(board_pin, peripheral_pin, data_conn)
+                board_pin = board_pins_map[pin_conn.fromPin]
+                target_pin = target_pins_map[pin_conn.toPin]
+                validate_gpio_connection(board_pin, target_pin, data_conn)
                 
             elif conn_type == 'i2c':
                 sda = get_pin('sda')
@@ -1051,24 +1210,24 @@ def validate_connections(model) -> None:
                 # Check if pins exist
                 pin_conns = [sda, scl]
                 for pc in pin_conns:
-                    if pc.boardPin not in board_pin_names:
+                    if pc.fromPin not in board_pin_names:
                         raise_validation_error(
                             pc,
-                            f'Board {board.name} does not have a pin named {pc.boardPin}'
+                            f'Board {board.name} does not have a pin named {pc.fromPin}'
                         )
-                    if pc.peripheralPin not in peripheral_pin_names:
+                    if pc.toPin not in target_pin_names:
                         raise_validation_error(
                             pc,
-                            f'Peripheral {peripheral.name} does not have a pin named {pc.peripheralPin}'
+                            f"Target '{target_name}' does not have a pin named '{pc.toPin}'"
                         )
                 
                 # Enhanced validation: Check I2C functionality and address range
-                board_sda = board_pins_map[sda.boardPin]
-                board_scl = board_pins_map[scl.boardPin]
-                peripheral_sda = peripheral_pins_map[sda.peripheralPin]
-                peripheral_scl = peripheral_pins_map[scl.peripheralPin]
+                board_sda = board_pins_map[sda.fromPin]
+                board_scl = board_pins_map[scl.fromPin]
+                target_sda = target_pins_map[sda.toPin]
+                target_scl = target_pins_map[scl.toPin]
                 validate_i2c_connection(
-                    board_sda, board_scl, peripheral_sda, peripheral_scl,
+                    board_sda, board_scl, target_sda, target_scl,
                     slave_addr, data_conn
                 )
                 
@@ -1081,32 +1240,31 @@ def validate_connections(model) -> None:
                 # Check if pins exist
                 pin_conns = [p for p in [miso, mosi, sck, cs] if p]
                 for pc in pin_conns:
-                    if pc.boardPin not in board_pin_names:
+                    if pc.fromPin not in board_pin_names:
                         raise_validation_error(
                             pc,
-                            f'Board {board.name} does not have a pin named {pc.boardPin}'
+                            f'Board {board.name} does not have a pin named {pc.fromPin}'
                         )
-                    if pc.peripheralPin not in peripheral_pin_names:
+                    if pc.toPin not in target_pin_names:
                         raise_validation_error(
                             pc,
-                            f'Peripheral {peripheral.name} does not have a pin named {pc.peripheralPin}'
+                            f"Target '{target_name}' does not have a pin named '{pc.toPin}'"
                         )
                 
                 # Enhanced validation: Check SPI functionality
-                if miso and mosi and sck and cs:
-                    board_spi_pins = {
-                        'mosi': board_pins_map[mosi.boardPin],
-                        'miso': board_pins_map[miso.boardPin],
-                        'sck': board_pins_map[sck.boardPin],
-                        'cs': board_pins_map[cs.boardPin]
-                    }
-                    peripheral_spi_pins = {
-                        'mosi': peripheral_pins_map[mosi.peripheralPin],
-                        'miso': peripheral_pins_map[miso.peripheralPin],
-                        'sck': peripheral_pins_map[sck.peripheralPin],
-                        'cs': peripheral_pins_map[cs.peripheralPin]
-                    }
-                    validate_spi_connection(board_spi_pins, peripheral_spi_pins, data_conn)
+                spi_pins = {
+                    'mosi': board_pins_map[mosi.fromPin] if mosi else None,
+                    'miso': board_pins_map[miso.fromPin] if miso else None,
+                    'sck': board_pins_map[sck.fromPin] if sck else None,
+                    'cs': board_pins_map[cs.fromPin] if cs else None
+                }
+                target_spi_pins = {
+                    'mosi': target_pins_map[mosi.toPin] if mosi else None,
+                    'miso': target_pins_map[miso.toPin] if miso else None,
+                    'sck': target_pins_map[sck.toPin] if sck else None,
+                    'cs': target_pins_map[cs.toPin] if cs else None
+                }
+                validate_spi_connection(spi_pins, target_spi_pins, data_conn)
                 
             elif conn_type == 'uart':
                 tx = get_pin('tx')
@@ -1117,26 +1275,26 @@ def validate_connections(model) -> None:
                     continue
 
                 # Check if pins exist
-                pin_conns = [tx, rx]
+                pin_conns = [p for p in [tx, rx] if p]
                 for pc in pin_conns:
-                    if pc.boardPin not in board_pin_names:
+                    if pc.fromPin not in board_pin_names:
                         raise_validation_error(
                             pc,
-                            f'Board {board.name} does not have a pin named {pc.boardPin}'
+                            f'Board {board.name} does not have a pin named {pc.fromPin}'
                         )
-                    if pc.peripheralPin not in peripheral_pin_names:
+                    if pc.toPin not in target_pin_names:
                         raise_validation_error(
                             pc,
-                            f'Peripheral {peripheral.name} does not have a pin named {pc.peripheralPin}'
+                            f"Target '{target_name}' does not have a pin named '{pc.toPin}'"
                         )
                 
-                # Enhanced validation: Check UART functionality and baudrate
-                board_tx = board_pins_map[tx.boardPin]
-                board_rx = board_pins_map[rx.boardPin]
-                peripheral_tx = peripheral_pins_map[tx.peripheralPin]
-                peripheral_rx = peripheral_pins_map[rx.peripheralPin]
+                # Enhanced validation: Check UART functionality
+                board_tx = board_pins_map[tx.fromPin] if tx else None
+                board_rx = board_pins_map[rx.fromPin] if rx else None
+                target_tx = target_pins_map[tx.toPin] if tx else None
+                target_rx = target_pins_map[rx.toPin] if rx else None
                 validate_uart_connection(
-                    board_tx, board_rx, peripheral_tx, peripheral_rx,
+                    board_tx, board_rx, target_tx, target_rx,
                     baudrate, data_conn
                 )
 
@@ -1169,21 +1327,31 @@ def validate_single_board(model) -> None:
     Rule: A device can only have one board.
     Multiple boards or no boards will raise an error.
     """
-    boards = [use for use in model.uses if hasattr(use, 'board') and use.board]
+    all_boards = []
+    for use in model.uses:
+        if hasattr(use, 'boards') and use.boards:
+            all_boards.extend(use.boards)
+        if hasattr(use, 'board') and use.board:
+            if isinstance(use.board, list):
+                all_boards.extend(use.board)
+            else:
+                all_boards.append(use.board)
+        if hasattr(use, 'components'):
+            for comp in use.components:
+                if 'Board' in comp.ref.__class__.__name__:
+                    all_boards.append(comp.ref)
     
-    if len(boards) == 0:
+    if len(all_boards) == 0:
         raise_validation_error(
             model,
             "[WF-Single-Board] No board defined. Device must have exactly one board. "
             "Use 'USE <BoardModel>' to define the board.",
             "NoBoardError"
         )
-    elif len(boards) > 1:
-        board_names = [use.board.name for use in boards]
+    elif len(all_boards) > 1:
         raise_validation_error(
-            boards[1],  # Point to the second board definition
-            f"[WF-Single-Board] Multiple boards defined: {', '.join(board_names)}. "
-            f"Device can only have one board. Remove the extra board definitions.",
+            model,
+            f"[WF-Single-Board] Multiple boards defined ({len(all_boards)}). Device must have exactly one board.",
             "MultipleBoardsError"
         )
 

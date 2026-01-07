@@ -6,7 +6,7 @@ ComponentModel:
 ;
 
 Component:
-    Board | Peripheral
+    Board | Peripheral | PowerSource
 ;
 
 BoardType:
@@ -41,6 +41,17 @@ Actuator:
     ';'
 ;
 
+PowerSource:
+    'POWERSOURCE' '[' type=PowerSourceType ']' name=ID 'WITH'
+	  'OP' operational=OperationalPowerSource
+	  'PINS' pins*=Pin[',']
+    ';'
+;
+
+PowerSourceType:
+    'Battery' | 'DC' | 'USB' | 'Solar'
+;
+
 Sensor:
     'SENSOR' '[' type=SensorType ']' name=ID 'WITH'
 	  'OP' operational=OperationalSensor
@@ -73,7 +84,7 @@ Pin:
 ;
 
 PowerPin:
-	name=ID '[' ptype=PowerType ']' '@' number=INT
+	(optional='?')? name=ID '[' ptype=PowerType ']' '@' number=INT
 ;
 
 PowerType:
@@ -89,7 +100,7 @@ Custom:
 ;
 
 IOPin:
-	name=ID '[' funcs*=PinFunction[","] ']' '@' number=INT
+	(optional='?')? name=ID '[' funcs*=PinFunction[","] ']' '@' number=INT
 ;
 
 PinFunction:
@@ -273,6 +284,14 @@ OperationalPeripheral:
         ("freq.max" "=" freq_max=Frequency ","?)?
         ("riotTpl" "=" riotTpl=STRING ","?)?
         ("piTpl" "=" piTpl=STRING ","?)?
+    )#
+;
+
+OperationalPowerSource:
+    (
+        ("voltage" "=" voltage=PowerType ","?)
+        ("capacity" "=" capacity=NUMBER capacity_unit=CapacityUnit ","?)?
+        ("max_current" "=" max_current=NUMBER max_current_unit=CurrentUnit ","?)?
     )#
 ;
 

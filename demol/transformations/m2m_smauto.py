@@ -48,19 +48,24 @@ def get_broker_info(device_model):
 def get_peripherals_info(device_model):
     global peripherals_data
 
-    for i in range(len(device_model.connections)):
+    for i, conn in enumerate(device_model.connections):
         peripheral_data = {}
         per_frequency = 0
+        
+        # Skip if not a peripheral connection (e.g. board-to-powersource)
+        if not hasattr(conn, 'peripheral') or not conn.peripheral:
+            continue
+            
         # Gather peripheral info
-        per_dev_name = device_model.connections[i].peripheral.name
-        per_real_name = device_model.connections[i].peripheral.ref.name
-        per_type =  type(device_model.connections[i].peripheral.ref).__name__
-        per_topic = device_model.connections[i].endpoint.topic
+        per_dev_name = conn.peripheral.name
+        per_real_name = conn.peripheral.ref.name
+        per_type =  type(conn.peripheral.ref).__name__
+        per_topic = conn.remote if conn.remote else f"device/{per_dev_name}"
         per_broker = broker_data["broker_name"]
-        per_msg_type = device_model.connections[i].peripheral.ref.type
+        per_msg_type = conn.peripheral.ref.type
         peripheral_data = {"per_name": per_dev_name, "per_real_name": per_real_name, "per_type": per_type, "per_topic": per_topic, "per_broker": per_broker, "per_msg_type": per_msg_type}
 
-        for attribute in device_model.connections[i].peripheral.ref.attributes:
+        for attribute in conn.peripheral.ref.attributes:
             if attribute.name == "frequency":
                 per_frequency = attribute.default
                 peripheral_data = peripheral_data | {"per_frequency": per_frequency}

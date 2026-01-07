@@ -36,9 +36,11 @@ def model_proc(model, metamodel):
         validate_i2c_address_uniqueness,
         validate_voltage_limits,
         validate_all_peripherals_connected,
+        validate_essential_pins_connected,
         validate_broker_requirements,
         validate_io_voltage_compatibility,
         validate_common_ground,
+        validate_power_paths,
         validate_connections,
         validate_unique_peripheral_names,
         validate_topic_format,
@@ -84,6 +86,11 @@ def model_proc(model, metamodel):
     run_rule("Peripheral Connectivity", validate_all_peripherals_connected, model, desc="All declared peripherals are connected")
 
     # ========================================================================
+    # Well-Formedness: Essential pins must be connected
+    # ========================================================================
+    run_rule("Essential Pins", validate_essential_pins_connected, model, desc="All essential peripheral pins are connected")
+
+    # ========================================================================
     # Well-Formedness: Unique peripheral names
     # ========================================================================
     run_rule("Unique Identifiers", validate_unique_peripheral_names, model, desc="All peripherals have unique names")
@@ -102,6 +109,11 @@ def model_proc(model, metamodel):
     # Well-Formedness: Common ground check
     # ========================================================================
     run_rule("Common Ground", validate_common_ground, model, desc="Peripherals share a common ground with the board")
+    
+    # ========================================================================
+    # Safety: Power Paths
+    # ========================================================================
+    run_rule("Power Paths", validate_power_paths, model, desc="All components have a path to a power source")
     
     # ========================================================================
     # Connection Validation
@@ -174,25 +186,33 @@ def enrich_model(model):
     # ========================================================================
     board = None
     peripherals = []
+    power_sources = []
     
     for use in model.uses:
-        # Check the type of use - it could be BoardUse or PeripheralUse
-        use_type = use.__class__.__name__
-        
-        if use_type == 'BoardUse':
-            board = use.board
-        elif use_type == 'PeripheralUse':
-            peripherals.extend(use.peripherals)
-        # Fallback for backward compatibility
-        elif hasattr(use, 'board') and use.board:
-            board = use.board
-        elif hasattr(use, 'peripherals') and use.peripherals:
-            peripherals.extend(use.peripherals)
+        if hasattr(use, 'board') and use.board:
+            if not board:
+                if isinstance(use.board, list):
+                    board = use.board[0]
+                else:
+                    board = use.board
+        if hasattr(use, 'components') and use.components:
+            for comp_def in use.components:
+                # Check the type of the referenced component
+                ref_type = comp_def.ref.__class__.__name__.lower()
+                if 'powersource' in ref_type:
+                    power_sources.append(comp_def)
+                elif 'board' in ref_type:
+                    if not board:
+                        board = comp_def.ref
+                else:
+                    # Default to peripheral
+                    peripherals.append(comp_def)
     
     # Create a synthetic 'components' object for backward compatibility
     model.components = SimpleNamespace(
         board=board,
-        peripherals=peripherals
+        peripherals=peripherals,
+        powerSources=power_sources
     )
     
     device_name = model.metadata.name.strip('"')
@@ -201,18 +221,35 @@ def enrich_model(model):
         # Set the board for easy navigation in M2M and M2T transformations
         setattr(c, 'board', board)
         
+        # Backward compatibility for 'peripheral' attribute
+        target_ref = None
+        target_name = "unknown"
+        
+        if hasattr(c, 'target') and c.target:
+            target_obj = c.target.target
+            if target_obj:
+                # target_obj is now a ComponentDef
+                if hasattr(target_obj, 'ref'):
+                    target_ref = target_obj.ref
+                    target_name = target_obj.name
+                    # Backward compatibility: set 'peripheral' attribute
+                    setattr(c, 'peripheral', target_obj)
+                else:
+                    # Direct reference (e.g. Board)
+                    target_ref = target_obj
+                    target_name = target_obj.name
+        
         # ====================================================================
         # Auto-generate topic if not specified
         # ====================================================================
-        if not c.remote:
-            peripheral_def = c.peripheral
-            peripheral_ref = peripheral_def.ref
-            peripheral_def_name = peripheral_def.name
-            peripheral_type = type(peripheral_ref).__name__
-            peripheral_msg = peripheral_ref.type
+        if not c.remote and target_ref and hasattr(target_ref, 'type'):
+            peripheral_type = type(target_ref).__name__
+            peripheral_msg = target_ref.type
             
-            default_topic = f'"{device_name}.{peripheral_type}.{peripheral_msg}.{peripheral_def_name}"'
+            default_topic = f'"{device_name}.{peripheral_type}.{peripheral_msg}.{target_name}"'
             c.remote = default_topic.lower().strip('""')
+
+
 
 
 def get_device_mm(debug: bool = False, global_repo: bool = False, skip_semantics: bool = False):
@@ -239,13 +276,13 @@ def get_device_mm(debug: bool = False, global_repo: bool = False, skip_semantics
         {
             "*.*": scoping_providers.FQN(),
             "*.*": scoping_providers.FQNImportURI(importAs=True),
-            "Use.peripherals": scoping_providers.FQNGlobalRepo(
-                os.path.join(PERIPHERAL_MODEL_REPO_PATH, '*.hwd')
-            ),
             "Use.board": scoping_providers.FQNGlobalRepo(
                 os.path.join(BOARD_MODEL_REPO_PATH, '*.hwd')
             ),
-
+            "Use.components": scoping_providers.FQNGlobalRepo(
+                os.path.join(PERIPHERAL_MODEL_REPO_PATH, '*.hwd')
+            ),
+            "ConnectTarget.target": scoping_providers.FQN(),
         }
     )
 

@@ -22,6 +22,7 @@ def parse_pins(pins):
         pin_data = {
             "name": p.name,
             "number": p.number,
+            "status": "optional" if getattr(p, 'optional', None) == '?' else "essential",
             "type": "power" if "power" in class_name else "io"
         }
         
@@ -93,6 +94,26 @@ def peripheral_to_json(comp) -> Dict[str, Any]:
         "attributes": attrs
     }
 
+def powersource_to_json(comp) -> Dict[str, Any]:
+    # Extract operational specs
+    op = {
+        "voltage": "5V", # Default
+    }
+    
+    if hasattr(comp, 'operational'):
+        if hasattr(comp.operational, 'voltage'): op["voltage"] = to_plain_value(comp.operational.voltage)
+        if hasattr(comp.operational, 'capacity'): 
+            op["capacity"] = f"{comp.operational.capacity} {comp.operational.capacity_unit}"
+        if hasattr(comp.operational, 'max_current'): 
+            op["max_current"] = f"{comp.operational.max_current} {comp.operational.max_current_unit}"
+    
+    return {
+        "name": comp.name,
+        "type": comp.type,
+        "pins": parse_pins(comp.pins),
+        "operational": op
+    }
+
 def device_to_json(model) -> Dict[str, Any]:
     res = {
         "name": model.metadata.name,
@@ -101,41 +122,65 @@ def device_to_json(model) -> Dict[str, Any]:
         "os": model.metadata.os,
         "board": None,
         "peripherals": [],
+        "powerSources": [],
         "connections": [],
         "network": None,
         "broker": None
     }
     
-    # Map to store peripheral instances
-    periph_instances = {}
+    # Map to store instances
+    instances = {}
     
-    # Find board and peripherals in uses
+    # Find board, peripherals, and power sources in uses
     for use in model.uses:
-        if use.board:
-            res["board"] = board_to_json(use.board)
-            res["board"]["id"] = f"{use.board.name}.hwd"
+        if hasattr(use, 'board') and use.board:
+            boards = use.board if isinstance(use.board, list) else [use.board]
+            for b in boards:
+                res["board"] = board_to_json(b)
+                res["board"]["id"] = f"{b.name}.hwd"
+                instances[b.name] = res["board"]
         
-        for p_def in use.peripherals:
-            p_json = peripheral_to_json(p_def.ref)
-            p_json["instanceName"] = p_def.name
-            p_json["id"] = f"{p_def.ref.name}.hwd"
-            res["peripherals"].append(p_json)
-            periph_instances[p_def.name] = p_json
+        if hasattr(use, 'components') and use.components:
+            for comp_def in use.components:
+                ref_type = comp_def.ref.__class__.__name__.lower()
+                if 'powersource' in ref_type:
+                    ps_json = powersource_to_json(comp_def.ref)
+                    ps_json["instanceName"] = comp_def.name
+                    ps_json["id"] = f"{comp_def.ref.name}.hwd"
+                    res["powerSources"].append(ps_json)
+                    instances[comp_def.name] = ps_json
+                else:
+                    p_json = peripheral_to_json(comp_def.ref)
+                    p_json["instanceName"] = comp_def.name
+                    p_json["id"] = f"{comp_def.ref.name}.hwd"
+                    res["peripherals"].append(p_json)
+                    instances[comp_def.name] = p_json
             
     # Connections
     for conn in model.connections:
+        target_name = "unknown"
+        if hasattr(conn, 'target') and conn.target:
+            target_obj = conn.target.target
+            if target_obj:
+                target_name = target_obj.name
+                # Try to find instance name if it's a peripheral
+                if hasattr(conn, 'peripheral') and conn.peripheral:
+                    target_name = conn.peripheral.name
+        elif hasattr(conn, 'peripheral') and conn.peripheral:
+            target_name = conn.peripheral.name
+            
         c_data = {
-            "peripheralName": conn.peripheral.name,
+            "targetName": target_name,
             "type": "io",
             "mappings": []
         }
         
         if conn.powerConns:
-            c_data["type"] = "power"
             for pc in conn.powerConns:
                 c_data["mappings"].append({
-                    "boardPin": pc.boardPin,
-                    "peripheralPin": pc.peripheralPin
+                    "section": "power",
+                    "fromPin": pc.fromPin,
+                    "toPin": pc.toPin
                 })
         
         if conn.dataConns:
@@ -143,17 +188,24 @@ def device_to_json(model) -> Dict[str, Any]:
             for dc in conn.dataConns:
                 c_data["type"] = dc.type
                 for pin in dc.pins:
-                    if hasattr(pin, 'boardPin'):
+                    if hasattr(pin, 'function'): # PinMapping (I2C, SPI, UART)
                          c_data["mappings"].append({
-                            "boardPin": pin.boardPin,
-                            "peripheralPin": pin.peripheralPin
-                        })
-                    elif hasattr(pin, 'function'): # PinMapping
-                         c_data["mappings"].append({
+                            "section": "data",
                             "function": pin.function,
-                            "boardPin": pin.boardPin,
-                            "peripheralPin": pin.peripheralPin
+                            "fromPin": pin.fromPin,
+                            "toPin": pin.toPin
                         })
+                    else: # PinConnection (GPIO)
+                         c_data["mappings"].append({
+                            "section": "data",
+                            "fromPin": pin.fromPin,
+                            "toPin": pin.toPin
+                        })
+                if hasattr(dc, 'props') and dc.props:
+                    c_data["props"] = {}
+                    for prop in dc.props:
+                        c_data["props"][prop.name] = prop.value
+                
                 break # Only one data connection type per block in this simplified JSON
                 
         res["connections"].append(c_data)
@@ -276,47 +328,89 @@ def json_to_demol(model_data) -> str:
         content += f'USE {board_name};\n'
     
     peripherals = get_val(model_data, 'peripherals', [])
-    periph_map = {}
-    if peripherals:
+    power_sources = get_val(model_data, 'powerSources', [])
+    
+    instance_map = {}
+    
+    if peripherals or power_sources:
         content += 'USE '
-        periph_defs = []
+        use_defs = []
+        
         for p in peripherals:
             p_name = get_val(p, 'name', '').replace(" ", "")
             p_inst_name = (get_val(p, 'instanceName') or get_val(p, 'name', '')).replace(" ", "_")
-            periph_defs.append(f'{p_name} [{p_inst_name}]')
+            p_def = f'{p_name} [{p_inst_name}]'
+            
+            attrs = get_val(p, 'attributes', {})
+            if attrs:
+                attr_strings = []
+                for k, v in attrs.items():
+                    val = get_val(v, 'default')
+                    if val is not None:
+                        if isinstance(val, str):
+                            attr_strings.append(f'{k}="{val}"')
+                        else:
+                            attr_strings.append(f'{k}={val}')
+                if attr_strings:
+                    p_def += f' WITH {", ".join(attr_strings)}'
+            
+            use_defs.append(p_def)
             
             node_id = get_val(p, 'nodeId')
-            p_id = get_val(p, 'id')
-            if node_id:
-                periph_map[node_id] = p_inst_name
-            elif p_id:
-                periph_map[p_id] = p_inst_name
+            if node_id: instance_map[node_id] = p_inst_name
+            
+        for ps in power_sources:
+            ps_name = get_val(ps, 'name', '').replace(" ", "")
+            ps_inst_name = (get_val(ps, 'instanceName') or get_val(ps, 'name', '')).replace(" ", "_")
+            use_defs.append(f'{ps_name} [{ps_inst_name}]')
+            
+            node_id = get_val(ps, 'nodeId')
+            if node_id: instance_map[node_id] = ps_inst_name
         
-        content += ", ".join(periph_defs)
+        content += ", ".join(use_defs)
         content += ';\n\n'
     
     # 4. Connections
     connections = get_val(model_data, 'connections', [])
     for conn in connections:
-        target_id = get_val(conn, 'peripheralNodeId') or get_val(conn, 'peripheralId')
-        p_name = periph_map.get(target_id, get_val(conn, 'peripheralName', 'peripheral')).replace(" ", "_")
+        target_id = get_val(conn, 'targetNodeId') or get_val(conn, 'targetId')
+        target_name = instance_map.get(target_id, get_val(conn, 'targetName', 'target')).replace(" ", "_")
         c_type = get_val(conn, 'type', 'io')
         
-        content += f'CONNECT {p_name} WITH\n'
+        content += f'CONNECT {target_name} WITH\n'
         
         mappings = get_val(conn, 'mappings', [])
-        if c_type == 'power':
+        power_mappings = [m for m in mappings if get_val(m, 'section') == 'power']
+        data_mappings = [m for m in mappings if get_val(m, 'section') == 'data']
+        
+        if power_mappings:
             content += '    POWER '
             m_strings = []
-            for m in mappings:
-                m_strings.append(f'{get_val(m, "boardPin")} -- {get_val(m, "peripheralPin")}')
+            for m in power_mappings:
+                m_strings.append(f'{get_val(m, "fromPin")} -- {get_val(m, "toPin")}')
             content += ", ".join(m_strings) + '\n'
-        else:
-            # For IO, we'll assume GPIO for now if not specified
-            content += '    DATA gpio '
+            
+        if data_mappings or (c_type != 'power' and not power_mappings):
+            actual_type = c_type if c_type != 'power' else 'gpio'
+            content += f'    DATA {actual_type} '
+            
+            props = get_val(conn, 'props', {})
+            if props:
+                prop_strings = []
+                for k, v in props.items():
+                    if isinstance(v, str):
+                        prop_strings.append(f'{k}="{v}"')
+                    else:
+                        prop_strings.append(f'{k}={v}')
+                content += f'[{", ".join(prop_strings)}] '
+                
             m_strings = []
-            for m in mappings:
-                m_strings.append(f'{get_val(m, "boardPin")} -- {get_val(m, "peripheralPin")}')
+            for m in data_mappings:
+                func = get_val(m, "function")
+                if func:
+                    m_strings.append(f'{func} {get_val(m, "fromPin")} -- {get_val(m, "toPin")}')
+                else:
+                    m_strings.append(f'{get_val(m, "fromPin")} -- {get_val(m, "toPin")}')
             content += ", ".join(m_strings) + '\n'
         
         content += ';\n\n'

@@ -82,8 +82,8 @@ class SvgGenerator(BaseCodeGenerator):
                 for dc in conn.dataConns:
                     for pin in dc.pins:
                         pin_pairs.append({
-                            'board': str(pin.boardPin),
-                            'periph': str(pin.peripheralPin),
+                            'board': str(pin.fromPin),
+                            'periph': str(pin.toPin),
                             'type': 'data'
                         })
             
@@ -91,12 +91,12 @@ class SvgGenerator(BaseCodeGenerator):
             if hasattr(conn, 'powerConns'):
                 for pc in conn.powerConns:
                     p_type = 'power'
-                    b_pin_lower = str(pc.boardPin).lower()
+                    b_pin_lower = str(pc.fromPin).lower()
                     if 'gnd' in b_pin_lower:
                         p_type = 'gnd'
                     pin_pairs.append({
-                        'board': str(pc.boardPin),
-                        'periph': str(pc.peripheralPin),
+                        'board': str(pc.fromPin),
+                        'periph': str(pc.toPin),
                         'type': p_type
                     })
 

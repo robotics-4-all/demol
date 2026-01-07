@@ -19,6 +19,8 @@ FrequencyUnit: "ghz" | "mhz" | "khz" | "hz";
 
 
 PowerUnit: "W" | "mW" | "uW";
+CapacityUnit: "mAh" | "Ah" | "Wh";
+CurrentUnit: "A" | "mA" | "uA";
 
 // Network Addresses
 IPv4_ADDR: /([0-9]{1,3}\.){3}[0-9]{1,3}/;

@@ -60,7 +60,9 @@ def handle_build_model(model_filepath, skip_semantics=False):
         print_results(get_validation_errors(), str(e))
         sys.exit(1)
     except Exception as e:
-        click.secho(f"\n[!] Unexpected Error: {str(e)}", fg="red", bold=True)
+        import traceback
+        traceback.print_exc()
+        click.secho(f"\n[!] Unexpected Error: {e}", fg="red", bold=True)
         sys.exit(1)
 
 

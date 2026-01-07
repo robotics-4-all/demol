@@ -64,6 +64,8 @@ class InfrastructureSvgGenerator(BaseCodeGenerator):
         peripherals = []
         periph_start_y = y_mid - total_periph_height / 2
         for i, conn in enumerate(connections):
+            if not hasattr(conn, 'peripheral') or not conn.peripheral:
+                continue
             p_ref = conn.peripheral.ref
             p_name = conn.peripheral.name
             p_y = periph_start_y + i * (self.BOX_HEIGHT + self.PERIPH_SPACING)
@@ -98,6 +100,8 @@ class InfrastructureSvgGenerator(BaseCodeGenerator):
         topics = []
         topics_y = y_mid + 15
         for i, conn in enumerate(connections):
+            if not hasattr(conn, 'peripheral') or not conn.peripheral:
+                continue
             topic = conn.remote if hasattr(conn, 'remote') and conn.remote else "N/A"
             topics.append({
                 'text': topic,
