@@ -4,3 +4,4 @@ from .m2t_riot import m2t_riot
 from .device_to_svg import device_to_svg as m2t_device_svg
 from .m2t_docs import generate_documentation as m2t_docs
 from .infrastructure_to_svg import infrastructure_to_svg as m2t_infrastructure_svg
+from .json_demol import json_to_demol, demol_to_json

@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import APIKeyHeader
 
 from demol.lang import build_model
-from demol.transformations import m2t_device_plantuml, m2t_device_json
+from demol.transformations import demol_to_json
 
 API_KEY = os.getenv("API_KEY", "API_KEY")
 
@@ -106,10 +106,12 @@ async def generate_code(file: UploadFile = File(...),
         content = ""
 
         if target == 'plantuml':
-            content = m2t_device_plantuml(model)
-            file_extension = "puml"
+            # content = m2t_device_plantuml(model)
+            # file_extension = "puml"
+            raise HTTPException(status_code=501, detail="PlantUML generation not implemented")
         elif target == 'json':
-            content = m2t_device_json(model)
+            import json
+            content = json.dumps(demol_to_json(model), indent=4)
             file_extension = "json"
 
         model_name = model.metadata.name.strip('"')

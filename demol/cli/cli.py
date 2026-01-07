@@ -10,7 +10,8 @@ from demol.transformations import (
     m2t_rpi, 
     m2t_riot,
     m2m_smauto,
-    m2t_infrastructure_svg
+    m2t_infrastructure_svg,
+    demol_to_json
 )
 
 
@@ -186,7 +187,9 @@ def generate_json(model_filepath, output_dir, skip_semantics):
     model = handle_build_model(model_filepath, skip_semantics=skip_semantics)
     if model:
         filename = os.path.join(output_dir, f'{model.metadata.name}.json')
-        m2t_device_json(model, filename)
+        import json
+        with open(filename, 'w') as f:
+            json.dump(demol_to_json(model), f, indent=4)
         print(f'[✓] JSON generated successfully: {filename}')
 
 

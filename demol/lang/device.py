@@ -224,6 +224,17 @@ def get_device_mm(debug: bool = False, global_repo: bool = False, skip_semantics
         debug=debug
     )
 
+    from textx import register_language
+    from demol.lang.component import get_component_mm
+    component_mm = get_component_mm(skip_semantics=skip_semantics)
+
+    # Register component language explicitly for .hwd files.
+    # This ensures that FQNGlobalRepo uses the correct metamodel.
+    try:
+        register_language('demol-component', pattern='*.hwd', metamodel=component_mm)
+    except Exception:
+        pass
+
     mm.register_scope_providers(
         {
             "*.*": scoping_providers.FQN(),
@@ -238,10 +249,12 @@ def get_device_mm(debug: bool = False, global_repo: bool = False, skip_semantics
         }
     )
 
+    # Register component metamodel for cross-metamodel scoping (+m:component)
+    mm.referenced_languages['component'] = component_mm
+
     mm.register_model_processor(model_proc)
 
     mm.register_obj_processors({
-
         # EMPTY
     })
 
