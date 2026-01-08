@@ -4,20 +4,19 @@ services:
   api:
     build:
       context: ..
-      dockerfile: api/Dockerfile
+      dockerfile: docker/Dockerfile.api
     ports:
       - "8000:8000"
     volumes:
-      - ../demol:/app/demol
-      - ../api:/app/api
+      - .:/app
     environment:
       - PYTHONPATH=/app
     restart: always
 
   frontend:
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: docker/Dockerfile.app
     ports:
       - "5173:80"
     depends_on:
