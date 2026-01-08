@@ -214,7 +214,7 @@ class TransformationTester:
         
         return results
     
-    def create_results_table(self, results: List[TransformationTestResult]) -> Table:
+    def create_results_table(self, results: List[TransformationTestResult]) -> "Table":
         """Create a rich table summarizing test results"""
         table = Table(title="Transformation Test Results", box=box.ROUNDED)
         

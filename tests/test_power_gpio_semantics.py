@@ -10,7 +10,7 @@ def test_power_valid_3v3(device_mm):
     model_str = """
     DEVICE TestDevice WITH description="Test", author="Test", os=raspbian;
     USE RaspberryPi_4B_4GB;
-    USE BME680(MySensor);
+    USE BME680[MySensor];
     NETWORK[WiFi] WITH ssid="test", password="test";
     BROKER[MQTT] MyBroker WITH host="localhost", port=1883;
     
@@ -30,7 +30,7 @@ def test_power_valid_5v(device_mm):
     model_str = """
     DEVICE TestDevice WITH description="Test", author="Test", os=raspbian;
     USE RaspberryPi_4B_4GB;
-    USE BME680(MySensor);
+    USE BME680[MySensor];
     NETWORK[WiFi] WITH ssid="test", password="test";
     BROKER[MQTT] MyBroker WITH host="localhost", port=1883;
     
@@ -48,13 +48,14 @@ def test_power_gnd_mismatch(device_mm):
     model_str = """
     DEVICE TestDevice WITH description="Test", author="Test", os=raspbian;
     USE RaspberryPi_4B_4GB;
-    USE BME680(MySensor);
+    USE BME680[MySensor];
     NETWORK[WiFi] WITH ssid="test", password="test";
     BROKER[MQTT] MyBroker WITH host="localhost", port=1883;
     
     CONNECT MySensor WITH
         POWER
-            power_5v_a -- gnd // Connecting 5V to GND!
+            power_5v_a -- gnd, // Connecting 5V to GND!
+            power_5v_b -- vcc  // Connect VCC to satisfy essential pin check
         DATA
             i2c[slave_address=0x76] sda GPIO2 -- sda, scl GPIO3 -- scl;
     """
@@ -65,7 +66,7 @@ def test_power_missing_ground_warning(device_mm):
     model_str = """
     DEVICE TestDevice WITH description="Test", author="Test", os=raspbian;
     USE RaspberryPi_4B_4GB;
-    USE BME680(MySensor);
+    USE BME680[MySensor];
     NETWORK[WiFi] WITH ssid="test", password="test";
     BROKER[MQTT] MyBroker WITH host="localhost", port=1883;
     
@@ -76,7 +77,7 @@ def test_power_missing_ground_warning(device_mm):
         DATA
             i2c[slave_address=0x76] sda GPIO2 -- sda, scl GPIO3 -- scl;
     """
-    with pytest.warns(UserWarning, match="Missing ground connection"):
+    with pytest.raises(TextXSemanticError, match="Essential pin 'gnd'"):
         device_mm.model_from_str(model_str)
 
 def test_voltage_limit_exceeded(device_mm):
@@ -98,7 +99,7 @@ def test_gpio_valid(device_mm):
     model_str = """
     DEVICE TestDevice WITH description="Test", author="Test", os=raspbian;
     USE RaspberryPi_4B_4GB;
-    USE HCSR04(MyDist); // Uses GPIO
+    USE HCSR04[MyDist]; // Uses GPIO
     NETWORK[WiFi] WITH ssid="test", password="test";
     BROKER[MQTT] MyBroker WITH host="localhost", port=1883;
     
@@ -117,14 +118,15 @@ def test_gpio_invalid_mode(device_mm):
     model_str = """
     DEVICE TestDevice WITH description="Test", author="Test", os=raspbian;
     USE RaspberryPi_4B_4GB;
-    USE HCSR04(MyDist);
+    USE HCSR04[MyDist];
     NETWORK[WiFi] WITH ssid="test", password="test";
     BROKER[MQTT] MyBroker WITH host="localhost", port=1883;
     
     CONNECT MyDist WITH
         POWER power_5v_a -- VCC, GND_1 -- GND
         DATA
-            gpio[mode="invalid"] GPIO23 -- trigger;
+            gpio[mode="invalid"] GPIO23 -- trigger,
+            gpio[mode="input"] GPIO24 -- echo;
     """
     with pytest.raises(TextXSemanticError, match="Invalid mode"):
         device_mm.model_from_str(model_str)
@@ -133,7 +135,7 @@ def test_gpio_non_gpio_pin(device_mm):
     model_str = """
     DEVICE TestDevice WITH description="Test", author="Test", os=raspbian;
     USE RaspberryPi_4B_4GB;
-    USE HCSR04(MyDist);
+    USE HCSR04[MyDist];
     NETWORK[WiFi] WITH ssid="test", password="test";
     BROKER[MQTT] MyBroker WITH host="localhost", port=1883;
     
@@ -141,7 +143,8 @@ def test_gpio_non_gpio_pin(device_mm):
         POWER power_5v_a -- VCC, GND_1 -- GND
         DATA
             // power_3v3_a is NOT a GPIO pin
-            gpio[mode="output"] power_3v3_a -- trigger;
+            gpio[mode="output"] power_3v3_a -- trigger,
+            gpio[mode="input"] GPIO24 -- echo;
     """
     with pytest.raises(TextXSemanticError, match="does not have GPIO"):
         device_mm.model_from_str(model_str)
@@ -150,14 +153,15 @@ def test_gpio_deprecated_name(device_mm):
     model_str = """
     DEVICE TestDevice WITH description="Test", author="Test", os=raspbian;
     USE RaspberryPi_4B_4GB;
-    USE HCSR04(MyDist);
+    USE HCSR04[MyDist];
     NETWORK[WiFi] WITH ssid="test", password="test";
     BROKER[MQTT] MyBroker WITH host="localhost", port=1883;
     
     CONNECT MyDist WITH
         POWER power_5v_a -- VCC, GND_1 -- GND
         DATA
-            gpio[name="dep"] GPIO23 -- trigger;
+            gpio[name="dep"] GPIO23 -- trigger,
+            gpio[mode="input"] GPIO24 -- echo;
     """
     with pytest.raises(TextXSemanticError, match="deprecated"):
         device_mm.model_from_str(model_str)
@@ -166,14 +170,15 @@ def test_gpio_invalid_property(device_mm):
     model_str = """
     DEVICE TestDevice WITH description="Test", author="Test", os=raspbian;
     USE RaspberryPi_4B_4GB;
-    USE HCSR04(MyDist);
+    USE HCSR04[MyDist];
     NETWORK[WiFi] WITH ssid="test", password="test";
     BROKER[MQTT] MyBroker WITH host="localhost", port=1883;
     
     CONNECT MyDist WITH
         POWER power_5v_a -- VCC, GND_1 -- GND
         DATA
-            gpio[speed=100] GPIO23 -- trigger;
+            gpio[speed=100] GPIO23 -- trigger,
+            gpio[mode="input"] GPIO24 -- echo;
     """
     with pytest.raises(TextXSemanticError, match="Invalid property"):
         device_mm.model_from_str(model_str)

@@ -123,3 +123,4 @@ app/.eslintcache
 app/tsconfig.tsbuildinfo
 
 tests/output/
+RIOT/

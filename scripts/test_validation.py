@@ -166,7 +166,7 @@ class ValidationTester:
         
         return results
     
-    def create_results_table(self, results: List[ValidationTestResult]) -> Table:
+    def create_results_table(self, results: List[ValidationTestResult]) -> "Table":
         """Create a rich table summarizing test results"""
         table = Table(title="Validation Test Results", box=box.ROUNDED)
         

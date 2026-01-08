@@ -16,7 +16,7 @@ RUN pip install fastapi uvicorn
 COPY demol /app/demol
 
 # Copy the API code
-COPY app/api /app/api
+COPY api /app/api
 
 # Set PYTHONPATH to include the root /app so imports work
 ENV PYTHONPATH=/app

@@ -8,7 +8,7 @@ import json
 from textx import metamodel_from_file
 
 # Add project root to path to import demol
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
 
 from demol.lang import build_model, get_device_mm, get_component_mm
 from demol.transformations import json_to_demol, demol_to_json

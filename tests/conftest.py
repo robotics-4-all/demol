@@ -15,3 +15,8 @@ def device_mm():
 @pytest.fixture(scope="session")
 def component_mm():
     return get_component_mm()
+
+@pytest.fixture(autouse=True)
+def clear_validation_state():
+    from demol.lang.semantics import clear_validation_results
+    clear_validation_results()

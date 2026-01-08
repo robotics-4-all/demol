@@ -14,7 +14,7 @@ def test_uart_valid(device_mm):
     model_str = """
     DEVICE TestDevice WITH description="Test", author="Test", os=raspbian;
     USE RaspberryPi_4B_4GB;
-    USE TFMini(MyLidar);
+    USE TFMini[MyLidar];
     NETWORK[WiFi] WITH ssid="test", password="test";
     BROKER[MQTT] MyBroker WITH host="localhost", port=1883;
     
@@ -32,7 +32,7 @@ def test_uart_invalid_baudrate_negative(device_mm):
     model_str = """
     DEVICE TestDevice WITH description="Test", author="Test", os=raspbian;
     USE RaspberryPi_4B_4GB;
-    USE TFMini(MyLidar);
+    USE TFMini[MyLidar];
     NETWORK[WiFi] WITH ssid="test", password="test";
     BROKER[MQTT] MyBroker WITH host="localhost", port=1883;
     
@@ -48,7 +48,7 @@ def test_uart_unusual_baudrate(device_mm):
     model_str = """
     DEVICE TestDevice WITH description="Test", author="Test", os=raspbian;
     USE RaspberryPi_4B_4GB;
-    USE TFMini(MyLidar);
+    USE TFMini[MyLidar];
     NETWORK[WiFi] WITH ssid="test", password="test";
     BROKER[MQTT] MyBroker WITH host="localhost", port=1883;
     
@@ -64,7 +64,7 @@ def test_uart_missing_function(device_mm):
     model_str = """
     DEVICE TestDevice WITH description="Test", author="Test", os=raspbian;
     USE RaspberryPi_4B_4GB;
-    USE TFMini(MyLidar);
+    USE TFMini[MyLidar];
     NETWORK[WiFi] WITH ssid="test", password="test";
     BROKER[MQTT] MyBroker WITH host="localhost", port=1883;
     
@@ -81,7 +81,7 @@ def test_uart_wrong_connection_direction(device_mm):
     model_str = """
     DEVICE TestDevice WITH description="Test", author="Test", os=raspbian;
     USE RaspberryPi_4B_4GB;
-    USE TFMini(MyLidar);
+    USE TFMini[MyLidar];
     NETWORK[WiFi] WITH ssid="test", password="test";
     BROKER[MQTT] MyBroker WITH host="localhost", port=1883;
     
@@ -102,8 +102,8 @@ def test_pin_conflict_gpio(device_mm):
     model_str = """
     DEVICE TestDevice WITH description="Test", author="Test", os=raspbian;
     USE RaspberryPi_4B_4GB;
-    USE HCSR04(Dist1);
-    USE HCSR04(Dist2);
+    USE HCSR04[Dist1];
+    USE HCSR04[Dist2];
     NETWORK[WiFi] WITH ssid="test", password="test";
     BROKER[MQTT] MyBroker WITH host="localhost", port=1883;
     
@@ -123,8 +123,8 @@ def test_pin_sharing_i2c_allowed(device_mm):
     model_str = """
     DEVICE TestDevice WITH description="Test", author="Test", os=raspbian;
     USE RaspberryPi_4B_4GB;
-    USE BME680(Sensor1);
-    USE BME680(Sensor2);
+    USE BME680[Sensor1];
+    USE BME680[Sensor2];
     NETWORK[WiFi] WITH ssid="test", password="test";
     BROKER[MQTT] MyBroker WITH host="localhost", port=1883;
     
@@ -143,8 +143,8 @@ def test_i2c_address_conflict(device_mm):
     model_str = """
     DEVICE TestDevice WITH description="Test", author="Test", os=raspbian;
     USE RaspberryPi_4B_4GB;
-    USE BME680(Sensor1);
-    USE BME680(Sensor2);
+    USE BME680[Sensor1];
+    USE BME680[Sensor2];
     NETWORK[WiFi] WITH ssid="test", password="test";
     BROKER[MQTT] MyBroker WITH host="localhost", port=1883;
     
@@ -163,8 +163,8 @@ def test_unique_peripheral_names(device_mm):
     model_str = """
     DEVICE TestDevice WITH description="Test", author="Test", os=raspbian;
     USE RaspberryPi_4B_4GB;
-    USE BME680(MySensor);
-    USE HCSR04(MySensor); // Duplicate name
+    USE BME680[MySensor];
+    USE HCSR04[MySensor]; // Duplicate name
     NETWORK[WiFi] WITH ssid="test", password="test";
     BROKER[MQTT] MyBroker WITH host="localhost", port=1883;
     
@@ -181,8 +181,8 @@ def test_unconnected_peripheral(device_mm):
     model_str = """
     DEVICE TestDevice WITH description="Test", author="Test", os=raspbian;
     USE RaspberryPi_4B_4GB;
-    USE BME680(MySensor);
-    USE BME680(UnconnectedSensor);
+    USE BME680[MySensor];
+    USE BME680[UnconnectedSensor];
     NETWORK[WiFi] WITH ssid="test", password="test";
     BROKER[MQTT] MyBroker WITH host="localhost", port=1883;
     
@@ -197,7 +197,7 @@ def test_missing_broker(device_mm):
     model_str = """
     DEVICE TestDevice WITH description="Test", author="Test", os=raspbian;
     USE RaspberryPi_4B_4GB;
-    USE BME680(MySensor);
+    USE BME680[MySensor];
     NETWORK[WiFi] WITH ssid="test", password="test";
     // No BROKER
     

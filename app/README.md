@@ -49,8 +49,8 @@ If you prefer to run the services locally for development:
 
 1.  **Backend**:
     ```bash
-    cd app/api
-    pip install -r requirements.txt
+    cd api
+    pip install -r ../requirements.txt
     python main.py
     ```
     The API will run on http://localhost:8000.

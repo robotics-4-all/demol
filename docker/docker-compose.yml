@@ -4,12 +4,12 @@ services:
   api:
     build:
       context: ..
-      dockerfile: app/api/Dockerfile
+      dockerfile: api/Dockerfile
     ports:
       - "8000:8000"
     volumes:
       - ../demol:/app/demol
-      - ./api:/app/api
+      - ../api:/app/api
     environment:
       - PYTHONPATH=/app
     restart: always

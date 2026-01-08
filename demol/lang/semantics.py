@@ -12,6 +12,7 @@ This module implements:
 from textx import get_location, TextXSemanticError
 from typing import List, Set, Dict, Optional, Tuple
 import re
+import warnings
 
 # Global lists to collect validation results during a single model processing run
 _validation_errors = []
@@ -80,14 +81,17 @@ def raise_validation_warning(obj, msg: str, warning_type: str = "Warning"):
         'loc': loc,
         'type': warning_type
     })
+    
+    # Emit actual Python warning for tests/users
+    warnings.warn(warning_msg, UserWarning)
 
 def check_validation_errors(model, skip_semantics=False):
     """Check if any validation errors occurred and raise a single exception if they did"""
     global _validation_errors
     if _validation_errors and not skip_semantics:
-        # Raise a generic error to stop further processing
-        # The caller should handle reporting the collected errors
-        raise ValidationError("Model validation failed.")
+        # Raise the first error to stop further processing and allow tests to match the message
+        first_error = _validation_errors[0]['msg']
+        raise ValidationError(first_error)
 
 
 def get_connection_target(connection):

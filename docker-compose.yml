@@ -1,10 +1,24 @@
 version: '3.8'
 
 services:
-  demol:
-    image: demol
-    command: uvicorn demol.api:api --host 0.0.0.0 --port 8080 --root-path ${ROOT_PATH:-/}
+  api:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.api
     ports:
-      - ${PORT:-8081}:8080
+      - "8000:8000"
+    volumes:
+      - .:/app
     environment:
-      - API_KEY=${API_KEY}
+      - PYTHONPATH=/app
+    restart: always
+
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.app
+    ports:
+      - "5173:80"
+    depends_on:
+      - api
+    restart: always

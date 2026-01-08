@@ -10,7 +10,7 @@ def test_i2c_valid(device_mm):
     model_str = """
     DEVICE TestDevice WITH description="Test", author="Test", os=raspbian;
     USE RaspberryPi_4B_4GB;
-    USE BME680(MySensor);
+    USE BME680[MySensor];
     NETWORK[WiFi] WITH ssid="test", password="test";
     BROKER[MQTT] MyBroker WITH host="localhost", port=1883;
     
@@ -26,7 +26,7 @@ def test_i2c_invalid_address_range(device_mm):
     model_str = """
     DEVICE TestDevice WITH description="Test", author="Test", os=raspbian;
     USE RaspberryPi_4B_4GB;
-    USE BME680(MySensor);
+    USE BME680[MySensor];
     NETWORK[WiFi] WITH ssid="test", password="test";
     BROKER[MQTT] MyBroker WITH host="localhost", port=1883;
     
@@ -42,7 +42,7 @@ def test_i2c_missing_function(device_mm):
     model_str = """
     DEVICE TestDevice WITH description="Test", author="Test", os=raspbian;
     USE RaspberryPi_4B_4GB;
-    USE BME680(MySensor);
+    USE BME680[MySensor];
     NETWORK[WiFi] WITH ssid="test", password="test";
     BROKER[MQTT] MyBroker WITH host="localhost", port=1883;
     
@@ -59,7 +59,7 @@ def test_i2c_invalid_bus_speed(device_mm):
     model_str = """
     DEVICE TestDevice WITH description="Test", author="Test", os=raspbian;
     USE RaspberryPi_4B_4GB;
-    USE BME680(MySensor);
+    USE BME680[MySensor];
     NETWORK[WiFi] WITH ssid="test", password="test";
     BROKER[MQTT] MyBroker WITH host="localhost", port=1883;
     
@@ -75,7 +75,7 @@ def test_i2c_deprecated_name(device_mm):
     model_str = """
     DEVICE TestDevice WITH description="Test", author="Test", os=raspbian;
     USE RaspberryPi_4B_4GB;
-    USE BME680(MySensor);
+    USE BME680[MySensor];
     NETWORK[WiFi] WITH ssid="test", password="test";
     BROKER[MQTT] MyBroker WITH host="localhost", port=1883;
     
