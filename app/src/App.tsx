@@ -8,7 +8,7 @@ import { CodeViewer } from './components/CodeViewer';
 import { Console } from './components/Console';
 import { DeviceSettings } from './components/DeviceSettings';
 import { api } from './services/api';
-import type { DeviceModel, Board, Peripheral } from './types';
+import type { DeviceModel } from './types';
 import './App.css';
 
 function App() {
@@ -19,6 +19,7 @@ function App() {
     os: 'riotos',
     board: null,
     peripherals: [],
+    powerSources: [],
     connections: [],
   });
 
@@ -34,14 +35,28 @@ function App() {
   useEffect(() => {
     const boardNode = nodes.find(n => n.type === 'board');
     const peripheralNodes = nodes.filter(n => n.type === 'peripheral');
+    const powerSourceNodes = nodes.filter(n => n.type === 'powersource');
 
     const connections = edges.map(edge => {
+      const sourceNode = nodes.find(n => n.id === edge.source);
       const targetNode = nodes.find(n => n.id === edge.target);
+
+      let peripheralNode = targetNode;
+      let boardNode = sourceNode;
+
+      // If source is peripheral or powersource, it's the "from" side
+      if (sourceNode?.type === 'peripheral' || sourceNode?.type === 'powersource') {
+        peripheralNode = sourceNode;
+        boardNode = targetNode;
+      }
+
       return {
         id: edge.id,
-        peripheralId: targetNode?.data.id,
-        peripheralNodeId: edge.target, // Add node ID to distinguish instances
-        peripheralName: targetNode?.data.instanceName || targetNode?.data.name,
+        peripheralId: peripheralNode?.data.id,
+        peripheralNodeId: peripheralNode?.id,
+        peripheralName: peripheralNode?.data.instanceName || peripheralNode?.data.name,
+        fromName: peripheralNode?.data.instanceName || peripheralNode?.data.name,
+        toName: boardNode?.data.instanceName || boardNode?.data.name || 'board',
         type: edge.data?.type || (edge.sourceHandle === 'power' ? 'power' : 'io'),
         mappings: edge.data?.mappings || [],
       };
@@ -54,11 +69,15 @@ function App() {
         ...n.data,
         nodeId: n.id // Add node ID to distinguish instances
       })),
+      powerSources: powerSourceNodes.map(n => ({
+        ...n.data,
+        nodeId: n.id
+      })),
       connections: connections as any,
     }));
   }, [nodes, edges]);
 
-  const handleDragStart = (_item: Board | Peripheral, _type: 'board' | 'peripheral') => {
+  const handleDragStart = (_item: any, _type: any) => {
     // Handled by Sidebar
   };
 
@@ -198,6 +217,7 @@ function App() {
           <PropertiesPanel
             selectedNode={selectedNode}
             selectedEdge={selectedEdge}
+            nodes={nodes}
             board={model.board}
             onUpdateNode={handleUpdateNode}
             onUpdateEdge={handleUpdateEdge}

@@ -167,6 +167,18 @@
     color: var(--warning);
 }
 
+.power-item .component-icon {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(185, 28, 28, 0.1));
+}
+
+.power-item .component-icon svg {
+    color: #ef4444;
+}
+
+.power-section svg:nth-child(2) {
+    color: #ef4444 !important;
+}
+
 .component-info {
     flex: 1;
     min-width: 0;

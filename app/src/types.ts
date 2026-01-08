@@ -34,6 +34,7 @@ export interface Board {
 export interface Peripheral {
     id: string;
     name: string;
+    instanceName?: string;
     type: string;
     category: 'sensor' | 'actuator';
     pins: Pin[];
@@ -58,13 +59,15 @@ export interface PowerSource {
 }
 
 export interface PinMapping {
-    boardPin: string;
-    peripheralPin: string;
+    fromPin: string; // Peripheral Pin
+    toPin: string;   // Board Pin
 }
 
 export interface Connection {
     id: string;
     peripheralId: string;
+    fromName: string;
+    toName: string;
     type: 'power' | 'io';
     mappings: PinMapping[];
 }

@@ -17,6 +17,13 @@ export const api = {
         return response.json();
     },
 
+    // Get available power sources
+    async getPowerSources(): Promise<any[]> {
+        const response = await fetch(`${API_BASE}/powersources`);
+        if (!response.ok) throw new Error('Failed to fetch power sources');
+        return response.json();
+    },
+
     // Validate device model
     async validateModel(model: any): Promise<{ valid: boolean; errors: string[]; warnings: string[]; dsl?: string }> {
         const response = await fetch(`${API_BASE}/validate`, {

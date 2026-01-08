@@ -1,21 +1,23 @@
 import { useState, useEffect } from 'react';
-import { Search, ChevronDown, ChevronRight, Cpu, Thermometer, Lightbulb } from 'lucide-react';
-import { type Board, type Peripheral } from '../types';
+import { Search, ChevronDown, ChevronRight, Cpu, Thermometer, Lightbulb, Battery } from 'lucide-react';
+import { type Board, type Peripheral, type PowerSource } from '../types';
 import { api } from '../services/api';
 import './Sidebar.css';
 
 interface SidebarProps {
-    onDragStart: (item: Board | Peripheral, type: 'board' | 'peripheral') => void;
+    onDragStart: (item: Board | Peripheral | PowerSource, type: 'board' | 'peripheral' | 'powersource') => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ onDragStart }) => {
     const [boards, setBoards] = useState<Board[]>([]);
     const [peripherals, setPeripherals] = useState<Peripheral[]>([]);
+    const [powerSources, setPowerSources] = useState<PowerSource[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [expandedSections, setExpandedSections] = useState({
         boards: true,
         sensors: true,
         actuators: true,
+        powerSources: true,
     });
     const [loading, setLoading] = useState(true);
 
@@ -26,12 +28,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ onDragStart }) => {
     const loadComponents = async () => {
         try {
             setLoading(true);
-            const [boardsData, peripheralsData] = await Promise.all([
+            const [boardsData, peripheralsData, powerSourcesData] = await Promise.all([
                 api.getBoards(),
                 api.getPeripherals(),
+                api.getPowerSources(),
             ]);
             setBoards(boardsData);
             setPeripherals(peripheralsData);
+            setPowerSources(powerSourcesData);
         } catch (error) {
             console.error('Failed to load components:', error);
         } finally {
@@ -58,7 +62,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ onDragStart }) => {
         a.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    const handleDragStart = (e: React.DragEvent, item: Board | Peripheral, type: 'board' | 'peripheral') => {
+    const filteredPowerSources = powerSources.filter(ps =>
+        ps.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    const handleDragStart = (e: React.DragEvent, item: Board | Peripheral | PowerSource, type: 'board' | 'peripheral' | 'powersource') => {
         e.dataTransfer.effectAllowed = 'copy';
         e.dataTransfer.setData('application/json', JSON.stringify({ item, type }));
         onDragStart(item, type);
@@ -110,6 +118,36 @@ export const Sidebar: React.FC<SidebarProps> = ({ onDragStart }) => {
                                             <div className="component-info">
                                                 <div className="component-name">{board.name}</div>
                                                 <div className="component-meta">{board.type}</div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Power Sources Section */}
+                        <div className="component-section">
+                            <div className="section-header power-section" onClick={() => toggleSection('powerSources')}>
+                                {expandedSections.powerSources ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                                <Battery size={18} />
+                                <span>Power Sources</span>
+                                <span className="count">{filteredPowerSources.length}</span>
+                            </div>
+                            {expandedSections.powerSources && (
+                                <div className="component-list">
+                                    {filteredPowerSources.map((ps) => (
+                                        <div
+                                            key={ps.id}
+                                            className="component-item power-item"
+                                            draggable
+                                            onDragStart={(e) => handleDragStart(e, ps, 'powersource')}
+                                        >
+                                            <div className="component-icon">
+                                                <Battery size={20} />
+                                            </div>
+                                            <div className="component-info">
+                                                <div className="component-name">{ps.name}</div>
+                                                <div className="component-meta">{ps.type}</div>
                                             </div>
                                         </div>
                                     ))}

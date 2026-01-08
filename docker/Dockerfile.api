@@ -1,6 +1,6 @@
 FROM python:3.10-slim
 
-WORKDIR /app
+WORKDIR /api
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
@@ -13,16 +13,17 @@ RUN pip install --no-cache-dir -r requirements.txt
 RUN pip install fastapi uvicorn
 
 # Copy the demol package
-COPY demol /app/demol
+COPY demol /demol
+# RUN pip install -e /demol
 
 # Copy the API code
-COPY api /app/api
+COPY api /api
 
 # Set PYTHONPATH to include the root /app so imports work
-ENV PYTHONPATH=/app
+ENV PYTHONPATH=/demol
 
 # Expose port
 EXPOSE 8000
 
 # Run the API
-CMD ["python", "api/main.py"]
+CMD ["python", "main.py"]

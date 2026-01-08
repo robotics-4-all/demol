@@ -7,10 +7,6 @@ services:
       dockerfile: docker/Dockerfile.api
     ports:
       - "8000:8000"
-    volumes:
-      - .:/app
-    environment:
-      - PYTHONPATH=/app
     restart: always
 
   frontend:

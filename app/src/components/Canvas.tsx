@@ -15,11 +15,13 @@ import 'reactflow/dist/style.css';
 // import { Board, Peripheral } from '../types';
 import { BoardNode } from './nodes/BoardNode';
 import { PeripheralNode } from './nodes/PeripheralNode';
+import { PowerSourceNode } from './nodes/PowerSourceNode';
 import './Canvas.css';
 
 const nodeTypes = {
     board: BoardNode,
     peripheral: PeripheralNode,
+    powersource: PowerSourceNode,
 };
 
 interface CanvasProps {
@@ -151,6 +153,7 @@ export const Canvas: React.FC<CanvasProps> = ({
                     className="flow-minimap"
                     nodeColor={(node) => {
                         if (node.type === 'board') return '#6366f1';
+                        if (node.type === 'powersource') return '#ef4444';
                         if (node.data.category === 'sensor') return '#10b981';
                         return '#f59e0b';
                     }}

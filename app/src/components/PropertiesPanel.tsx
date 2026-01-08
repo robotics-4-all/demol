@@ -11,6 +11,7 @@ interface PropertiesPanelProps {
     onUpdateNode: (id: string, data: any) => void;
     onUpdateEdge: (id: string, data: any) => void;
     onClose: () => void;
+    nodes?: any[];
 }
 
 export const PropertiesPanel: FC<PropertiesPanelProps> = ({
@@ -20,13 +21,14 @@ export const PropertiesPanel: FC<PropertiesPanelProps> = ({
     onUpdateNode,
     onUpdateEdge,
     onClose,
+    nodes = [],
 }) => {
     const [attributes, setAttributes] = useState<Record<string, any>>({});
     const [mappings, setMappings] = useState<PinMapping[]>([]);
     const [viewingCode, setViewingCode] = useState<{ title: string; code: string; language: string } | null>(null);
 
     useEffect(() => {
-        if (selectedNode && selectedNode.type === 'peripheral') {
+        if (selectedNode && (selectedNode.type === 'peripheral' || selectedNode.type === 'powersource')) {
             setAttributes(selectedNode.data.attributes || {});
         }
     }, [selectedNode]);
@@ -53,7 +55,7 @@ export const PropertiesPanel: FC<PropertiesPanelProps> = ({
     };
 
     const addMapping = () => {
-        setMappings(prev => [...prev, { boardPin: '', peripheralPin: '' }]);
+        setMappings(prev => [...prev, { fromPin: '', toPin: '' }]);
     };
 
     const updateMapping = (index: number, field: keyof PinMapping, value: string) => {
@@ -87,17 +89,21 @@ export const PropertiesPanel: FC<PropertiesPanelProps> = ({
 
     const viewEdgeCode = () => {
         if (selectedEdge) {
-            // For edges, we can show the connection part of the .dev file
-            const peripheral = selectedEdge.data?.targetNodeData;
-            const type = selectedEdge.data?.type === 'power' ? '[power]' : '[io]';
-            let code = `CONNECT${type} ${peripheral?.name || 'Peripheral'} TO ${board?.name || 'Board'} WITH\n`;
-            mappings.forEach(m => {
-                code += `    ${m.peripheralPin} -> ${m.boardPin},\n`;
-            });
-            if (mappings.length > 0) {
-                code = code.slice(0, -2) + '\n';
+            const fromName = selectedEdge.data?.fromName || 'Peripheral';
+            const toName = selectedEdge.data?.toName || 'Board';
+            const type = selectedEdge.data?.type || 'io';
+
+            let code = `CONNECT ${fromName}${toName !== 'Board' && toName !== board?.name ? ` : ${toName}` : ''} WITH\n`;
+
+            if (type === 'power') {
+                code += '    POWER ';
+                code += mappings.map(m => `${m.fromPin} -- ${m.toPin}`).join(', ');
+            } else {
+                code += '    DATA gpio ';
+                code += mappings.map(m => `${m.fromPin} -- ${m.toPin}`).join(', ');
             }
-            code += ';';
+
+            code += '\n;';
 
             setViewingCode({
                 title: 'Connection Model',
@@ -129,32 +135,47 @@ export const PropertiesPanel: FC<PropertiesPanelProps> = ({
             </div>
 
             <div className="panel-content">
-                {selectedNode && selectedNode.type === 'peripheral' && (
-                    <div className="section">
-                        <h3>Attributes</h3>
-                        <div className="attributes-list">
-                            {selectedNode.data.attributes && Object.entries(selectedNode.data.attributes).map(([key, attr]: [string, any]) => (
-                                <div key={key} className="field">
-                                    <label>{key} ({attr.type})</label>
-                                    <input
-                                        type={attr.type === 'int' || attr.type === 'float' ? 'number' : 'text'}
-                                        value={attributes[key] !== undefined ? attributes[key] : (attr.default !== null ? attr.default : '')}
-                                        onChange={(e) => handleAttributeChange(key, e.target.value)}
-                                        placeholder={attr.default !== null ? `Default: ${attr.default}` : ''}
-                                    />
-                                </div>
-                            ))}
-                            {(!selectedNode.data.attributes || Object.keys(selectedNode.data.attributes).length === 0) && (
-                                <p className="no-data">No configurable attributes defined for this peripheral.</p>
-                            )}
+                {selectedNode && (selectedNode.type === 'peripheral' || selectedNode.type === 'powersource') && (
+                    <>
+                        <div className="section">
+                            <h3>General</h3>
+                            <div className="field">
+                                <label>Instance Name</label>
+                                <input
+                                    type="text"
+                                    value={selectedNode.data.instanceName || selectedNode.data.name}
+                                    onChange={(e) => onUpdateNode(selectedNode.id, { ...selectedNode.data, instanceName: e.target.value })}
+                                />
+                            </div>
                         </div>
-                        {selectedNode.data.attributes && Object.keys(selectedNode.data.attributes).length > 0 && (
-                            <button className="save-btn" onClick={saveAttributes}>
-                                <Save size={16} />
-                                Save Attributes
-                            </button>
+                        {selectedNode.type === 'peripheral' && (
+                            <div className="section">
+                                <h3>Attributes</h3>
+                                <div className="attributes-list">
+                                    {selectedNode.data.attributes && Object.entries(selectedNode.data.attributes).map(([key, attr]: [string, any]) => (
+                                        <div key={key} className="field">
+                                            <label>{key} ({attr.type})</label>
+                                            <input
+                                                type={attr.type === 'int' || attr.type === 'float' ? 'number' : 'text'}
+                                                value={attributes[key] !== undefined ? attributes[key] : (attr.default !== null ? attr.default : '')}
+                                                onChange={(e) => handleAttributeChange(key, e.target.value)}
+                                                placeholder={attr.default !== null ? `Default: ${attr.default}` : ''}
+                                            />
+                                        </div>
+                                    ))}
+                                    {(!selectedNode.data.attributes || Object.keys(selectedNode.data.attributes).length === 0) && (
+                                        <p className="no-data">No configurable attributes defined for this peripheral.</p>
+                                    )}
+                                </div>
+                                {selectedNode.data.attributes && Object.keys(selectedNode.data.attributes).length > 0 && (
+                                    <button className="save-btn" onClick={saveAttributes}>
+                                        <Save size={16} />
+                                        Save Attributes
+                                    </button>
+                                )}
+                            </div>
                         )}
-                    </div>
+                    </>
                 )}
 
                 {selectedEdge && (
@@ -172,29 +193,37 @@ export const PropertiesPanel: FC<PropertiesPanelProps> = ({
                             {mappings.map((mapping, index) => (
                                 <div key={index} className="mapping-item">
                                     <select
-                                        value={mapping.boardPin}
-                                        onChange={(e) => updateMapping(index, 'boardPin', e.target.value)}
+                                        value={mapping.fromPin}
+                                        onChange={(e) => updateMapping(index, 'fromPin', e.target.value)}
                                     >
                                         <option value="">Select Board Pin</option>
                                         {board?.pins
-                                            .filter(p => selectedEdge.data?.type === 'power' ? p.type !== 'io' : p.type === 'io')
-                                            .map(p => (
+                                            .filter((p: any) => selectedEdge.data?.type === 'power' ? p.type !== 'io' : p.type === 'io')
+                                            .map((p: any) => (
                                                 <option key={p.name} value={p.name}>{p.name} ({p.type})</option>
                                             ))
                                         }
                                     </select>
                                     <span className="arrow">→</span>
                                     <select
-                                        value={mapping.peripheralPin}
-                                        onChange={(e) => updateMapping(index, 'peripheralPin', e.target.value)}
+                                        value={mapping.toPin}
+                                        onChange={(e) => updateMapping(index, 'toPin', e.target.value)}
                                     >
                                         <option value="">Select Peripheral Pin</option>
-                                        {selectedEdge.data?.targetNodeData?.pins
-                                            .filter((p: any) => selectedEdge.data?.type === 'power' ? p.type !== 'io' : p.type === 'io')
-                                            .map((p: any) => (
-                                                <option key={p.name} value={p.name}>{p.name} ({p.type})</option>
-                                            ))
-                                        }
+                                        {(() => {
+                                            const peripheralNode = nodes?.find(n =>
+                                                (n.id === selectedEdge.source && (n.type === 'peripheral' || n.type === 'powersource')) ||
+                                                (n.id === selectedEdge.target && (n.type === 'peripheral' || n.type === 'powersource'))
+                                            );
+                                            // Fallback to targetNodeData if nodes not available or not found (legacy)
+                                            const pins = peripheralNode?.data?.pins || selectedEdge.data?.targetNodeData?.pins || [];
+
+                                            return pins
+                                                .filter((p: any) => selectedEdge.data?.type === 'power' ? p.type !== 'io' : p.type === 'io')
+                                                .map((p: any) => (
+                                                    <option key={p.name} value={p.name}>{p.name} ({p.type})</option>
+                                                ));
+                                        })()}
                                     </select>
                                     <button className="remove-btn" onClick={() => removeMapping(index)}>
                                         <X size={14} />
