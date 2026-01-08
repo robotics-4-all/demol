@@ -46,6 +46,7 @@ def model_proc(model, metamodel):
         validate_topic_format,
         validate_single_board,
         validate_broker_security,
+        validate_network_requirements,
         clear_validation_results,
         check_validation_errors,
         get_validation_errors,
@@ -99,6 +100,11 @@ def model_proc(model, metamodel):
     # Well-Formedness: Broker requirements
     # ========================================================================
     run_rule("Broker Requirements", validate_broker_requirements, model, desc="Broker is configured if remote endpoints exist")
+    
+    # ========================================================================
+    # Well-Formedness: Network requirements (network is configured if broker or remote endpoints exist)
+    # ========================================================================
+    run_rule("Network Requirements", validate_network_requirements, model, desc="Network is configured if broker or remote endpoints exist")
     
     # ========================================================================
     # Safety: Broker security (authentication for remote brokers)
@@ -255,17 +261,15 @@ def enrich_model(model):
         target_name = from_name if from_inst else to_name
 
         # ====================================================================
-        # Auto-generate topic if not specified
+        # Auto-generate topic if not specified (only if broker is present)
         # ====================================================================
-        if not c.remote and target_ref and hasattr(target_ref, 'type'):
+        if hasattr(model, 'broker') and model.broker and not c.remote and target_ref and hasattr(target_ref, 'type'):
             peripheral_type = type(target_ref).__name__
             peripheral_msg = target_ref.type
             
             default_topic = f'"{device_name}.{peripheral_type}.{peripheral_msg}.{target_name}"'
             c.remote = default_topic.lower().strip('""')
-
-
-
+            
 
 def get_device_mm(debug: bool = False, global_repo: bool = False, skip_semantics: bool = False):
     mm = metamodel_from_file(

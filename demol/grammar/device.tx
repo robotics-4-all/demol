@@ -9,8 +9,8 @@ DeviceModel:
     imports*=Import
     (
         metadata=Device
-        network=Network
         uses+=Use
+        (network=Network)?
         (broker=MessageBroker)?
         connections+=Connect
     )#

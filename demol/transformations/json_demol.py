@@ -241,8 +241,11 @@ def demol_to_json(model) -> Dict[str, Any]:
         return device_to_json(model)
     elif class_name == 'ComponentModel':
         comp = model.component
-        if comp.__class__.__name__.lower() == 'board':
+        comp_type = comp.__class__.__name__.lower()
+        if comp_type == 'board':
             return board_to_json(comp)
+        elif comp_type == 'powersource':
+            return powersource_to_json(comp)
         else:
             return peripheral_to_json(comp)
     return {}
@@ -362,49 +365,93 @@ def json_to_demol(model_data) -> str:
     
     # 4. Connections
     connections = get_val(model_data, 'connections', [])
+    
+    # Group by (fromName, toName)
+    grouped_connections = {}
     for conn in connections:
         from_name = get_val(conn, 'fromName', 'unknown').replace(" ", "_")
         to_name = get_val(conn, 'toName', 'unknown').replace(" ", "_")
-        c_type = get_val(conn, 'type', 'io')
+        key = (from_name, to_name)
+        
+        if key not in grouped_connections:
+            grouped_connections[key] = []
+        
+        grouped_connections[key].append(conn)
+
+    for key, conns in grouped_connections.items():
+        from_name = key[0]
+        to_name = key[1]
         
         if to_name == board_name or to_name == "board":
             content += f'CONNECT {from_name} WITH\n'
         else:
             content += f'CONNECT {from_name} : {to_name} WITH\n'
         
-        mappings = get_val(conn, 'mappings', [])
-        power_mappings = [m for m in mappings if get_val(m, 'section') == 'power']
-        data_mappings = [m for m in mappings if get_val(m, 'section') == 'data']
+        # Aggregate Power Mappings
+        all_power_mappings = []
         
-        if power_mappings:
+        # Collect Data Connections strings
+        data_conn_strings = []
+        
+        for conn in conns:
+            c_type = get_val(conn, 'type', 'io')
+            mappings = get_val(conn, 'mappings', [])
+            props = get_val(conn, 'props', {})
+            
+            # Infer sections
+            current_power = []
+            current_data = []
+            
+            for m in mappings:
+                section = get_val(m, 'section')
+                if not section:
+                    if c_type == 'power': section = 'power'
+                    else: section = 'data'
+                
+                if section == 'power':
+                    current_power.append(m)
+                else:
+                    current_data.append(m)
+            
+            all_power_mappings.extend(current_power)
+            
+            if current_data:
+                # Generate DataConnection string for this group
+                actual_type = 'gpio' # Default to gpio for now
+                
+                dc_str = f'{actual_type} '
+                
+                if props:
+                    prop_strings = []
+                    for k, v in props.items():
+                        if isinstance(v, str):
+                            prop_strings.append(f'{k}="{v}"')
+                        else:
+                            prop_strings.append(f'{k}={v}')
+                    dc_str += f'[{", ".join(prop_strings)}] '
+                
+                m_strings = []
+                for m in current_data:
+                    func = get_val(m, "function")
+                    from_pin = get_val(m, "fromPin")
+                    to_pin = get_val(m, "toPin")
+                    if func:
+                        m_strings.append(f'{func} {from_pin} -- {to_pin}')
+                    else:
+                        m_strings.append(f'{from_pin} -- {to_pin}')
+                
+                dc_str += ", ".join(m_strings)
+                data_conn_strings.append(dc_str)
+        
+        if all_power_mappings:
             content += '    POWER '
             m_strings = []
-            for m in power_mappings:
+            for m in all_power_mappings:
                 m_strings.append(f'{get_val(m, "fromPin")} -- {get_val(m, "toPin")}')
             content += ", ".join(m_strings) + '\n'
             
-        if data_mappings or (c_type != 'power' and not power_mappings):
-            actual_type = c_type if c_type != 'power' else 'gpio'
-            content += f'    DATA {actual_type} '
-            
-            props = get_val(conn, 'props', {})
-            if props:
-                prop_strings = []
-                for k, v in props.items():
-                    if isinstance(v, str):
-                        prop_strings.append(f'{k}="{v}"')
-                    else:
-                        prop_strings.append(f'{k}={v}')
-                content += f'[{", ".join(prop_strings)}] '
-                
-            m_strings = []
-            for m in data_mappings:
-                func = get_val(m, "function")
-                if func:
-                    m_strings.append(f'{func} {get_val(m, "fromPin")} -- {get_val(m, "toPin")}')
-                else:
-                    m_strings.append(f'{get_val(m, "fromPin")} -- {get_val(m, "toPin")}')
-            content += ", ".join(m_strings) + '\n'
+        if data_conn_strings:
+            content += '    DATA ' + ", ".join(data_conn_strings) + '\n'
         
         content += ';\n\n'
     
