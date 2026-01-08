@@ -1017,24 +1017,20 @@ def validate_network_requirements(model) -> None:
     Validate WF-Network-Requirements.
     
     Ensures that a network configuration is present if:
-    - A broker is configured
     - Any connection has a remote endpoint
     """
-    has_broker = hasattr(model, 'broker') and model.broker is not None
     has_endpoint = any(
         hasattr(conn, 'remote') and conn.remote
         for conn in model.connections
     )
     
-    if (has_broker or has_endpoint) and (not hasattr(model, 'network') or model.network is None):
+    if has_endpoint and (not hasattr(model, 'network') or model.network is None):
         raise_validation_error(
             model,
             "[WF-Network-Requirements] Network configuration required: A broker or remote endpoints are defined, "
             "but no network is configured in the model.",
             "MissingNetworkError"
         )
-
-
 
 
 def validate_broker_security(model) -> None:

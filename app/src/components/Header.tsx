@@ -9,9 +9,10 @@ interface HeaderProps {
     onExport: () => void;
     onViewModel: () => void;
     onSettings: () => void;
+    onClear: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ onSave, onValidate, onGenerate, onExport, onViewModel, onSettings }) => {
+export const Header: React.FC<HeaderProps> = ({ onSave, onValidate, onGenerate, onExport, onViewModel, onSettings, onClear }) => {
     return (
         <header className="app-header">
             <div className="header-left">
@@ -32,6 +33,10 @@ export const Header: React.FC<HeaderProps> = ({ onSave, onValidate, onGenerate, 
             </div>
 
             <div className="header-right">
+                <button className="action-btn secondary" onClick={onClear} title="Clear Design">
+                    <Zap size={18} />
+                    <span>New</span>
+                </button>
                 <button className="action-btn secondary" onClick={onValidate} title="Validate Model">
                     <Database size={18} />
                     <span>Validate</span>

@@ -12,7 +12,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
 
 from demol.lang import build_model, get_device_mm, get_component_mm
 from demol.transformations import json_to_demol, demol_to_json
-from demol.definitions import BOARD_MODEL_REPO_PATH, PERIPHERAL_MODEL_REPO_PATH
+from demol.definitions import BOARD_MODEL_REPO_PATH, PERIPHERAL_MODEL_REPO_PATH, POWER_SOURCE_MODEL_REPO_PATH
 
 app = FastAPI(title="DeMoL Designer API")
 
@@ -154,9 +154,6 @@ async def get_peripherals():
                 path = os.path.join(PERIPHERAL_MODEL_REPO_PATH, filename)
                 model = load_hwd_model(path, mm)
                 if model:
-                    # Skip power sources in this endpoint
-                    if model.component.__class__.__name__.lower() == 'powersource':
-                        continue
                     periph_data = demol_to_json(model)
                     periph_data["id"] = filename
                     with open(path, 'r') as f:
@@ -170,19 +167,18 @@ async def get_powersources():
     mm = get_component_mm(skip_semantics=True)
     powersources = []
     
-    if os.path.exists(PERIPHERAL_MODEL_REPO_PATH):
-        files = os.listdir(PERIPHERAL_MODEL_REPO_PATH)
+    if os.path.exists(POWER_SOURCE_MODEL_REPO_PATH):
+        files = os.listdir(POWER_SOURCE_MODEL_REPO_PATH)
         for filename in files:
             if filename.endswith(".hwd"):
-                path = os.path.join(PERIPHERAL_MODEL_REPO_PATH, filename)
+                path = os.path.join(POWER_SOURCE_MODEL_REPO_PATH, filename)
                 model = load_hwd_model(path, mm)
                 if model:
-                    if model.component.__class__.__name__.lower() == 'powersource':
-                        ps_data = demol_to_json(model)
-                        ps_data["id"] = filename
-                        with open(path, 'r') as f:
-                            ps_data["raw_content"] = f.read()
-                        powersources.append(ps_data)
+                    ps_data = demol_to_json(model)
+                    ps_data["id"] = filename
+                    with open(path, 'r') as f:
+                        ps_data["raw_content"] = f.read()
+                    powersources.append(ps_data)
     
     return powersources
 

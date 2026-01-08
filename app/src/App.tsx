@@ -11,25 +11,69 @@ import { api } from './services/api';
 import type { DeviceModel } from './types';
 import './App.css';
 
+const STORAGE_KEY = 'demol-designer-state';
+
 function App() {
-  const [model, setModel] = useState<DeviceModel>({
-    name: 'MyDevice',
-    description: 'A new IoT device',
-    author: 'User',
-    os: 'riotos',
-    board: null,
-    peripherals: [],
-    powerSources: [],
-    connections: [],
+  const [model, setModel] = useState<DeviceModel>(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      const { model: savedModel } = JSON.parse(saved);
+      return savedModel;
+    }
+    return {
+      name: 'MyDevice',
+      description: 'A new IoT device',
+      author: 'User',
+      os: 'riotos',
+      board: null,
+      peripherals: [],
+      powerSources: [],
+      connections: [],
+    };
   });
 
-  const [nodes, setNodes] = useState<Node[]>([]);
-  const [edges, setEdges] = useState<Edge[]>([]);
+  const [nodes, setNodes] = useState<Node[]>(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      const { nodes: savedNodes } = JSON.parse(saved);
+      return savedNodes || [];
+    }
+    return [];
+  });
+
+  const [edges, setEdges] = useState<Edge[]>(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      const { edges: savedEdges } = JSON.parse(saved);
+      return savedEdges || [];
+    }
+    return [];
+  });
+
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
   const [selectedEdge, setSelectedEdge] = useState<Edge | null>(null);
   const [consoleLogs, setConsoleLogs] = useState<{ type: 'error' | 'warning' | 'success' | 'info'; message: string }[]>([]);
   const [showConsole, setShowConsole] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+
+  // Save to localStorage
+  useEffect(() => {
+    const state = {
+      nodes,
+      edges,
+      model: {
+        name: model.name,
+        description: model.description,
+        author: model.author,
+        os: model.os,
+        board: model.board,
+        peripherals: model.peripherals,
+        powerSources: model.powerSources,
+        connections: model.connections,
+      }
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  }, [nodes, edges, model]);
 
   // Synchronize model with nodes and edges
   useEffect(() => {
@@ -115,9 +159,16 @@ function App() {
 
   const handleSave = async () => {
     try {
-      // In a real app, this would save to a backend or local storage
-      console.log('Saving model:', model);
-      alert('Model saved successfully!');
+      // The useEffect already saves to localStorage on every change,
+      // but we can provide visual feedback here.
+      const state = {
+        nodes,
+        edges,
+        model
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      console.log('Saved state to localStorage:', state);
+      alert('Design saved to local storage!');
     } catch (error) {
       console.error('Failed to save model:', error);
       alert('Failed to save model');
@@ -194,6 +245,24 @@ function App() {
     }
   };
 
+  const handleClear = useCallback(() => {
+    if (window.confirm('Are you sure you want to clear the current design? This cannot be undone.')) {
+      setNodes([]);
+      setEdges([]);
+      setModel({
+        name: 'MyDevice',
+        description: 'A new IoT device',
+        author: 'User',
+        os: 'riotos',
+        board: null,
+        peripherals: [],
+        powerSources: [],
+        connections: [],
+      });
+      localStorage.removeItem(STORAGE_KEY);
+    }
+  }, []);
+
   return (
     <div className="app">
       <Header
@@ -203,6 +272,7 @@ function App() {
         onExport={handleExport}
         onViewModel={handleViewModel}
         onSettings={() => setShowSettings(true)}
+        onClear={handleClear}
       />
       <div className="main-content">
         <Sidebar onDragStart={handleDragStart} />

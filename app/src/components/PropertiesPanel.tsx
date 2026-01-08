@@ -186,7 +186,13 @@ export const PropertiesPanel: FC<PropertiesPanelProps> = ({
                                 {selectedEdge.data?.type === 'power' ? 'Power Connection' : 'IO Connection'}
                             </span>
                             Map pins between <strong>{board?.name || 'Board'}</strong> and{' '}
-                            <strong>{selectedEdge.data?.targetNodeData?.name || 'Peripheral'}</strong>
+                            <strong>{(() => {
+                                const otherNode = nodes?.find(n =>
+                                    (n.id === selectedEdge.source && (n.type === 'peripheral' || n.type === 'powersource')) ||
+                                    (n.id === selectedEdge.target && (n.type === 'peripheral' || n.type === 'powersource'))
+                                );
+                                return otherNode?.data?.instanceName || otherNode?.data?.name || 'Component';
+                            })()}</strong>
                         </p>
 
                         <div className="mappings-list">

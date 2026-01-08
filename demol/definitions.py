@@ -31,3 +31,9 @@ PERIPHERAL_MODEL_REPO_PATH=os.getenv(
     "PERIPHERAL_MODEL_REPO_PATH",
     os.path.join(DEVICES_MODEL_REPO_PATH, 'peripherals')
 )
+
+POWER_SOURCE_MODEL_REPO_PATH=os.getenv(
+    "POWER_SOURCE_MODEL_REPO_PATH",
+    os.path.join(DEVICES_MODEL_REPO_PATH, 'power')
+)
+

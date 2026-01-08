@@ -408,3 +408,9 @@ Well-formedness rules ensure that the device model is complete and logically sou
 -   **Default**: Pins are considered `essential` by default.
 -   **Optional Pins**: A pin is marked as `optional` by placing a `?` symbol before its name in the `.hwd` file (e.g., `? irq[gpio] @ 6`).
 -   **Validation**: The validator checks that every `essential` pin of a used peripheral instance has at least one corresponding mapping in a `CONNECT` block.
+
+### 6.6. Network Requirements (WF-Network-Requirements)
+
+-   **Rule**: A `NETWORK` configuration must be present if a `BROKER` is defined or if any connection defines a remote endpoint.
+-   **Invariant**: `(broker ≠ None ∨ ∃k. k.remote ≠ None) ⇒ (network ≠ None)`
+-   **Rationale**: Network connectivity is required for the device to communicate with a message broker or other remote endpoints.

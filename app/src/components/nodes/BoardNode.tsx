@@ -47,7 +47,7 @@ export const BoardNode: FC<BoardNodeProps> = ({ data, selected }) => {
                 </div>
             </div>
 
-            {/* Connection handles */}
+            {/* Connection handles (Outputs) */}
             <Handle
                 type="source"
                 position={Position.Right}
@@ -58,6 +58,22 @@ export const BoardNode: FC<BoardNodeProps> = ({ data, selected }) => {
             <Handle
                 type="source"
                 position={Position.Right}
+                id="io"
+                className="handle-io"
+                style={{ top: '70%' }}
+            />
+
+            {/* Connection handles (Inputs) */}
+            <Handle
+                type="target"
+                position={Position.Left}
+                id="power"
+                className="handle-power"
+                style={{ top: '30%' }}
+            />
+            <Handle
+                type="target"
+                position={Position.Left}
                 id="io"
                 className="handle-io"
                 style={{ top: '70%' }}

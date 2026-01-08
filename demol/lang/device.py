@@ -261,9 +261,10 @@ def enrich_model(model):
         target_name = from_name if from_inst else to_name
 
         # ====================================================================
-        # Auto-generate topic if not specified (only if broker is present)
+        # Auto-generate topic if not specified (if broker or network is present)
         # ====================================================================
-        if hasattr(model, 'broker') and model.broker and not c.remote and target_ref and hasattr(target_ref, 'type'):
+        has_net = (hasattr(model, 'broker') and model.broker) or (hasattr(model, 'network') and model.network)
+        if has_net and not c.remote and target_ref and hasattr(target_ref, 'type'):
             peripheral_type = type(target_ref).__name__
             peripheral_msg = target_ref.type
             
