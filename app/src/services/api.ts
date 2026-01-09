@@ -35,15 +35,49 @@ export const api = {
         return response.json();
     },
 
-    // Generate code
-    async generateCode(model: any, platform: 'rpi' | 'riot'): Promise<{ success: boolean; files?: any; error?: string }> {
-        const response = await fetch(`${API_BASE}/generate/${platform}`, {
+    // Generate source code
+    async generateSource(model: any, platform?: string): Promise<Blob> {
+        const url = platform ? `${API_BASE}/generate/source/${platform}` : `${API_BASE}/generate/source`;
+        const response = await fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(model),
         });
-        if (!response.ok) throw new Error('Failed to generate code');
-        return response.json();
+        if (!response.ok) throw new Error('Failed to generate source code');
+        return response.blob();
+    },
+
+    // Generate documentation
+    async generateDocs(model: any): Promise<Blob> {
+        const response = await fetch(`${API_BASE}/generate/docs`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(model),
+        });
+        if (!response.ok) throw new Error('Failed to generate documentation');
+        return response.blob();
+    },
+
+    // Generate SMAuto model
+    async generateSMAuto(model: any): Promise<Blob> {
+        const response = await fetch(`${API_BASE}/generate/smauto`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(model),
+        });
+        if (!response.ok) throw new Error('Failed to generate SMAuto model');
+        return response.blob();
+    },
+
+    // Generate SVG diagrams
+    async generateSVG(model: any): Promise<Blob> {
+        const response = await fetch(`${API_BASE}/generate/svg`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(model),
+        });
+        if (!response.ok) throw new Error('Failed to generate SVG diagrams');
+        return response.blob();
     },
 
     // Export model as .dev file

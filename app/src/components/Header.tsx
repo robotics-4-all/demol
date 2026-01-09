@@ -1,18 +1,21 @@
 import React from 'react';
-import { Cpu, Zap, Database, Download, Code, Wifi, Settings } from 'lucide-react';
+import { Cpu, Zap, Database, Download, Code, Wifi, Settings, FileText } from 'lucide-react';
 import './Header.css';
 
 interface HeaderProps {
     onSave: () => void;
     onValidate: () => void;
     onGenerate: () => void;
+    onGenerateDocs: () => void;
+    onGenerateSMAuto: () => void;
+    onGenerateSVG: () => void;
     onExport: () => void;
     onViewModel: () => void;
     onSettings: () => void;
     onClear: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ onSave, onValidate, onGenerate, onExport, onViewModel, onSettings, onClear }) => {
+export const Header: React.FC<HeaderProps> = ({ onSave, onValidate, onGenerate, onGenerateDocs, onGenerateSMAuto, onGenerateSVG, onExport, onViewModel, onSettings, onClear }) => {
     return (
         <header className="app-header">
             <div className="header-left">
@@ -52,6 +55,18 @@ export const Header: React.FC<HeaderProps> = ({ onSave, onValidate, onGenerate, 
                 <button className="action-btn secondary" onClick={onGenerate} title="Generate Code">
                     <Wifi size={18} />
                     <span>Generate</span>
+                </button>
+                <button className="action-btn secondary" onClick={onGenerateDocs} title="Generate Documentation">
+                    <FileText size={18} />
+                    <span>Docs</span>
+                </button>
+                <button className="action-btn secondary" onClick={onGenerateSMAuto} title="Generate SMAuto Model">
+                    <Database size={18} />
+                    <span>SMAuto</span>
+                </button>
+                <button className="action-btn secondary" onClick={onGenerateSVG} title="Generate SVG Diagrams">
+                    <Download size={18} />
+                    <span>SVG</span>
                 </button>
                 <button className="action-btn secondary" onClick={onExport} title="Export as .dev file">
                     <Download size={18} />

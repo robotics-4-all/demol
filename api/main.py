@@ -1,18 +1,32 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
 import os
 import sys
 import json
+import tarfile
+import io
 from textx import metamodel_from_file
 
 # Add project root to path to import demol
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
 
 from demol.lang import build_model, get_device_mm, get_component_mm
-from demol.transformations import json_to_demol, demol_to_json
+from demol.transformations import (
+    json_to_demol, 
+    demol_to_json,
+    m2t_rpi,
+    m2t_riot,
+    m2t_docs,
+    m2m_smauto,
+    m2t_device_svg,
+    m2t_infrastructure_svg
+)
 from demol.definitions import BOARD_MODEL_REPO_PATH, PERIPHERAL_MODEL_REPO_PATH, POWER_SOURCE_MODEL_REPO_PATH
+import tempfile
+import shutil
 
 app = FastAPI(title="DeMoL Designer API")
 
@@ -229,6 +243,148 @@ async def validate_model(model: DeviceModel):
 async def export_model(model: DeviceModel):
     content = json_to_demol(model)
     return {"content": content}
+
+def create_tarball(directory):
+    """Create a tarball from a directory in memory"""
+    file_obj = io.BytesIO()
+    with tarfile.open(fileobj=file_obj, mode="w:gz") as tar:
+        tar.add(directory, arcname=".")
+    file_obj.seek(0)
+    return file_obj
+
+@app.post("/api/generate/docs")
+async def generate_docs(model: DeviceModel):
+    content = json_to_demol(model)
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        with tempfile.NamedTemporaryFile(suffix='.dev', mode='w', delete=False) as f:
+            f.write(content)
+            temp_model_path = f.name
+        try:
+            dm = build_model(temp_model_path, skip_semantics=True)
+            m2t_docs(dm, output_dir=tmp_dir)
+            
+            tarball = create_tarball(tmp_dir)
+            filename = f"{dm.metadata.name}_docs.tar.gz"
+            
+            return StreamingResponse(
+                tarball,
+                media_type="application/x-gzip",
+                headers={"Content-Disposition": f"attachment; filename={filename}"}
+            )
+        except Exception as e:
+            return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
+        finally:
+            if os.path.exists(temp_model_path):
+                os.remove(temp_model_path)
+
+@app.post("/api/generate/smauto")
+async def generate_smauto(model: DeviceModel):
+    content = json_to_demol(model)
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        with tempfile.NamedTemporaryFile(suffix='.dev', mode='w', delete=False) as f:
+            f.write(content)
+            temp_model_path = f.name
+        try:
+            dm = build_model(temp_model_path, skip_semantics=True)
+            m2m_smauto(dm, output_dir=tmp_dir)
+            
+            tarball = create_tarball(tmp_dir)
+            filename = f"{dm.metadata.name}_smauto.tar.gz"
+            
+            return StreamingResponse(
+                tarball,
+                media_type="application/x-gzip",
+                headers={"Content-Disposition": f"attachment; filename={filename}"}
+            )
+        except Exception as e:
+            return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
+        finally:
+            if os.path.exists(temp_model_path):
+                os.remove(temp_model_path)
+
+@app.post("/api/generate/svg")
+async def generate_svg(model: DeviceModel):
+    content = json_to_demol(model)
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        with tempfile.NamedTemporaryFile(suffix='.dev', mode='w', delete=False) as f:
+            f.write(content)
+            temp_model_path = f.name
+        try:
+            dm = build_model(temp_model_path, skip_semantics=True)
+            
+            wiring_filename = os.path.join(tmp_dir, f'{dm.metadata.name}.svg')
+            m2t_device_svg(dm, wiring_filename)
+            
+            infra_filename = os.path.join(tmp_dir, f'{dm.metadata.name}_infrastructure.svg')
+            m2t_infrastructure_svg(dm, infra_filename)
+            
+            tarball = create_tarball(tmp_dir)
+            filename = f"{dm.metadata.name}_svg.tar.gz"
+            
+            return StreamingResponse(
+                tarball,
+                media_type="application/x-gzip",
+                headers={"Content-Disposition": f"attachment; filename={filename}"}
+            )
+        except Exception as e:
+            return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
+        finally:
+            if os.path.exists(temp_model_path):
+                os.remove(temp_model_path)
+
+@app.post("/api/generate/source")
+@app.post("/api/generate/source/{platform}")
+async def generate_source(model: DeviceModel, platform: Optional[str] = None):
+    # 1. Determine platform
+    if not platform:
+        platform = model.os
+    
+    # Map OS to transformation
+    platform_map = {
+        "raspbian": "rpi",
+        "riotos": "riot",
+        "rpi": "rpi",
+        "riot": "riot"
+    }
+    
+    target_platform = platform_map.get(platform.lower())
+    if not target_platform:
+        raise HTTPException(status_code=400, detail=f"Unsupported platform: {platform}")
+
+    # 2. Generate DSL
+    content = json_to_demol(model)
+    
+    # 3. Create temp directory for generation
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        with tempfile.NamedTemporaryFile(suffix='.dev', mode='w', delete=False) as f:
+            f.write(content)
+            temp_model_path = f.name
+        
+        try:
+            # 4. Build model
+            dm = build_model(temp_model_path, skip_semantics=True)
+            
+            # 5. Run transformation
+            if target_platform == "rpi":
+                m2t_rpi(dm, output_dir=tmp_dir)
+            elif target_platform == "riot":
+                m2t_riot(dm, output_dir=tmp_dir)
+            
+            tarball = create_tarball(tmp_dir)
+            filename = f"{dm.metadata.name}_{target_platform}_source.tar.gz"
+            
+            return StreamingResponse(
+                tarball,
+                media_type="application/x-gzip",
+                headers={"Content-Disposition": f"attachment; filename={filename}"}
+            )
+        except Exception as e:
+            return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
+        finally:
+            if os.path.exists(temp_model_path):
+                os.remove(temp_model_path)
+
+
 
 if __name__ == "__main__":
     import uvicorn

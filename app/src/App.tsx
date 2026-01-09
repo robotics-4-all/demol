@@ -101,7 +101,7 @@ function App() {
         peripheralName: peripheralNode?.data.instanceName || peripheralNode?.data.name,
         fromName: peripheralNode?.data.instanceName || peripheralNode?.data.name,
         toName: boardNode?.data.instanceName || boardNode?.data.name || 'board',
-        type: edge.data?.type || (edge.sourceHandle === 'power' ? 'power' : 'io'),
+        type: edge.data?.type || (edge.sourceHandle === 'power' ? 'power' : 'gpio'),
         mappings: edge.data?.mappings || [],
       };
     });
@@ -199,17 +199,78 @@ function App() {
     }
   };
 
+  const triggerDownload = (blob: Blob, filename: string) => {
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+  };
+
   const handleGenerate = async () => {
     try {
-      const result = await api.generateCode(model, 'riot');
-      if (result.success) {
-        alert('Code generated successfully!');
-      } else {
-        alert(`Generation failed: ${result.error}`);
-      }
+      setShowConsole(true);
+      setConsoleLogs([{ type: 'info', message: `Starting code generation for ${model.os}...` }]);
+
+      const blob = await api.generateSource(model);
+      setConsoleLogs(prev => [...prev, { type: 'success', message: 'Code generated successfully!' }]);
+      triggerDownload(blob, `${model.name}_source.tar.gz`);
+      alert('Code generated successfully! Download started.');
     } catch (error) {
       console.error('Generation error:', error);
+      setConsoleLogs(prev => [...prev, { type: 'error', message: `Generation failed: ${error}` }]);
       alert('Failed to generate code');
+    }
+  };
+
+  const handleGenerateDocs = async () => {
+    try {
+      setShowConsole(true);
+      setConsoleLogs([{ type: 'info', message: 'Starting documentation generation...' }]);
+
+      const blob = await api.generateDocs(model);
+      setConsoleLogs(prev => [...prev, { type: 'success', message: 'Documentation generated successfully!' }]);
+      triggerDownload(blob, `${model.name}_docs.tar.gz`);
+      alert('Documentation generated successfully! Download started.');
+    } catch (error) {
+      console.error('Generation error:', error);
+      setConsoleLogs(prev => [...prev, { type: 'error', message: `Generation failed: ${error}` }]);
+      alert('Failed to generate documentation');
+    }
+  };
+
+  const handleGenerateSMAuto = async () => {
+    try {
+      setShowConsole(true);
+      setConsoleLogs([{ type: 'info', message: 'Starting SMAuto model generation...' }]);
+
+      const blob = await api.generateSMAuto(model);
+      setConsoleLogs(prev => [...prev, { type: 'success', message: 'SMAuto model generated successfully!' }]);
+      triggerDownload(blob, `${model.name}_smauto.tar.gz`);
+      alert('SMAuto model generated successfully! Download started.');
+    } catch (error) {
+      console.error('Generation error:', error);
+      setConsoleLogs(prev => [...prev, { type: 'error', message: `Generation failed: ${error}` }]);
+      alert('Failed to generate SMAuto model');
+    }
+  };
+
+  const handleGenerateSVG = async () => {
+    try {
+      setShowConsole(true);
+      setConsoleLogs([{ type: 'info', message: 'Starting SVG generation...' }]);
+
+      const blob = await api.generateSVG(model);
+      setConsoleLogs(prev => [...prev, { type: 'success', message: 'SVG diagrams generated successfully!' }]);
+      triggerDownload(blob, `${model.name}_svg.tar.gz`);
+      alert('SVG diagrams generated successfully! Download started.');
+    } catch (error) {
+      console.error('Generation error:', error);
+      setConsoleLogs(prev => [...prev, { type: 'error', message: `Generation failed: ${error}` }]);
+      alert('Failed to generate SVG diagrams');
     }
   };
 
@@ -269,6 +330,9 @@ function App() {
         onSave={handleSave}
         onValidate={handleValidate}
         onGenerate={handleGenerate}
+        onGenerateDocs={handleGenerateDocs}
+        onGenerateSMAuto={handleGenerateSMAuto}
+        onGenerateSVG={handleGenerateSVG}
         onExport={handleExport}
         onViewModel={handleViewModel}
         onSettings={() => setShowSettings(true)}
