@@ -93,6 +93,16 @@ export const Canvas: React.FC<CanvasProps> = ({
             if (!data) return;
 
             const { item, type } = JSON.parse(data);
+
+            // Restrict to only one board
+            if (type === 'board') {
+                const hasBoard = nodes.some(n => n.type === 'board');
+                if (hasBoard) {
+                    alert('Only one board can be added to the design. Please remove the existing board first if you want to use a different one.');
+                    return;
+                }
+            }
+
             const position = reactFlowInstance.screenToFlowPosition({
                 x: event.clientX,
                 y: event.clientY,
