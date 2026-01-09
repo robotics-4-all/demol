@@ -996,19 +996,12 @@ def validate_broker_requirements(model) -> None:
     """
     Validate Inv-Broker-Connection.
     
-    From SEMANTICS.md Section 6.7:
-        (∃k. k.endpoint.type ∈ {Publisher, Subscriber}) ⇒ (broker ≠ None)
+    Broker is now mandatory for all models.
     """
-    has_endpoint = any(
-        hasattr(conn, 'remote') and conn.remote
-        for conn in model.connections
-    )
-    
-    if has_endpoint and (not hasattr(model, 'broker') or model.broker is None):
+    if not hasattr(model, 'broker') or model.broker is None:
         raise_validation_error(
             model,
-            "[WF-Broker-Requirements] Broker configuration required: One or more connections define remote endpoints "
-            "but no broker is configured in the model.",
+            "[WF-Broker-Requirements] Broker configuration required: A broker must be defined in the model.",
             "MissingBrokerError"
         )
 
@@ -1016,19 +1009,14 @@ def validate_network_requirements(model) -> None:
     """
     Validate WF-Network-Requirements.
     
-    Ensures that a network configuration is present if:
-    - Any connection has a remote endpoint
-    """
-    has_endpoint = any(
-        hasattr(conn, 'remote') and conn.remote
-        for conn in model.connections
-    )
+    Ensures that a network configuration is present.
     
-    if has_endpoint and (not hasattr(model, 'network') or model.network is None):
+    Network is now mandatory for all models.
+    """
+    if not hasattr(model, 'network') or model.network is None:
         raise_validation_error(
             model,
-            "[WF-Network-Requirements] Network configuration required: A broker or remote endpoints are defined, "
-            "but no network is configured in the model.",
+            "[WF-Network-Requirements] Network configuration required: A network must be configured in the model.",
             "MissingNetworkError"
         )
 

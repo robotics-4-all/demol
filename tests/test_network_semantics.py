@@ -1,8 +1,8 @@
 from textx.exceptions import TextXSemanticError
 import pytest
 
-def test_optional_network_valid(device_mm):
-    # Model without network and without broker/remote is valid
+def test_mandatory_network_and_broker(device_mm):
+    # Model without network and without broker should now fail
     model_str = """
     DEVICE TestDevice WITH description="Test", author="Test", os=raspbian;
     USE RaspberryPi_4B_4GB;
@@ -15,8 +15,11 @@ def test_optional_network_valid(device_mm):
         DATA
             gpio[mode="output"] GPIO17 -- vin;
     """
-    # Should not raise any error
-    device_mm.model_from_str(model_str)
+    with pytest.raises(TextXSemanticError) as excinfo:
+        device_mm.model_from_str(model_str)
+    
+    # It should fail on either Broker or Network requirements
+    assert "WF-Broker-Requirements" in str(excinfo.value) or "WF-Network-Requirements" in str(excinfo.value)
 
 def test_missing_network_with_broker(device_mm):
     # Model without network but with broker should fail

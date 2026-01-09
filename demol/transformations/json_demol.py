@@ -417,31 +417,49 @@ def json_to_demol(model_data) -> str:
             
             if current_data:
                 # Generate DataConnection string for this group
-                actual_type = 'gpio' # Default to gpio for now
+                actual_type = c_type
+                if actual_type == 'io':
+                    actual_type = 'gpio'
                 
-                dc_str = f'{actual_type} '
-                
-                if props:
-                    prop_strings = []
-                    for k, v in props.items():
-                        if isinstance(v, str):
-                            prop_strings.append(f'{k}="{v}"')
+                if actual_type == 'gpio':
+                    for m in current_data:
+                        from_pin = get_val(m, "fromPin")
+                        to_pin = get_val(m, "toPin")
+                        dc_str = f'gpio '
+                        if props:
+                            prop_strings = []
+                            for k, v in props.items():
+                                if isinstance(v, str):
+                                    prop_strings.append(f'{k}="{v}"')
+                                else:
+                                    prop_strings.append(f'{k}={v}')
+                            dc_str += f'[{", ".join(prop_strings)}] '
+                        dc_str += f'{from_pin} -- {to_pin}'
+                        data_conn_strings.append(dc_str)
+                else:
+                    dc_str = f'{actual_type} '
+                    
+                    if props:
+                        prop_strings = []
+                        for k, v in props.items():
+                            if isinstance(v, str):
+                                prop_strings.append(f'{k}="{v}"')
+                            else:
+                                prop_strings.append(f'{k}={v}')
+                        dc_str += f'[{", ".join(prop_strings)}] '
+                    
+                    m_strings = []
+                    for m in current_data:
+                        func = get_val(m, "function")
+                        from_pin = get_val(m, "fromPin")
+                        to_pin = get_val(m, "toPin")
+                        if func:
+                            m_strings.append(f'{func} {from_pin} -- {to_pin}')
                         else:
-                            prop_strings.append(f'{k}={v}')
-                    dc_str += f'[{", ".join(prop_strings)}] '
-                
-                m_strings = []
-                for m in current_data:
-                    func = get_val(m, "function")
-                    from_pin = get_val(m, "fromPin")
-                    to_pin = get_val(m, "toPin")
-                    if func:
-                        m_strings.append(f'{func} {from_pin} -- {to_pin}')
-                    else:
-                        m_strings.append(f'{from_pin} -- {to_pin}')
-                
-                dc_str += ", ".join(m_strings)
-                data_conn_strings.append(dc_str)
+                            m_strings.append(f'{from_pin} -- {to_pin}')
+                    
+                    dc_str += ", ".join(m_strings)
+                    data_conn_strings.append(dc_str)
         
         if all_power_mappings:
             content += '    POWER '

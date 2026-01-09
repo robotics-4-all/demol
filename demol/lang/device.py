@@ -99,12 +99,12 @@ def model_proc(model, metamodel):
     # ========================================================================
     # Well-Formedness: Broker requirements
     # ========================================================================
-    run_rule("Broker Requirements", validate_broker_requirements, model, desc="Broker is configured if remote endpoints exist")
+    run_rule("Broker Requirements", validate_broker_requirements, model, desc="Broker is configured")
     
     # ========================================================================
-    # Well-Formedness: Network requirements (network is configured if broker or remote endpoints exist)
+    # Well-Formedness: Network requirements (network is configured)
     # ========================================================================
-    run_rule("Network Requirements", validate_network_requirements, model, desc="Network is configured if broker or remote endpoints exist")
+    run_rule("Network Requirements", validate_network_requirements, model, desc="Network is configured")
     
     # ========================================================================
     # Safety: Broker security (authentication for remote brokers)
