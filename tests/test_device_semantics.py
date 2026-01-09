@@ -16,11 +16,11 @@ def test_io_voltage_incompatibility(device_mm):
     
     CONNECT MyDist WITH
         POWER
-            power_5v_a -- VCC,
-            GND_1 -- GND
+            VCC -- power_5v_a,
+            GND -- GND_1
         DATA
-            gpio[mode="output"] GPIO23 -- trigger,
-            gpio[mode="input"] GPIO24 -- echo
+            gpio[mode="output"] trigger -- GPIO23,
+            gpio[mode="input"] echo -- GPIO24
         @ "test.topic";
     """
     
@@ -38,10 +38,10 @@ def test_missing_ground(device_mm):
     
     CONNECT MySensor WITH
         POWER
-            power_5v_a -- vcc
+            vcc -- power_5v_a
             // Missing GND
         DATA
-            i2c[slave_address=0x76] sda GPIO2 -- sda, scl GPIO3 -- scl
+            i2c[slave_address=0x76] sda sda -- GPIO2, scl scl -- GPIO3
         @ "test.topic";
     """
     with pytest.raises(TextXSemanticError, match="Essential pin 'gnd'"):
@@ -58,10 +58,10 @@ def test_invalid_topic(device_mm):
     
     CONNECT MySensor WITH
         POWER
-            power_5v_a -- vcc,
-            GND_1 -- gnd
+            vcc -- power_5v_a,
+            gnd -- GND_1
         DATA
-            i2c[slave_address=0x76] sda GPIO2 -- sda, scl GPIO3 -- scl
+            i2c[slave_address=0x76] sda sda -- GPIO2, scl scl -- GPIO3
         @ "$sys/topic";
     """
     with pytest.raises(TextXSemanticError, match="reserved for system topics"):
@@ -78,11 +78,11 @@ def test_invalid_pin_function(device_mm):
     
     CONNECT MySensor WITH
         POWER
-            power_5v_a -- vcc,
-            GND_1 -- gnd
+            vcc -- power_5v_a,
+            gnd -- GND_1
         DATA
             // GPIO4 does not have SDA function
-            i2c[slave_address=0x76] sda GPIO4 -- sda, scl GPIO3 -- scl
+            i2c[slave_address=0x76] sda sda -- GPIO4, scl scl -- GPIO3
         @ "test/topic";
     """
     with pytest.raises(TextXSemanticError, match="does not have SDA"):

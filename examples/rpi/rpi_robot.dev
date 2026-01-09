@@ -26,8 +26,8 @@ BROKER[MQTT] RobotBroker WITH
 // Connections
 CONNECT LeftMotor WITH
     POWER 
-        GND_1 -- gnd, 
-        power_5v_a -- vcc
+        gnd -- GND_1, 
+        vcc -- power_5v_a
     DATA 
         gpio[mode="output"] GPIO17 -- forward,
         gpio[mode="output"] GPIO27 -- backward
@@ -35,8 +35,8 @@ CONNECT LeftMotor WITH
 
 CONNECT RightMotor WITH
     POWER 
-        GND_2 -- gnd, 
-        power_5v_b -- vcc
+        gnd -- GND_2, 
+        vcc -- power_5v_b
     DATA 
         gpio[mode="output"] GPIO23 -- forward,
         gpio[mode="output"] GPIO24 -- backward
@@ -44,8 +44,8 @@ CONNECT RightMotor WITH
 
 CONNECT ObstacleSensor WITH
     POWER 
-        GND_3 -- GND, 
-        power_5v_a -- VCC
+        GND -- GND_3, 
+        VCC -- power_5v_a
     DATA 
         gpio[mode="output"] GPIO5 -- trigger,
         gpio[mode="input"] GPIO6 -- echo
@@ -53,7 +53,7 @@ CONNECT ObstacleSensor WITH
 
 CONNECT AlarmBuzzer WITH
     POWER 
-        GND_4 -- gnd
+        gnd -- GND_4
     DATA 
         gpio[mode="output"] GPIO18 -- vin
     @ "robot/alerts/buzzer";

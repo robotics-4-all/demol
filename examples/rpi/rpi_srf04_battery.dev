@@ -10,14 +10,14 @@ BROKER[MQTT] MyBroker WITH host="localhost", port=1883;
 // Connect Battery to RPi
 CONNECT MyBattery WITH
     POWER
-        power_5v_a -- vcc,
-        GND_1 -- gnd;
+        vcc -- power_5v_a,
+        gnd -- GND_1;
 
 // Connect SRF04 to RPi
 CONNECT MySonar WITH
     POWER
-        power_5v_b -- vcc,
-        GND_2 -- gnd
+        vcc -- power_5v_b,
+        gnd -- GND_2
     DATA
         gpio[mode="output"] GPIO23 -- trigger,
         gpio[mode="input"] GPIO24 -- echo

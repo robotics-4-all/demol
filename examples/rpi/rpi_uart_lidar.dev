@@ -21,8 +21,8 @@ BROKER[MQTT] LidarBroker WITH
 // Connections
 CONNECT LidarSensor WITH
     POWER 
-        GND_1 -- GND, 
-        power_5v_a -- VCC
+        GND -- GND_1, 
+        VCC -- power_5v_a
     DATA 
         uart[baudrate=115200] tx GPIO14 -- RXD, rx GPIO15 -- TXD
     @ "sensors/lidar";

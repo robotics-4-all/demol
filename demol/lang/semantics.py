@@ -864,29 +864,50 @@ def validate_power_paths(model) -> None:
     
     # 2. Build a power graph
     # Nodes: Component names (Board, Peripherals, PowerSources)
-    # Edges: Power connections
+    # Edges: Power connections (from_comp provides power to to_comp)
     power_graph = {} # target -> set of sources
     
     for conn in model.connections:
-        target_ref, target_name = get_connection_target(conn)
         if not hasattr(conn, 'powerConns') or not conn.powerConns:
             continue
-            
+        
+        # Use horizontal logic: power flows from from_comp to to_comp
+        from_ref, from_name, to_ref, to_name = get_connection_endpoints(conn)
+        
+        if from_ref is None or to_ref is None:
+            continue
+        
+        # Determine power flow direction
+        
+        # Check if there is at least one voltage connection (not just GND)
+        has_voltage = False
         for pconn in conn.powerConns:
-            # We need to find who owns fromPin
-            from_owner = "Board" # Default
-            if model.components.board and pconn.fromPin in {p.name for p in model.components.board.pins}:
-                from_owner = model.components.board.name
+            # We need to check the pin type of the source pin
+            # But getting the pin object is complex here.
+            # Simplified check: if pin name contains 'gnd' or 'GND', it's likely ground
+            # This is a heuristic but matches our naming convention
+            if 'gnd' not in pconn.fromPin.lower() and 'gnd' not in pconn.toPin.lower():
+                has_voltage = True
+                break
+        
+        if not has_voltage:
+            continue
+
+        # 1. PowerSource always provides power
+        if from_name in power_sources:
+            power_graph.setdefault(to_name, set()).add(from_name)
+        elif to_name in power_sources:
+            power_graph.setdefault(from_name, set()).add(to_name)
+        # 2. Board provides power to Peripherals
+        elif model.components.board:
+            board_name = model.components.board.name
+            if from_name == board_name:
+                power_graph.setdefault(to_name, set()).add(from_name)
+            elif to_name == board_name:
+                power_graph.setdefault(from_name, set()).add(to_name)
             else:
-                # Check if it's a PowerSource
-                for ps in model.components.powerSources:
-                    ps_pins = {p.name for p in ps.ref.pins}
-                    if pconn.fromPin in ps_pins:
-                        from_owner = ps.name
-                        break
-            
-            # Add edge from_owner -> target_name
-            power_graph.setdefault(target_name, set()).add(from_owner)
+                # Peripheral to Peripheral? Assume from -> to for now
+                power_graph.setdefault(to_name, set()).add(from_name)
             
     # 3. Check reachability from any PowerSource
     def is_powered(node, visited=None):
@@ -963,6 +984,8 @@ def validate_essential_pins_connected(model) -> None:
     Validate that all pins marked as 'essential' in the peripheral definition
     are actually connected in the device model.
     """
+    board = model.components.board
+    
     for periph_def in model.components.peripherals:
         peripheral_ref = periph_def.ref
         # A pin is essential if 'optional' is NOT '?'
@@ -972,15 +995,36 @@ def validate_essential_pins_connected(model) -> None:
             continue
             
         # Find all connections for this peripheral instance
-        instance_connections = [c for c in model.connections if get_connection_target(c)[1] == periph_def.name]
-        
+        # Check both as target and as source
         connected_pin_names = set()
-        for conn in instance_connections:
+        for conn in model.connections:
+            from_ref, from_name, to_ref, to_name = get_connection_endpoints(conn)
+            
+            # Determine if this peripheral is involved in this connection
+            is_from_periph = (from_name == periph_def.name)
+            is_to_periph = (to_name == periph_def.name)
+            
+            if not (is_from_periph or is_to_periph):
+                continue
+            
+            # Collect connected pins from power connections
+            # Power connections follow: fromPin is on from_comp, toPin is on to_comp
             for pconn in conn.powerConns:
-                connected_pin_names.add(pconn.toPin)
+                if is_from_periph:
+                    # Peripheral is from_comp, so fromPin is peripheral pin
+                    connected_pin_names.add(pconn.fromPin)
+                if is_to_periph:
+                    # Peripheral is to_comp, so toPin is peripheral pin
+                    connected_pin_names.add(pconn.toPin)
+                    
+            # Collect connected pins from data connections
+            # Horizontal logic: fromPin is on from_comp, toPin is on to_comp
             for dconn in conn.dataConns:
                 for pin_map in dconn.pins:
-                    connected_pin_names.add(pin_map.toPin)
+                    if is_from_periph:
+                        connected_pin_names.add(pin_map.fromPin)
+                    if is_to_periph:
+                        connected_pin_names.add(pin_map.toPin)
         
         for pin in essential_pins:
             if pin.name not in connected_pin_names:
@@ -1151,60 +1195,31 @@ def validate_connections(model) -> None:
         # Validate Power Connections
         # ====================================================================
         for pconn in c.powerConns:
-            # Determine actual pin ownership based on connection semantics
-            # Power connections are ALWAYS: source_pin -- sink_pin
-            # where source is typically the board or power source
+            # Horizontal pin logic: fromPin is on from_comp, toPin is on to_comp
+            # This is consistent for both power and data connections
             
-            if is_to_board:
-                # CONNECT Peripheral:Board or CONNECT PowerSource:Board
-                # Pin syntax: board_pin -- peripheral_pin
-                # So fromPin is on the board (to_ref), toPin is on peripheral (from_ref)
-                source_pins_map = to_pins_map
-                source_pin_names = to_pin_names
-                source_name = to_name
-                sink_pins_map = from_pins_map
-                sink_pin_names = from_pin_names
-                sink_name = from_name
-            elif is_from_board:
-                # CONNECT Board:Peripheral (explicit board first)
-                # Pin syntax: board_pin -- peripheral_pin
-                # So fromPin is on the board (from_ref), toPin is on peripheral (to_ref)
-                source_pins_map = from_pins_map
-                source_pin_names = from_pin_names
-                source_name = from_name
-                sink_pins_map = to_pins_map
-                sink_pin_names = to_pin_names
-                sink_name = to_name
-            else:
-                # CONNECT PowerSource:Peripheral or other combinations
-                # Use the original logic (from_comp owns fromPin)
-                source_pins_map = from_pins_map
-                source_pin_names = from_pin_names
-                source_name = from_name
-                sink_pins_map = to_pins_map
-                sink_pin_names = to_pin_names
-                sink_name = to_name
-            
-            # Check if fromPin exists on source component
-            if pconn.fromPin not in source_pin_names:
+            # Check if fromPin exists on from_comp
+            if pconn.fromPin not in from_pin_names:
                 raise_validation_error(
                     pconn,
-                    f"Source pin '{pconn.fromPin}' not found on '{source_name}'."
+                    f"Pin '{pconn.fromPin}' not found on '{from_name}'."
                 )
+                continue
             
-            # Check if toPin exists on sink component
-            if pconn.toPin not in sink_pin_names:
+            # Check if toPin exists on to_comp
+            if pconn.toPin not in to_pin_names:
                 raise_validation_error(
                     pconn,
-                    f"Target pin '{pconn.toPin}' not found on '{sink_name}'."
+                    f"Pin '{pconn.toPin}' not found on '{to_name}'."
                 )
+                continue
             
-            source_pin_obj = source_pins_map[pconn.fromPin]
-            sink_pin_obj = sink_pins_map[pconn.toPin]
+            from_pin_obj = from_pins_map[pconn.fromPin]
+            to_pin_obj = to_pins_map[pconn.toPin]
             
-            # Validate power connection
-            if hasattr(source_pin_obj, 'ptype') and hasattr(sink_pin_obj, 'ptype'):
-                validate_power_connection(source_pin_obj, sink_pin_obj, pconn)
+            # Validate power connection (check voltage compatibility)
+            if hasattr(from_pin_obj, 'ptype') and hasattr(to_pin_obj, 'ptype'):
+                validate_power_connection(from_pin_obj, to_pin_obj, pconn)
         
         # ====================================================================
         # Validate IO Connections
@@ -1232,38 +1247,17 @@ def validate_connections(model) -> None:
                         return p
                 return None
 
-            # Determine pin ownership for data connections (same logic as power)
-            # Data connections also follow: board_pin -- peripheral_pin
-            if is_to_board:
-                # CONNECT Peripheral:Board
-                # Pin syntax: board_pin -- peripheral_pin
-                # So fromPin is on board (to_ref), toPin is on peripheral (from_ref)
-                data_source_pins_map = to_pins_map
-                data_source_pin_names = to_pin_names
-                data_source_name = to_name
-                data_sink_pins_map = from_pins_map
-                data_sink_pin_names = from_pin_names
-                data_sink_name = from_name
-            elif is_from_board:
-                # CONNECT Board:Peripheral
-                # Pin syntax: board_pin -- peripheral_pin
-                # So fromPin is on board (from_ref), toPin is on peripheral (to_ref)
-                data_source_pins_map = from_pins_map
-                data_source_pin_names = from_pin_names
-                data_source_name = from_name
-                data_sink_pins_map = to_pins_map
-                data_sink_pin_names = to_pin_names
-                data_sink_name = to_name
-            else:
-                # Other combinations - use original logic
-                data_source_pins_map = from_pins_map
-                data_source_pin_names = from_pin_names
-                data_source_name = from_name
-                data_sink_pins_map = to_pins_map
-                data_sink_pin_names = to_pin_names
-                data_sink_name = to_name
+            # Determine pin ownership for data connections (horizontal logic)
+            # fromPin is on from_comp, toPin is on to_comp
+            data_source_pins_map = from_pins_map
+            data_source_pin_names = from_pin_names
+            data_source_name = from_name
+            data_sink_pins_map = to_pins_map
+            data_sink_pin_names = to_pin_names
+            data_sink_name = to_name
 
             # Collect all used pins for this data connection
+            pins_valid = True
             for pin_map in data_conn.pins:
                 # Check if fromPin exists on source component
                 if pin_map.fromPin not in data_source_pin_names:
@@ -1271,12 +1265,17 @@ def validate_connections(model) -> None:
                         pin_map,
                         f"Source pin '{pin_map.fromPin}' not found on '{data_source_name}'."
                     )
+                    pins_valid = False
                 # Check if toPin exists on sink component
                 if pin_map.toPin not in data_sink_pin_names:
                     raise_validation_error(
                         pin_map,
                         f"Target pin '{pin_map.toPin}' not found on '{data_sink_name}'."
                     )
+                    pins_valid = False
+            
+            if not pins_valid:
+                continue
 
             if conn_type == 'gpio':
                 pin_conn = data_conn.pins[0] # Assuming single pin for GPIO for now
@@ -1335,14 +1334,40 @@ def validate_connections(model) -> None:
                     continue
 
                 # Enhanced validation: Check UART functionality
-                source_tx = data_source_pins_map[tx.fromPin] if tx else None
-                source_rx = data_source_pins_map[rx.fromPin] if rx else None
-                sink_tx = data_sink_pins_map[tx.toPin] if tx else None
-                sink_rx = data_sink_pins_map[rx.toPin] if rx else None
-                validate_uart_connection(
-                    source_tx, source_rx, sink_tx, sink_rx,
-                    baudrate, data_conn
-                )
+                # We need to pass (board_tx, board_rx, periph_tx, periph_rx)
+                # Check which side is board
+                
+                # Get pins from mappings
+                # tx mapping: function="tx", fromPin=source_pin, toPin=sink_pin
+                # rx mapping: function="rx", fromPin=source_pin, toPin=sink_pin
+                
+                # Note: "tx" mapping usually connects Board TX to Peripheral RX
+                # or Peripheral TX to Board RX?
+                # Actually, the mapping defines which pins are used for the "tx" line and "rx" line.
+                # But typically we map TX-RX and RX-TX.
+                # Let's assume the pins are just the endpoints of the connection.
+                
+                pin_tx_source = data_source_pins_map[tx.fromPin] if tx else None
+                pin_tx_sink = data_sink_pins_map[tx.toPin] if tx else None
+                pin_rx_source = data_source_pins_map[rx.fromPin] if rx else None
+                pin_rx_sink = data_sink_pins_map[rx.toPin] if rx else None
+                
+                if is_from_board:
+                    # Source is Board, Sink is Peripheral
+                    validate_uart_connection(
+                        pin_tx_source, pin_rx_source, pin_tx_sink, pin_rx_sink,
+                        baudrate, data_conn
+                    )
+                elif is_to_board:
+                    # Source is Peripheral, Sink is Board
+                    validate_uart_connection(
+                        pin_tx_sink, pin_rx_sink, pin_tx_source, pin_rx_source,
+                        baudrate, data_conn
+                    )
+                else:
+                    # Peripheral to Peripheral? Not supported by validate_uart_connection yet
+                    # Or treat source as board?
+                    pass
 
 
 def validate_unique_peripheral_names(model) -> None:

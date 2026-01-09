@@ -24,8 +24,8 @@ BROKER[MQTT] MyBroker WITH
 // Environmental Sensor (I2C)
 CONNECT EnvSensor WITH
     POWER 
-        GND_1 -- gnd, 
-        power_5v_a -- vcc
+        gnd -- GND_1, 
+        vcc -- power_5v_a
     DATA 
         i2c[slave_address=0x76] sda GPIO2 -- sda, scl GPIO3 -- scl
     @ "sensors/environment";
@@ -33,8 +33,8 @@ CONNECT EnvSensor WITH
 // Ultrasonic Distance Sensor (GPIO)
 CONNECT DistanceSensor WITH
     POWER 
-        GND_2 -- GND, 
-        power_5v_a -- VCC
+        GND -- GND_2, 
+        VCC -- power_5v_a
     DATA 
         gpio[mode="input"] GPIO24 -- echo, 
         gpio[mode="output"] GPIO23 -- trigger
@@ -43,8 +43,8 @@ CONNECT DistanceSensor WITH
 // RGB LED Ring (GPIO)
 CONNECT StatusLed WITH
     POWER 
-        GND_3 -- GND, 
-        power_5v_b -- VCC
+        GND -- GND_3, 
+        VCC -- power_5v_b
     DATA 
         gpio[mode="output"] GPIO18 -- DIN
     @ "actuators/status_led";
@@ -52,8 +52,8 @@ CONNECT StatusLed WITH
 // Line Tracker (GPIO)
 CONNECT LineTracker WITH
     POWER 
-        GND_4 -- GND, 
-        power_5v_b -- VCC
+        GND -- GND_4, 
+        VCC -- power_5v_b
     DATA 
         gpio[mode="input"] GPIO4 -- D0
     @ "sensors/line_tracker";
@@ -61,8 +61,8 @@ CONNECT LineTracker WITH
 // User Input Button (GPIO)
 CONNECT UserButton WITH
     POWER 
-        GND_5 -- gnd, 
-        power_5v_a -- state
+        gnd -- GND_5, 
+        state -- power_5v_a
     DATA 
         gpio[mode="input", pullup=true] GPIO17 -- state
     @ "sensors/user_button";

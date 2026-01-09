@@ -61,16 +61,7 @@ function App() {
     const state = {
       nodes,
       edges,
-      model: {
-        name: model.name,
-        description: model.description,
-        author: model.author,
-        os: model.os,
-        board: model.board,
-        peripherals: model.peripherals,
-        powerSources: model.powerSources,
-        connections: model.connections,
-      }
+      model
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   }, [nodes, edges, model]);
@@ -319,6 +310,8 @@ function App() {
         peripherals: [],
         powerSources: [],
         connections: [],
+        network: undefined,
+        broker: undefined,
       });
       localStorage.removeItem(STORAGE_KEY);
     }

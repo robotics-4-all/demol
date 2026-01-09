@@ -112,6 +112,11 @@ def model_proc(model, metamodel):
     run_rule("Broker Security", validate_broker_security, model, desc="Remote brokers have authentication configured")
     
     # ========================================================================
+    # Connection Validation
+    # ========================================================================
+    run_rule("Connection Integrity", validate_connections, model, desc="All pin-to-pin connections are valid")
+    
+    # ========================================================================
     # Well-Formedness: Common ground check
     # ========================================================================
     run_rule("Common Ground", validate_common_ground, model, desc="Peripherals share a common ground with the board")
@@ -120,11 +125,6 @@ def model_proc(model, metamodel):
     # Safety: Power Paths
     # ========================================================================
     run_rule("Power Paths", validate_power_paths, model, desc="All components have a path to a power source")
-    
-    # ========================================================================
-    # Connection Validation
-    # ========================================================================
-    run_rule("Connection Integrity", validate_connections, model, desc="All pin-to-pin connections are valid")
     
     # ========================================================================
     # Global Safety Validations

@@ -9,10 +9,10 @@ BROKER[MQTT] MyBroker WITH host="node.mqtt.local", port=1883, auth.username="sen
 
 CONNECT MyTracker WITH
     POWER
-        GND_1 -- GND,
-        power_5v_a -- VCC
+        GND -- GND_1,
+        VCC -- power_5v_a
     DATA
-        gpio[mode="input"] GPIO4 -- D0
+        gpio[mode="input"] D0 -- GPIO4
     @ "my_raspi.sensors.proximity.TCRT5000";
 
     

@@ -10,10 +10,10 @@ def test_mandatory_network_and_broker(device_mm):
     
     CONNECT MyLED WITH
         POWER
-            power_3v3_a -- vcc,
-            GND_1 -- gnd
+            vcc -- power_3v3_a,
+            gnd -- GND_1
         DATA
-            gpio[mode="output"] GPIO17 -- vin;
+            gpio[mode="output"] vin -- GPIO17;
     """
     with pytest.raises(TextXSemanticError) as excinfo:
         device_mm.model_from_str(model_str)
@@ -32,10 +32,10 @@ def test_missing_network_with_broker(device_mm):
     
     CONNECT MyLED WITH
         POWER
-            power_3v3_a -- vcc,
-            GND_1 -- gnd
+            vcc -- power_3v3_a,
+            gnd -- GND_1
         DATA
-            gpio[mode="output"] GPIO17 -- vin;
+            gpio[mode="output"] vin -- GPIO17;
     """
     with pytest.raises(TextXSemanticError, match=r".*WF-Network-Requirements.*"):
         device_mm.model_from_str(model_str)
@@ -49,10 +49,10 @@ def test_missing_network_with_remote(device_mm):
     
     CONNECT MyLED WITH
         POWER
-            power_3v3_a -- vcc,
-            GND_1 -- gnd
+            vcc -- power_3v3_a,
+            gnd -- GND_1
         DATA
-            gpio[mode="output"] GPIO17 -- vin
+            gpio[mode="output"] vin -- GPIO17
         @ "led/control";
     """
     # Note: validate_broker_requirements will also fail here because no broker is defined
@@ -75,10 +75,10 @@ def test_network_with_broker_valid(device_mm):
     
     CONNECT MyLED WITH
         POWER
-            power_3v3_a -- vcc,
-            GND_1 -- gnd
+            vcc -- power_3v3_a,
+            gnd -- GND_1
         DATA
-            gpio[mode="output"] GPIO17 -- vin
+            gpio[mode="output"] vin -- GPIO17
         @ "led/control";
     """
     device_mm.model_from_str(model_str)

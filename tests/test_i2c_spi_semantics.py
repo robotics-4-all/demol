@@ -15,9 +15,9 @@ def test_i2c_valid(device_mm):
     BROKER[MQTT] MyBroker WITH host="localhost", port=1883;
     
     CONNECT MySensor WITH
-        POWER power_5v_a -- vcc, GND_1 -- gnd
+        POWER vcc -- power_5v_a, gnd -- GND_1
         DATA
-            i2c[slave_address=0x76] sda GPIO2 -- sda, scl GPIO3 -- scl;
+            i2c[slave_address=0x76] sda sda -- GPIO2, scl scl -- GPIO3;
     """
     with pytest.warns(UserWarning):
         device_mm.model_from_str(model_str)
@@ -31,9 +31,9 @@ def test_i2c_invalid_address_range(device_mm):
     BROKER[MQTT] MyBroker WITH host="localhost", port=1883;
     
     CONNECT MySensor WITH
-        POWER power_5v_a -- vcc, GND_1 -- gnd
+        POWER vcc -- power_5v_a, gnd -- GND_1
         DATA
-            i2c[slave_address=0x80] sda GPIO2 -- sda, scl GPIO3 -- scl;
+            i2c[slave_address=0x80] sda sda -- GPIO2, scl scl -- GPIO3;
     """
     with pytest.raises(TextXSemanticError, match="out of valid range"):
         device_mm.model_from_str(model_str)
@@ -47,10 +47,10 @@ def test_i2c_missing_function(device_mm):
     BROKER[MQTT] MyBroker WITH host="localhost", port=1883;
     
     CONNECT MySensor WITH
-        POWER power_5v_a -- vcc, GND_1 -- gnd
+        POWER vcc -- power_5v_a, gnd -- GND_1
         DATA
             // GPIO4 is not SDA
-            i2c[slave_address=0x76] sda GPIO4 -- sda, scl GPIO3 -- scl;
+            i2c[slave_address=0x76] sda sda -- GPIO4, scl scl -- GPIO3;
     """
     with pytest.raises(TextXSemanticError, match="does not have SDA"):
         device_mm.model_from_str(model_str)
@@ -64,9 +64,9 @@ def test_i2c_invalid_bus_speed(device_mm):
     BROKER[MQTT] MyBroker WITH host="localhost", port=1883;
     
     CONNECT MySensor WITH
-        POWER power_5v_a -- vcc, GND_1 -- gnd
+        POWER vcc -- power_5v_a, gnd -- GND_1
         DATA
-            i2c[slave_address=0x76, bus_speed=0] sda GPIO2 -- sda, scl GPIO3 -- scl;
+            i2c[slave_address=0x76, bus_speed=0] sda sda -- GPIO2, scl scl -- GPIO3;
     """
     with pytest.raises(TextXSemanticError, match="must be a positive integer"):
         device_mm.model_from_str(model_str)
@@ -80,9 +80,9 @@ def test_i2c_deprecated_name(device_mm):
     BROKER[MQTT] MyBroker WITH host="localhost", port=1883;
     
     CONNECT MySensor WITH
-        POWER power_5v_a -- vcc, GND_1 -- gnd
+        POWER vcc -- power_5v_a, gnd -- GND_1
         DATA
-            i2c[name="dep", slave_address=0x76] sda GPIO2 -- sda, scl GPIO3 -- scl;
+            i2c[name="dep", slave_address=0x76] sda sda -- GPIO2, scl scl -- GPIO3;
     """
     with pytest.raises(TextXSemanticError, match="Property 'name' is deprecated"):
         device_mm.model_from_str(model_str)

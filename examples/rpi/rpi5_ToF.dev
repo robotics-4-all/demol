@@ -10,40 +10,40 @@ BROKER[MQTT] MyBroker WITH host="localhost", port=1883, auth.username="guest", a
 
 CONNECT MyToF WITH
     POWER
-        GND_3 -- GND,
-        power_3v3_a -- VIN
+        GND -- GND_3,
+        VIN -- power_3v3_a
     DATA
         i2c[slave_address=0x29] sda GPIO2 -- SDA, scl GPIO3 -- SCL
     @ "my_raspi.sensors.tof.vl53l1x";
 
 CONNECT MyTracker WITH
     POWER
-        GND_1 -- GND,
-        power_5v_a -- VCC
+        GND -- GND_1,
+        VCC -- power_5v_a
     DATA
         gpio[mode="input"] GPIO4 -- D0
     @ "my_raspi.sensors.tracker.TCRT5000";
 
 CONNECT MyTFMini WITH
     POWER
-        GND_4 -- GND,
-        power_5v_b -- VCC
+        GND -- GND_4,
+        VCC -- power_5v_b
     DATA
         uart[baudrate=115200] tx GPIO14 -- RXD, rx GPIO15 -- TXD
     @ "my_raspi.sensors.tfmini";
 
 CONNECT MyBME WITH
     POWER
-        GND_3 -- gnd,
-        power_5v_a -- vcc
+        gnd -- GND_3,
+        vcc -- power_5v_a
     DATA
         i2c[slave_address=0x76] sda GPIO2 -- sda, scl GPIO3 -- scl
     @ "my_raspi.sensors.env.bme680";
 
 CONNECT MySRF WITH
     POWER
-        GND_2 -- GND,
-        power_5v_b -- VCC
+        GND -- GND_2,
+        VCC -- power_5v_b
     DATA
         gpio[mode="input"] GPIO24 -- echo,
         gpio[mode="output"] GPIO23 -- trigger

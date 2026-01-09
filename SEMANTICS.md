@@ -391,8 +391,8 @@ Well-formedness rules ensure that the device model is complete and logically sou
 
 ### 6.2. Broker Requirements (Inv-Broker-Connection)
 
--   **Rule**: If any connection defines a remote endpoint (e.g., for MQTT `Publisher` or `Subscriber`), a `Broker` must be configured in the device model.
--   **Invariant**: `(∃k. k.endpoint.type ∈ {Publisher, Subscriber}) ⇒ (broker ≠ None)`
+-   **Rule**: A `BROKER` must be configured in the device model.
+-   **Invariant**: `broker ≠ None`
 
 ### 6.3. Unique Pin Numbers (WF-Unique-Pin-Numbers)
 
@@ -411,6 +411,6 @@ Well-formedness rules ensure that the device model is complete and logically sou
 
 ### 6.6. Network Requirements (WF-Network-Requirements)
 
--   **Rule**: A `NETWORK` configuration must be present if a `BROKER` is defined or if any connection defines a remote endpoint.
--   **Invariant**: `(broker ≠ None ∨ ∃k. k.remote ≠ None) ⇒ (network ≠ None)`
+-   **Rule**: A `NETWORK` configuration must be present in the device model.
+-   **Invariant**: `network ≠ None`
 -   **Rationale**: Network connectivity is required for the device to communicate with a message broker or other remote endpoints.

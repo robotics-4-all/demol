@@ -2,6 +2,7 @@ import jinja2
 from pathlib import Path
 from .base_generator import BaseCodeGenerator
 from demol.definitions import TEMPLATES_DOCS
+from demol.lang.semantics import get_connection_endpoints
 
 class SvgGenerator(BaseCodeGenerator):
     """
@@ -89,14 +90,35 @@ class SvgGenerator(BaseCodeGenerator):
             
             # Power Connections
             if hasattr(conn, 'powerConns'):
+                # Determine direction using horizontal logic
+                from_ref, from_name, to_ref, to_name = get_connection_endpoints(conn)
+                
+                # We need to know which side is the board
+                # If from_comp is board, then fromPin is board pin
+                # If to_comp is board, then toPin is board pin
+                
+                board_is_source = False
+                if self.device_model.components.board:
+                    board_name = self.device_model.components.board.name
+                    if from_name == board_name:
+                        board_is_source = True
+                
                 for pc in conn.powerConns:
                     p_type = 'power'
-                    b_pin_lower = str(pc.fromPin).lower()
-                    if 'gnd' in b_pin_lower:
+                    
+                    if board_is_source:
+                        board_pin = str(pc.fromPin)
+                        periph_pin = str(pc.toPin)
+                    else:
+                        board_pin = str(pc.toPin)
+                        periph_pin = str(pc.fromPin)
+                        
+                    if 'gnd' in board_pin.lower() or 'gnd' in periph_pin.lower():
                         p_type = 'gnd'
+                        
                     pin_pairs.append({
-                        'board': str(pc.fromPin),
-                        'periph': str(pc.toPin),
+                        'board': board_pin,
+                        'periph': periph_pin,
                         'type': p_type
                     })
 

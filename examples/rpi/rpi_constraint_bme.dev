@@ -9,8 +9,8 @@ BROKER[MQTT] MyBroker WITH host="localhost", port=1883, auth.username="guest", a
 
 CONNECT MyBME WITH
     POWER
-        GND_3 -- gnd,
-        power_5v_a -- vcc
+        gnd -- GND_3,
+        vcc -- power_5v_a
     DATA
         i2c[slave_address=0x76] sda GPIO2 -- sda, scl GPIO3 -- scl
     @ "my_raspi.sensors.env.bme680";
