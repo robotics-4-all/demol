@@ -579,7 +579,7 @@ def validate_uart_connection(board_tx, board_rx, peripheral_tx, peripheral_rx,
 # Safety Properties
 # ============================================================================
 
-def validate_no_pin_conflicts(connections: List) -> None:
+def validate_no_pin_conflicts(model) -> None:
     """
     Validate Safety-Unique-Pins invariant.
     
@@ -593,56 +593,61 @@ def validate_no_pin_conflicts(connections: List) -> None:
     # Map: pin_name -> List[Tuple[peripheral_name, usage_type]]
     board_pin_usage: Dict[str, List[Tuple[str, str]]] = {}
     
-    for connection in connections:
-        target_ref, target_name = get_connection_target(connection)
+    board = model.components.board
+
+    for connection in model.connections:
+        from_ref, from_name, to_ref, to_name = get_connection_endpoints(connection)
         
+        if from_ref is None or to_ref is None:
+            continue
+
+        is_from_board = (from_ref == board)
+        is_to_board = (to_ref == board)
+        
+        # Determine target name (peripheral) for error reporting
+        target_name = to_name if is_from_board else from_name
+
         # Collect all board pins used in this connection with their usage type
         # List of (pin_name, usage_type)
         used_pins: List[Tuple[str, str]] = []
         
         # Power connections
         for pconn in connection.powerConns:
-            # Determine if it's GND or VCC based on pin name or type
-            # We assume the board model has correct types, but here we just need a label
-            # We can try to infer from the pin name or look up the board pin definition
-            # For simplicity, we'll label it 'POWER' effectively allowing sharing
-            # or better, check if it's GND.
-            
-            # To do this correctly, we should look up the pin on the board.
-            # But we don't have easy access to the board object here without traversing.
-            # However, validate_power_connection already checks types.
-            # Let's assume 'GND' sharing is always allowed.
-            # And 'VCC' sharing is allowed (parallel power).
-            used_pins.append((pconn.fromPin, 'POWER'))
+            # Horizontal logic: fromPin on from_comp, toPin on to_comp
+            board_pin = pconn.fromPin if is_from_board else pconn.toPin
+            used_pins.append((board_pin, 'POWER'))
         
         # IO connections
         for data_conn in connection.dataConns:
             conn_type = data_conn.type
             
             for pin_map in data_conn.pins:
+                # Horizontal logic: fromPin on from_comp, toPin on to_comp
+                board_pin = pin_map.fromPin if is_from_board else pin_map.toPin
+                
                 if conn_type == 'gpio':
                     # GPIO uses PinConnection (no function attribute)
-                    used_pins.append((pin_map.fromPin, 'GPIO'))
+                    used_pins.append((board_pin, 'GPIO'))
                 elif conn_type == 'i2c':
                     # I2C uses PinMapping (has function attribute)
                     if pin_map.function == 'sda':
-                        used_pins.append((pin_map.fromPin, 'I2C-SDA'))
+                        used_pins.append((board_pin, 'I2C-SDA'))
                     elif pin_map.function == 'scl':
-                        used_pins.append((pin_map.fromPin, 'I2C-SCL'))
+                        used_pins.append((board_pin, 'I2C-SCL'))
                 elif conn_type == 'spi':
                     if pin_map.function == 'mosi':
-                        used_pins.append((pin_map.fromPin, 'SPI-MOSI'))
+                        used_pins.append((board_pin, 'SPI-MOSI'))
                     elif pin_map.function == 'miso':
-                        used_pins.append((pin_map.fromPin, 'SPI-MISO'))
+                        used_pins.append((board_pin, 'SPI-MISO'))
                     elif pin_map.function == 'sck':
-                        used_pins.append((pin_map.fromPin, 'SPI-SCK'))
+                        used_pins.append((board_pin, 'SPI-SCK'))
                     elif pin_map.function == 'cs':
-                        used_pins.append((pin_map.fromPin, 'SPI-CS'))
+                        used_pins.append((board_pin, 'SPI-CS'))
                 elif conn_type == 'uart':
                     if pin_map.function == 'tx':
-                        used_pins.append((pin_map.fromPin, 'UART-TX'))
+                        used_pins.append((board_pin, 'UART-TX'))
                     elif pin_map.function == 'rx':
-                        used_pins.append((pin_map.fromPin, 'UART-RX'))
+                        used_pins.append((board_pin, 'UART-RX'))
         
         # Check for conflicts
         for pin, usage in used_pins:
@@ -1219,7 +1224,10 @@ def validate_connections(model) -> None:
             
             # Validate power connection (check voltage compatibility)
             if hasattr(from_pin_obj, 'ptype') and hasattr(to_pin_obj, 'ptype'):
-                validate_power_connection(from_pin_obj, to_pin_obj, pconn)
+                if is_from_board:
+                    validate_power_connection(from_pin_obj, to_pin_obj, pconn)
+                elif is_to_board:
+                    validate_power_connection(to_pin_obj, from_pin_obj, pconn)
         
         # ====================================================================
         # Validate IO Connections

@@ -12,5 +12,5 @@ CONNECT MyBME WITH
         gnd -- GND_1,
         vcc -- power_5v_a
     DATA
-        i2c[slave_address=0x76] sda GPIO2 -- sda, scl GPIO3 -- scl
+        i2c[slave_address=0x76] sda sda -- GPIO2, scl scl -- GPIO3
     @ "my_esp.sensors.env.bme680";

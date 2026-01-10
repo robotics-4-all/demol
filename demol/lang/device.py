@@ -131,7 +131,7 @@ def model_proc(model, metamodel):
     # ========================================================================
     
     # Safety: No pin conflicts (unique pins per connection)
-    run_rule("Pin Conflicts", validate_no_pin_conflicts, model.connections, desc="No physical pin conflicts detected")
+    run_rule("Pin Conflicts", validate_no_pin_conflicts, model, desc="No physical pin conflicts detected")
     
     # Safety: I2C addresses must be unique on the same bus
     run_rule("I2C Address Uniqueness", validate_i2c_address_uniqueness, model.connections, desc="I2C slave addresses are unique per bus")

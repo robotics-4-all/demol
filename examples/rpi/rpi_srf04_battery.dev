@@ -19,6 +19,6 @@ CONNECT MySonar WITH
         vcc -- power_5v_b,
         gnd -- GND_2
     DATA
-        gpio[mode="output"] GPIO23 -- trigger,
-        gpio[mode="input"] GPIO24 -- echo
+        gpio[mode="output"] trigger -- GPIO23,
+        gpio[mode="input"] echo -- GPIO24
     @ "sensors/sonar";

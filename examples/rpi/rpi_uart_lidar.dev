@@ -24,5 +24,5 @@ CONNECT LidarSensor WITH
         GND -- GND_1, 
         VCC -- power_5v_a
     DATA 
-        uart[baudrate=115200] tx GPIO14 -- RXD, rx GPIO15 -- TXD
+        uart[baudrate=115200] tx RXD -- GPIO14, rx TXD -- GPIO15
     @ "sensors/lidar";

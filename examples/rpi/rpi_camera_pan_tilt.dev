@@ -30,7 +30,7 @@ CONNECT PanServo WITH
         gnd -- GND_1, 
         vcc -- power_5v_a
     DATA 
-        gpio[mode="output"] GPIO12 -- din
+        gpio[mode="output"] din -- GPIO12
     @ "camera/pan";
 
 CONNECT TiltServo WITH
@@ -38,7 +38,7 @@ CONNECT TiltServo WITH
         gnd -- GND_2, 
         vcc -- power_5v_b
     DATA 
-        gpio[mode="output"] GPIO13 -- din
+        gpio[mode="output"] din -- GPIO13
     @ "camera/tilt";
 
 CONNECT DistanceSensor WITH
@@ -46,5 +46,5 @@ CONNECT DistanceSensor WITH
         GND -- GND_3, 
         VIN -- power_3v3_a
     DATA 
-        i2c[slave_address=0x29] sda GPIO2 -- SDA, scl GPIO3 -- SCL
+        i2c[slave_address=0x29] sda SDA -- GPIO2, scl SCL -- GPIO3
     @ "camera/distance";

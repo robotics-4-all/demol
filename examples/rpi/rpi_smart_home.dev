@@ -30,14 +30,14 @@ CONNECT EnvSensor WITH
         gnd -- GND_1, 
         vcc -- power_5v_a
     DATA 
-        i2c[slave_address=0x76] sda GPIO2 -- sda, scl GPIO3 -- scl
+        i2c[slave_address=0x76] sda sda -- GPIO2, scl scl -- GPIO3
     @ "home/living_room/env";
 
 CONNECT UserButton WITH
     POWER 
         gnd -- GND_2
     DATA 
-        gpio[mode="input", pullup=true] GPIO17 -- state
+        gpio[mode="input", pullup=true] state -- GPIO17
     @ "home/living_room/button";
 
 CONNECT StatusLed WITH
@@ -45,7 +45,7 @@ CONNECT StatusLed WITH
         gnd -- GND_3,
         vcc -- power_3v3_a
     DATA 
-        gpio[mode="output"] GPIO27 -- vin
+        gpio[mode="output"] vin -- GPIO27
     @ "home/living_room/led";
 
 CONNECT VoiceFeedback WITH

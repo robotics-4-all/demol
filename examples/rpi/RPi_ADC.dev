@@ -23,7 +23,7 @@ CONNECT MyToF WITH
         GND -- GND_3,
         VIN -- power_3v3_a
     DATA
-        i2c[slave_address=0x29] sda GPIO2 -- SDA, scl GPIO3 -- SCL
+        i2c[slave_address=0x29] sda SDA -- GPIO2, scl SCL -- GPIO3
     @ "my_raspi.sensors.tof.vl53l1x";
 
 CONNECT MyTracker WITH
@@ -31,7 +31,7 @@ CONNECT MyTracker WITH
         GND -- GND_1,
         VCC -- power_5v_a
     DATA
-        gpio[mode="input"] GPIO4 -- D0
+        gpio[mode="input"] D0 -- GPIO4
     @ "my_raspi.sensors.tracker.TCRT5000";
 
 CONNECT MyTFMini WITH
@@ -39,7 +39,7 @@ CONNECT MyTFMini WITH
         GND -- GND_4,
         VCC -- power_5v_b
     DATA
-        uart[baudrate=115200] tx GPIO14 -- RXD, rx GPIO15 -- TXD
+        uart[baudrate=115200] tx RXD -- GPIO14, rx TXD -- GPIO15
     @ "my_raspi.sensors.tfmini";
 
 CONNECT MyBME WITH
@@ -47,7 +47,7 @@ CONNECT MyBME WITH
         gnd -- GND_3,
         vcc -- power_5v_a
     DATA
-        i2c[slave_address=0x76] sda GPIO2 -- sda, scl GPIO3 -- scl
+        i2c[slave_address=0x76] sda sda -- GPIO2, scl scl -- GPIO3
     @ "my_raspi.sensors.env.bme680";
 
 CONNECT MySRF WITH
@@ -55,8 +55,8 @@ CONNECT MySRF WITH
         GND -- GND_2,
         VCC -- power_5v_b
     DATA
-        gpio[mode="output"] GPIO23 -- trigger,
-        gpio[mode="input"] GPIO24 -- echo
+        gpio[mode="output"] trigger -- GPIO23,
+        gpio[mode="input"] echo -- GPIO24
     @ "my_raspi.sensors.distance.srf05"; 
 
 CONNECT MyADC WITH
@@ -64,7 +64,7 @@ CONNECT MyADC WITH
         GND -- GND_3,
         VCC -- power_5v_a
     DATA
-        i2c[slave_address=0x68] sda GPIO2 -- SDA, scl GPIO3 -- SCL
+        i2c[slave_address=0x68] sda SDA -- GPIO2, scl SCL -- GPIO3
     @ "my_raspi.sensors.adc.MyADC";
 
 CONNECT MyLedRing WITH
@@ -72,7 +72,7 @@ CONNECT MyLedRing WITH
         GND -- GND_4,
         VCC -- power_5v_b
     DATA
-        gpio[mode="output"] GPIO10 -- DIN
+        gpio[mode="output"] DIN -- GPIO10
     @ "my_raspi.actuators.ws2812.MyLedRing";
 
 CONNECT MyServoController WITH
@@ -80,5 +80,5 @@ CONNECT MyServoController WITH
         GND_1 -- GND_1,
         VCC_1 -- power_5v_a
     DATA
-        i2c[slave_address=0x64] sda GPIO2 -- SDA_1, scl GPIO3 -- SCL_1
+        i2c[slave_address=0x64] sda SDA_1 -- GPIO2, scl SCL_1 -- GPIO3
 ;
