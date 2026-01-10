@@ -257,10 +257,11 @@ def json_to_demol(model_data) -> str:
             return obj.get(key, default)
         return getattr(obj, key, default)
 
-    name = get_val(model_data, 'name', 'Unnamed_Device').replace(" ", "_")
-    description = get_val(model_data, 'description', '')
-    author = get_val(model_data, 'author', '')
-    os_name = get_val(model_data, 'os', 'riot')
+    device_data = get_val(model_data, 'device', model_data)
+    name = get_val(device_data, 'name', 'Unnamed_Device').replace(" ", "_")
+    description = get_val(device_data, 'description', '')
+    author = get_val(device_data, 'author', '')
+    os_name = get_val(device_data, 'os', 'riot')
     
     # 1. Device Definition
     content = f'DEVICE {name} WITH\n'
@@ -269,50 +270,6 @@ def json_to_demol(model_data) -> str:
     content += f'    os={os_name}\n'
     content += ';\n\n'
     
-    # 2. Network
-    network = get_val(model_data, 'network')
-    if network:
-        net_type = get_val(network, 'type', 'WiFi')
-        content += f'NETWORK [{net_type}] WITH '
-        net_attrs = []
-        if net_type == 'WiFi':
-            if get_val(network, 'ssid'): net_attrs.append(f'ssid="{get_val(network, "ssid")}"')
-            if get_val(network, 'password'): net_attrs.append(f'password="{get_val(network, "password")}"')
-            if get_val(network, 'channel'): net_attrs.append(f'channel="{get_val(network, "channel")}"')
-        
-        if get_val(network, 'address'): net_attrs.append(f'address="{get_val(network, "address")}"')
-        
-        content += ", ".join(net_attrs)
-        content += ';\n\n'
-    
-    # 3. Broker
-    broker = get_val(model_data, 'broker')
-    if broker:
-        br_type = get_val(broker, 'type', 'MQTT')
-        br_name = get_val(broker, 'name', 'my_broker')
-        content += f'BROKER [{br_type}] {br_name} WITH '
-        br_attrs = []
-        br_attrs.append(f'host="{get_val(broker, "host", "localhost")}"')
-        br_attrs.append(f'port={get_val(broker, "port", 1883)}')
-        
-        if br_type == 'AMQP':
-            if get_val(broker, 'vhost'): br_attrs.append(f'vhost="{get_val(broker, "vhost")}"')
-            if get_val(broker, 'topicExchange'): br_attrs.append(f'topicExchange="{get_val(broker, "topicExchange")}"')
-            if get_val(broker, 'rpcExchange'): br_attrs.append(f'rpcExchange="{get_val(broker, "rpcExchange")}"')
-        elif br_type == 'MQTT':
-            if get_val(broker, 'basePath'): br_attrs.append(f'basePath="{get_val(broker, "basePath")}"')
-            if get_val(broker, 'webPath'): br_attrs.append(f'webPath="{get_val(broker, "webPath")}"')
-            if get_val(broker, 'webPort'): br_attrs.append(f'webPort={get_val(broker, "webPort")}')
-        elif br_type == 'Redis':
-            if get_val(broker, 'db'): br_attrs.append(f'db={get_val(broker, "db")}')
-            
-        if get_val(broker, 'ssl'): br_attrs.append('ssl=true')
-        if get_val(broker, 'username'): br_attrs.append(f'auth.username="{get_val(broker, "username")}"')
-        if get_val(broker, 'password'): br_attrs.append(f'auth.password="{get_val(broker, "password")}"')
-        if get_val(broker, 'key'): br_attrs.append(f'auth.key="{get_val(broker, "key")}"')
-        
-        content += ", ".join(br_attrs)
-        content += ';\n\n'
     
     # 3. Uses
     board = get_val(model_data, 'board')
@@ -361,6 +318,51 @@ def json_to_demol(model_data) -> str:
             if node_id: instance_map[node_id] = ps_inst_name
         
         content += ", ".join(use_defs)
+        content += ';\n\n'
+
+    # 3. Network
+    network = get_val(model_data, 'network')
+    if network:
+        net_type = get_val(network, 'type', 'WiFi')
+        content += f'NETWORK [{net_type}] WITH '
+        net_attrs = []
+        if net_type == 'WiFi':
+            if get_val(network, 'ssid'): net_attrs.append(f'ssid="{get_val(network, "ssid")}"')
+            if get_val(network, 'password'): net_attrs.append(f'password="{get_val(network, "password")}"')
+            if get_val(network, 'channel'): net_attrs.append(f'channel="{get_val(network, "channel")}"')
+        
+        if get_val(network, 'address'): net_attrs.append(f'address="{get_val(network, "address")}"')
+        
+        content += ", ".join(net_attrs)
+        content += ';\n\n'
+    
+    # 4. Broker
+    broker = get_val(model_data, 'broker')
+    if broker:
+        br_type = get_val(broker, 'type', 'MQTT')
+        br_name = get_val(broker, 'name', 'my_broker')
+        content += f'BROKER [{br_type}] {br_name} WITH '
+        br_attrs = []
+        br_attrs.append(f'host="{get_val(broker, "host", "localhost")}"')
+        br_attrs.append(f'port={get_val(broker, "port", 1883)}')
+        
+        if br_type == 'AMQP':
+            if get_val(broker, 'vhost'): br_attrs.append(f'vhost="{get_val(broker, "vhost")}"')
+            if get_val(broker, 'topicExchange'): br_attrs.append(f'topicExchange="{get_val(broker, "topicExchange")}"')
+            if get_val(broker, 'rpcExchange'): br_attrs.append(f'rpcExchange="{get_val(broker, "rpcExchange")}"')
+        elif br_type == 'MQTT':
+            if get_val(broker, 'basePath'): br_attrs.append(f'basePath="{get_val(broker, "basePath")}"')
+            if get_val(broker, 'webPath'): br_attrs.append(f'webPath="{get_val(broker, "webPath")}"')
+            if get_val(broker, 'webPort'): br_attrs.append(f'webPort={get_val(broker, "webPort")}')
+        elif br_type == 'Redis':
+            if get_val(broker, 'db'): br_attrs.append(f'db={get_val(broker, "db")}')
+            
+        if get_val(broker, 'ssl'): br_attrs.append('ssl=true')
+        if get_val(broker, 'username'): br_attrs.append(f'auth.username="{get_val(broker, "username")}"')
+        if get_val(broker, 'password'): br_attrs.append(f'auth.password="{get_val(broker, "password")}"')
+        if get_val(broker, 'key'): br_attrs.append(f'auth.key="{get_val(broker, "key")}"')
+        
+        content += ", ".join(br_attrs)
         content += ';\n\n'
     
     # 4. Connections
