@@ -7,7 +7,7 @@ class {{ driver_class_name }}(Actuator):
     """
     Generic LED Actuator (PWM supported)
     """
-    _PIN = "{{ conn.gpio.pins.vin.name }}"
+    _PIN = "{{ conn.gpio.pins.get('vin', {}).get('name', 'GPIO18') }}"
     _ACTIVE_HIGH = {{ attributes.get('active_high', True) | lower }}
     _INITIAL_VALUE = {{ attributes.get('initial_value', False) | lower }}
 

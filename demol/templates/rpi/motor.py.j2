@@ -7,8 +7,8 @@ class {{ driver_class_name }}(Actuator):
     """
     Generic DC Motor Actuator (H-Bridge)
     """
-    _FORWARD_PIN = "{{ conn.gpio.pins.forward.name }}"
-    _BACKWARD_PIN = "{{ conn.gpio.pins.backward.name }}"
+    _FORWARD_PIN = "{{ conn.gpio.pins.get('forward', {}).get('name') }}"
+    _BACKWARD_PIN = "{{ conn.gpio.pins.get('backward', {}).get('name') }}"
     _PWM = {{ attributes.get('pwm', True) | lower }}
 
     def __init__(self):

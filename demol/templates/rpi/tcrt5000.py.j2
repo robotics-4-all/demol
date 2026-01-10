@@ -7,8 +7,8 @@ class {{ driver_class_name }}(Sensor):
     """
     IR reflective sensor - detects black vs white/reflective surfaces
     """
-    _PIN = "{{ conn.gpio.pins.D0.name }}"
-    _PIN_NUMBER = {{ conn.gpio.pins.D0.id }}
+    _PIN = "{{ conn.gpio.pins.get('D0', {}).get('name') }}"
+    _PIN_NUMBER = {{ conn.gpio.pins.get('D0', {}).get('id') }}
     _MAX_FREQUENCY = {{ op.get('freq_max', 100) }}
     _FREQUENCY = {{ attributes.get('frequency', 10.0) }}
     

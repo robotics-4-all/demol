@@ -8,7 +8,7 @@ class {{ driver_class_name }}(Actuator):
     """
     Generic Buzzer Actuator (Tonal support)
     """
-    _PIN = "{{ conn.gpio.pins.vin.name }}"
+    _PIN = "{{ conn.gpio.pins.get('vin', {}).get('name') }}"
     _INITIAL_STATE = {{ attributes.get('initial_state', False) | lower }}
 
     def __init__(self):

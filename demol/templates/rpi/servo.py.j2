@@ -7,7 +7,7 @@ class {{ driver_class_name }}(Actuator):
     """
     Generic PWM Angular Servo Actuator
     """
-    _PIN = "{{ conn.gpio.pins.din.name }}"
+    _PIN = "{{ conn.gpio.pins.get('din', {}).get('name') }}"
     _MIN_ANGLE = {{ attributes.get('min_angle', -90.0) }}
     _MAX_ANGLE = {{ attributes.get('max_angle', 90.0) }}
     _MIN_PULSE_WIDTH = {{ attributes.get('min_pulse_width', 0.001) }}

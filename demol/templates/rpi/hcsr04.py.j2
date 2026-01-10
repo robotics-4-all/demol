@@ -7,10 +7,10 @@ class {{ driver_class_name }}(Sensor):
     """
     Ultrasonic distance sensor (HC-SR04)
     """
-    _TRIGGER_PIN = "{{ conn.gpio.pins.trigger.name }}"
-    _TRIGGER_PIN_NUMBER = {{ conn.gpio.pins.trigger.id }}
-    _ECHO_PIN = "{{ conn.gpio.pins.echo.name }}"
-    _ECHO_PIN_NUMBER = {{ conn.gpio.pins.echo.id }}
+    _TRIGGER_PIN = "{{ conn.gpio.pins.get('trigger', {}).get('name') }}"
+    _TRIGGER_PIN_NUMBER = {{ conn.gpio.pins.get('trigger', {}).get('id') }}
+    _ECHO_PIN = "{{ conn.gpio.pins.get('echo', {}).get('name') }}"
+    _ECHO_PIN_NUMBER = {{ conn.gpio.pins.get('echo', {}).get('id') }}
     _MAX_DISTANCE = {{ attributes.get('max_distance', 200.0) }}
     _MIN_DISTANCE = {{ attributes.get('min_distance', 0.0) }}
     _MAX_FREQUENCY = {{ op.get('freq_max', 16) }}

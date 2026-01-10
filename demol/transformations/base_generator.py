@@ -101,11 +101,7 @@ class BaseCodeGenerator(ABC):
         """
         result = {}
         for item in peripheral_ref.attributes:
-            attr_type = type(item).__name__
-            if attr_type == "DictAttribute":
-                result[item.name] = self._convert_dict_attribute(item)
-            else:
-                result[item.name] = item.default
+            result[item.name] = self._convert_attribute_value(item.default)
         return result
 
     def get_platform_attributes(self, obj, os_name: str) -> Dict[str, Any]:
@@ -197,7 +193,7 @@ class BaseCodeGenerator(ABC):
         gpio_props = {}
         for prop in data_conn.props:
             if prop.name in ["mode", "pullup", "pulldown"]:
-                gpio_props[prop.name] = prop.value
+                gpio_props[prop.name] = self._convert_attribute_value(prop.value)
         
         # Handle pins based on peripheral pin name
         for pin_map in data_conn.pins:
@@ -215,7 +211,7 @@ class BaseCodeGenerator(ABC):
         i2c_props = {}
         for prop in data_conn.props:
             if prop.name in ["slave_address", "bus_speed"]:
-                i2c_props[prop.name] = prop.value
+                i2c_props[prop.name] = self._convert_attribute_value(prop.value)
         
         for pin_map in data_conn.pins:
             board_pin_name, periph_pin_name = self._get_board_and_periph_pins(conn, pin_map)
@@ -240,7 +236,7 @@ class BaseCodeGenerator(ABC):
         spi_props = {}
         for prop in data_conn.props:
             if prop.name in ["bus_speed", "mode"]:
-                spi_props[prop.name] = prop.value
+                spi_props[prop.name] = self._convert_attribute_value(prop.value)
         
         for pin_map in data_conn.pins:
             board_pin_name, periph_pin_name = self._get_board_and_periph_pins(conn, pin_map)
@@ -269,7 +265,7 @@ class BaseCodeGenerator(ABC):
         uart_props = {}
         for prop in data_conn.props:
             if prop.name in ["baudrate", "parity", "stop_bits", "data_bits"]:
-                uart_props[prop.name] = prop.value
+                uart_props[prop.name] = self._convert_attribute_value(prop.value)
         
         for pin_map in data_conn.pins:
             board_pin_name, periph_pin_name = self._get_board_and_periph_pins(conn, pin_map)
@@ -288,16 +284,22 @@ class BaseCodeGenerator(ABC):
 
     def _get_board_and_periph_pins(self, conn, pin_map):
         """Helper to identify which pin is the board pin and which is the peripheral pin.
-        
-        Pin connections are ALWAYS written as: board_pin -- peripheral_pin
-        This is true regardless of the CONNECT statement order (CONNECT Peripheral or CONNECT Board:Peripheral).
-        
-        So fromPin is ALWAYS the board pin, and toPin is ALWAYS the peripheral pin.
         """
-        # Pin syntax is always: board_pin -- peripheral_pin
-        # fromPin = board pin name
-        # toPin = peripheral pin name
-        return pin_map.fromPin, pin_map.toPin
+        from_comp = conn.from_comp
+        to_comp = conn.to_comp
+        
+        # Check if from_comp is the board
+        is_from_board = False
+        if hasattr(from_comp, 'ref'):
+            if type(from_comp.ref).__name__ == 'BoardDef':
+                is_from_board = True
+        elif type(from_comp).__name__ == 'BoardDef':
+            is_from_board = True
+            
+        if is_from_board:
+            return pin_map.fromPin, pin_map.toPin
+        else:
+            return pin_map.toPin, pin_map.fromPin
     
     def _get_bus_from_pin(self, board_pin, function_type: str) -> int:
         """Extract bus/port number from board pin's function definition.
@@ -343,11 +345,18 @@ class BaseCodeGenerator(ABC):
         """
         v_type = type(value).__name__
         if v_type == "ListValue":
-            return [v for v in value.items]
+            return [self._convert_attribute_value(v) for v in value.items]
         elif v_type == "DictValue":
             return {item.key: self._convert_attribute_value(item.value) for item in value.items}
+        elif v_type == "AttributeSet":
+             return {attr.name: self._convert_attribute_value(attr.value) for attr in value.attributes}
         else:
             # VALUE (HEX, NUMBER, STRING, BOOL)
+            if isinstance(value, str) and value.lower().startswith('0x'):
+                try:
+                    return int(value, 16)
+                except ValueError:
+                    return value
             return value
     
 

@@ -7,7 +7,7 @@ class {{ driver_class_name }}(Sensor):
     """
     Tactile Button Sensor
     """
-    _PIN = "{{ conn.gpio.pins.state.name }}"
+    _PIN = "{{ conn.gpio.pins.get('state', {}).get('name') }}"
     _MAX_FREQUENCY = {{ op.get('freq_max', 100) }}
     _FREQUENCY = {{ attributes.get('frequency', 10.0) }}
     
