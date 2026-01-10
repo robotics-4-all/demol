@@ -168,6 +168,14 @@
     outline: none;
 }
 
+.function-select {
+    flex: 0.6 !important;
+    color: var(--primary-light) !important;
+    font-weight: 600;
+    border-right: 1px solid var(--border) !important;
+    margin-right: 0.25rem;
+}
+
 .arrow {
     color: var(--text-muted);
     font-size: 0.875rem;

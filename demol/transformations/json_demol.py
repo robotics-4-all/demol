@@ -273,8 +273,9 @@ def json_to_demol(model_data) -> str:
     
     # 3. Uses
     board = get_val(model_data, 'board')
+    board_name = None
     if board:
-        board_name = get_val(board, 'name', '').replace(" ", "")
+        board_name = get_val(board, 'name', '').replace(" ", "_")
         content += f'USE {board_name};\n'
     
     peripherals = get_val(model_data, 'peripherals', [])
@@ -287,7 +288,7 @@ def json_to_demol(model_data) -> str:
         use_defs = []
         
         for p in peripherals:
-            p_name = get_val(p, 'name', '').replace(" ", "")
+            p_name = get_val(p, 'name', '').replace(" ", "_")
             p_inst_name = (get_val(p, 'instanceName') or get_val(p, 'name', '')).replace(" ", "_")
             p_def = f'{p_name} [{p_inst_name}]'
             
@@ -310,7 +311,7 @@ def json_to_demol(model_data) -> str:
             if node_id: instance_map[node_id] = p_inst_name
             
         for ps in power_sources:
-            ps_name = get_val(ps, 'name', '').replace(" ", "")
+            ps_name = get_val(ps, 'name', '').replace(" ", "_")
             ps_inst_name = (get_val(ps, 'instanceName') or get_val(ps, 'name', '')).replace(" ", "_")
             use_defs.append(f'{ps_name} [{ps_inst_name}]')
             

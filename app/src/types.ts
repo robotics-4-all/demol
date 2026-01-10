@@ -59,8 +59,9 @@ export interface PowerSource {
 }
 
 export interface PinMapping {
-    fromPin: string; // Peripheral Pin
-    toPin: string;   // Board Pin
+    function?: string; // e.g. sda, scl, mosi, miso
+    fromPin: string;   // Peripheral Pin
+    toPin: string;     // Board Pin
 }
 
 export interface Connection {
@@ -68,8 +69,9 @@ export interface Connection {
     peripheralId: string;
     fromName: string;
     toName: string;
-    type: 'power' | 'io';
+    type: 'power' | 'io' | 'gpio' | 'i2c' | 'spi' | 'uart';
     mappings: PinMapping[];
+    props?: Record<string, any>;
 }
 
 export interface Network {

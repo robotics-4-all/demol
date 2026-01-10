@@ -55,7 +55,7 @@ export const PropertiesPanel: FC<PropertiesPanelProps> = ({
     };
 
     const addMapping = () => {
-        setMappings(prev => [...prev, { fromPin: '', toPin: '' }]);
+        setMappings(prev => [...prev, { fromPin: '', toPin: '', function: '' }]);
     };
 
     const updateMapping = (index: number, field: keyof PinMapping, value: string) => {
@@ -99,8 +99,13 @@ export const PropertiesPanel: FC<PropertiesPanelProps> = ({
                 code += '    POWER ';
                 code += mappings.map(m => `${m.fromPin} -- ${m.toPin}`).join(', ');
             } else {
-                code += '    DATA gpio ';
-                code += mappings.map(m => `${m.fromPin} -- ${m.toPin}`).join(', ');
+                const actualType = type === 'io' ? 'gpio' : type;
+                code += `    DATA ${actualType} `;
+                if (actualType === 'gpio') {
+                    code += mappings.map(m => `${m.fromPin} -- ${m.toPin}`).join(', ');
+                } else {
+                    code += mappings.map(m => `${m.function ? `${m.function} ` : ''}${m.fromPin} -- ${m.toPin}`).join(', ');
+                }
             }
 
             code += '\n;';
@@ -185,35 +190,55 @@ export const PropertiesPanel: FC<PropertiesPanelProps> = ({
                             <span className={`type-badge ${selectedEdge.data?.type}`}>
                                 {selectedEdge.data?.type === 'power' ? 'Power Connection' : 'IO Connection'}
                             </span>
-                            Map pins between <strong>{board?.name || 'Board'}</strong> and{' '}
-                            <strong>{(() => {
-                                const otherNode = nodes?.find(n =>
+                            Map pins between <strong>{(() => {
+                                const peripheralNode = nodes?.find(n =>
                                     (n.id === selectedEdge.source && (n.type === 'peripheral' || n.type === 'powersource')) ||
                                     (n.id === selectedEdge.target && (n.type === 'peripheral' || n.type === 'powersource'))
                                 );
-                                return otherNode?.data?.instanceName || otherNode?.data?.name || 'Component';
-                            })()}</strong>
+                                return peripheralNode?.data?.instanceName || peripheralNode?.data?.name || 'Component';
+                            })()}</strong> and <strong>{board?.name || 'Board'}</strong>
                         </p>
+
+                        {selectedEdge.data?.type !== 'power' && (
+                            <div className="field">
+                                <label>Connection Type</label>
+                                <select
+                                    value={selectedEdge.data?.type === 'io' ? 'gpio' : selectedEdge.data?.type}
+                                    onChange={(e) => onUpdateEdge(selectedEdge.id, { ...selectedEdge.data, type: e.target.value })}
+                                >
+                                    <option value="gpio">GPIO</option>
+                                    <option value="i2c">I2C</option>
+                                    <option value="spi">SPI</option>
+                                    <option value="uart">UART</option>
+                                </select>
+                            </div>
+                        )}
 
                         <div className="mappings-list">
                             {mappings.map((mapping, index) => (
                                 <div key={index} className="mapping-item">
+                                    {selectedEdge.data?.type !== 'power' && selectedEdge.data?.type !== 'gpio' && selectedEdge.data?.type !== 'io' && (
+                                        <select
+                                            className="function-select"
+                                            value={mapping.function || ''}
+                                            onChange={(e) => updateMapping(index, 'function', e.target.value)}
+                                        >
+                                            <option value="">Function</option>
+                                            {(() => {
+                                                const peripheralNode = nodes?.find(n =>
+                                                    (n.id === selectedEdge.source && (n.type === 'peripheral' || n.type === 'powersource')) ||
+                                                    (n.id === selectedEdge.target && (n.type === 'peripheral' || n.type === 'powersource'))
+                                                );
+                                                const pin = peripheralNode?.data?.pins.find((p: any) => p.name === mapping.fromPin);
+                                                return pin?.functions?.map((f: string) => (
+                                                    <option key={f} value={f}>{f}</option>
+                                                ));
+                                            })()}
+                                        </select>
+                                    )}
                                     <select
                                         value={mapping.fromPin}
                                         onChange={(e) => updateMapping(index, 'fromPin', e.target.value)}
-                                    >
-                                        <option value="">Select Board Pin</option>
-                                        {board?.pins
-                                            .filter((p: any) => selectedEdge.data?.type === 'power' ? p.type !== 'io' : p.type === 'io')
-                                            .map((p: any) => (
-                                                <option key={p.name} value={p.name}>{p.name} ({p.type})</option>
-                                            ))
-                                        }
-                                    </select>
-                                    <span className="arrow">→</span>
-                                    <select
-                                        value={mapping.toPin}
-                                        onChange={(e) => updateMapping(index, 'toPin', e.target.value)}
                                     >
                                         <option value="">Select Peripheral Pin</option>
                                         {(() => {
@@ -221,7 +246,6 @@ export const PropertiesPanel: FC<PropertiesPanelProps> = ({
                                                 (n.id === selectedEdge.source && (n.type === 'peripheral' || n.type === 'powersource')) ||
                                                 (n.id === selectedEdge.target && (n.type === 'peripheral' || n.type === 'powersource'))
                                             );
-                                            // Fallback to targetNodeData if nodes not available or not found (legacy)
                                             const pins = peripheralNode?.data?.pins || selectedEdge.data?.targetNodeData?.pins || [];
 
                                             return pins
@@ -230,6 +254,19 @@ export const PropertiesPanel: FC<PropertiesPanelProps> = ({
                                                     <option key={p.name} value={p.name}>{p.name} ({p.type})</option>
                                                 ));
                                         })()}
+                                    </select>
+                                    <span className="arrow">→</span>
+                                    <select
+                                        value={mapping.toPin}
+                                        onChange={(e) => updateMapping(index, 'toPin', e.target.value)}
+                                    >
+                                        <option value="">Select Board Pin</option>
+                                        {board?.pins
+                                            .filter((p: any) => selectedEdge.data?.type === 'power' ? p.type !== 'io' : p.type === 'io')
+                                            .map((p: any) => (
+                                                <option key={p.name} value={p.name}>{p.name} ({p.type})</option>
+                                            ))
+                                        }
                                     </select>
                                     <button className="remove-btn" onClick={() => removeMapping(index)}>
                                         <X size={14} />
