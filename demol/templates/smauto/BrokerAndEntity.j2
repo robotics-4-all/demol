@@ -10,7 +10,7 @@ Broker<{{broker_type}}> {{broker_name}}
     {%- if broker_topicExchange is defined and broker_topicExchange %}
     topicExchange: "{{ broker_topicExchange }}"
     {%- endif %}
-    {%- if broker_db is defined and broker_db %}
+    {%- if broker_db is defined %}
     db: {{ broker_db }}
     {%- endif %}
     end

@@ -23,15 +23,15 @@ def get_broker_info(device_model):
     broker_data["broker_host"] = device_model.broker.host
     broker_data["broker_port"] = device_model.broker.port
     broker_data["broker_name"] = device_model.broker.name
-    #Set username and password if plain auth is used, otherwise warn and set to None because SmAuto requires username and password
-    if hasattr(device_model.broker, "auth") and str(device_model.broker.auth.__class__.__name__) == "AuthPlain":
+    #Set username and password
+    if hasattr(device_model.broker, "auth_username") and device_model.broker.auth_username:
+        broker_data["broker_username"] = device_model.broker.auth_username
+        broker_data["broker_password"] = getattr(device_model.broker, "auth_password", None)
+    elif hasattr(device_model.broker, "auth") and str(device_model.broker.auth.__class__.__name__) == "AuthPlain":
+         # Fallback for backward compatibility if grammar changes back
         broker_data["broker_username"] = device_model.broker.auth.username
         broker_data["broker_password"] = device_model.broker.auth.password
     else:
-        warnings.warn(
-        "SmAuto currently supports only plain authentication for all brokers.",
-        category=UserWarning
-        )
         broker_data["broker_username"] = None
         broker_data["broker_password"] = None
 
@@ -41,7 +41,7 @@ def get_broker_info(device_model):
     if broker_data["broker_type"] == "AMQP" and hasattr(device_model.broker, "topicE"):
         broker_data["broker_topicExchange"] = device_model.broker.topicE
 
-    if broker_data["broker_type"] == "Redis" and hasattr(device_model.broker, "db"):
+    if broker_data["broker_type"] == "Redis" and hasattr(device_model.broker, "db") and device_model.broker.db is not None:
         broker_data["broker_db"] = device_model.broker.db
 
 
@@ -65,10 +65,21 @@ def get_peripherals_info(device_model):
         per_msg_type = conn.peripheral.ref.type
         peripheral_data = {"per_name": per_dev_name, "per_real_name": per_real_name, "per_type": per_type, "per_topic": per_topic, "per_broker": per_broker, "per_msg_type": per_msg_type}
 
-        for attribute in conn.peripheral.ref.attributes:
-            if attribute.name == "frequency":
-                per_frequency = attribute.default
-                peripheral_data = peripheral_data | {"per_frequency": per_frequency}
+        # Check for frequency in instance attributes first
+        freq_found = False
+        if hasattr(conn.peripheral, 'attributes'):
+             for attribute in conn.peripheral.attributes:
+                if attribute.name == "frequency":
+                    per_frequency = attribute.value
+                    peripheral_data = peripheral_data | {"per_frequency": per_frequency}
+                    freq_found = True
+                    break
+        
+        if not freq_found:
+            for attribute in conn.peripheral.ref.attributes:
+                if attribute.name == "frequency":
+                    per_frequency = attribute.default
+                    peripheral_data = peripheral_data | {"per_frequency": per_frequency}
  
         # Create a dictionary for each peripheral and append it to the list
         peripherals_data.append(peripheral_data)
