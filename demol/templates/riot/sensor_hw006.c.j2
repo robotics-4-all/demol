@@ -2,10 +2,9 @@
 #include "thread.h"
 #include "xtimer.h"
 #include "json_handler.h"
-#include "srf04.h"
-#include "srf04_params.h"
+#include "periph/gpio.h"
 
-static srf04_t {{ name }}_{{ index }}_dev;
+static gpio_t {{ name }}_{{ index }}_pin;
 static {{ name }}_{{ index }}_callback {{ name }}_{{ index }}_cb;
 
 char {{ name }}_{{ index }}_json_payload[165] = "";
@@ -15,12 +14,10 @@ void *{{ name }}_{{ index }}_thread(void *args);
 
 int init_sensor_{{ name }}_{{ index }}(void)
 {
-    srf04_params_t params;
-    params.trigger = GPIO_PIN(0, {{ conn.gpio.pins.trigger.id }});
-    params.echo = GPIO_PIN(0, {{ conn.gpio.pins.echo.id }});
+    {{ name }}_{{ index }}_pin = GPIO_PIN(0, {{ conn.gpio.pins.DO.id }});
 
-    printf("Initialize {{ name|upper }} sensor ... ");
-    if (srf04_init(&{{ name }}_{{ index }}_dev, &params) != SRF04_OK)
+    printf("Initialize {{ name|upper }} sensor on pin %d ... ", {{ conn.gpio.pins.DO.id }});
+    if (gpio_init({{ name }}_{{ index }}_pin, GPIO_IN) < 0)
     {
         puts("failed");
         return -1;
@@ -48,23 +45,16 @@ void *{{ name }}_{{ index }}_thread(void *args)
 
     while (1)
     {
-        int dist = srf04_get_distance(&{{ name }}_{{ index }}_dev);
+        int val = gpio_read({{ name }}_{{ index }}_pin);
 
-        if (dist >= 0)
-        {
-            printf("[{{ name|upper }}]: Distance = %d mm\n", dist);
+        printf("[{{ name|upper }}]: Value = %d\n", val);
 
-            json_dumps({{ name }}_{{ index }}_json_payload,
-                       JSON_START,
-                       JSON_KEY, "Distance", JSON_INT, dist,
-                       JSON_STOP);
+        json_dumps({{ name }}_{{ index }}_json_payload,
+                   JSON_START,
+                   JSON_KEY, "Proximity", JSON_INT, val,
+                   JSON_STOP);
 
-            {{ name }}_{{ index }}_cb({{ name }}_{{ index }}_json_payload);
-        }
-        else
-        {
-            printf("[{{ name }}]: read data failed\n");
-        }
+        {{ name }}_{{ index }}_cb({{ name }}_{{ index }}_json_payload);
 
         xtimer_msleep(({{ name|upper }}_{{ index }}_FREQ));
     }

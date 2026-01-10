@@ -91,17 +91,34 @@ class BaseCodeGenerator(ABC):
         return self.device_model.connections
     
     def get_peripheral_attributes(self, peripheral_ref) -> Dict[str, Any]:
-        """Extract attributes from peripheral definition.
+        """Extract attributes from peripheral definition and instance.
         
         Args:
-            peripheral_ref: Reference to peripheral object with attributes
+            peripheral_ref: Reference to peripheral object (type) or ComponentInstance
             
         Returns:
             Dictionary of attribute name-value pairs
         """
         result = {}
-        for item in peripheral_ref.attributes:
-            result[item.name] = self._convert_attribute_value(item.default)
+        
+        # Determine if we have a ComponentInstance or a Peripheral (type)
+        if hasattr(peripheral_ref, 'ref'):
+            # It's a ComponentInstance (e.g., from USE statement)
+            instance = peripheral_ref
+            type_ref = instance.ref
+            
+            # 1. Start with default values from the type definition (.hwd)
+            for item in type_ref.attributes:
+                result[item.name] = self._convert_attribute_value(item.default)
+            
+            # 2. Override with values from the instance definition (.dev)
+            for attr_set in instance.attributes:
+                result[attr_set.name] = self._convert_attribute_value(attr_set.value)
+        else:
+            # It's just the Peripheral type reference
+            for item in peripheral_ref.attributes:
+                result[item.name] = self._convert_attribute_value(item.default)
+                
         return result
 
     def get_platform_attributes(self, obj, os_name: str) -> Dict[str, Any]:
@@ -361,6 +378,118 @@ class BaseCodeGenerator(ABC):
     
 
     
+    def _build_conn_info(self, pins: Dict[str, Any], board) -> Dict[str, Any]:
+        """Build structured connection information dictionary.
+        
+        Args:
+            pins: Pin mappings dictionary
+            board: Board object
+            
+        Returns:
+            Structured connection dictionary organized by type
+        """
+        conn = {}
+        board_pins_map = {pin.name: pin for pin in board.pins}
+        
+        # GPIO connection
+        gpio_pins = {}
+        gpio_props = {}
+        for key, value in pins.items():
+            if key.endswith("_props") and "gpio" in key.lower():
+                gpio_props.update(value if isinstance(value, dict) else {})
+            elif not key.endswith("_props") and key not in ["sda", "scl", "mosi", "miso", "sck", "cs", "tx", "rx", "i2c_bus", "spi_bus", "uart_port"]:
+                # Add pin name and id
+                board_pin = board_pins_map.get(value)
+                gpio_pins[key] = {
+                    "name": value,
+                    "id": board_pin.number if board_pin else None
+                }
+        
+        if gpio_pins or gpio_props:
+            conn["gpio"] = {**gpio_props, "pins": gpio_pins}
+        
+        # I2C connection
+        if "sda" in pins or "scl" in pins:
+            i2c_pins = {}
+            i2c_props = {}
+            if "i2c_bus" in pins:
+                i2c_props["bus"] = pins["i2c_bus"]
+            
+            # Add SDA pin with id
+            if "sda" in pins:
+                board_pin = board_pins_map.get(pins["sda"])
+                i2c_pins["sda"] = {
+                    "name": pins["sda"],
+                    "id": board_pin.number if board_pin else None
+                }
+            
+            # Add SCL pin with id
+            if "scl" in pins:
+                board_pin = board_pins_map.get(pins["scl"])
+                i2c_pins["scl"] = {
+                    "name": pins["scl"],
+                    "id": board_pin.number if board_pin else None
+                }
+            
+            # Add I2C properties
+            for key, value in pins.items():
+                if "sda_props" in key or "scl_props" in key:
+                    i2c_props.update(value if isinstance(value, dict) else {})
+            conn["i2c"] = {**i2c_props, "pins": i2c_pins}
+        
+        # SPI connection
+        if "mosi" in pins or "miso" in pins or "sck" in pins:
+            spi_pins = {}
+            spi_props = {}
+            if "spi_bus" in pins:
+                spi_props["bus"] = pins["spi_bus"]
+            
+            # Add pin mappings with ids
+            for pin_name in ["mosi", "miso", "sck", "cs"]:
+                if pin_name in pins:
+                    board_pin = board_pins_map.get(pins[pin_name])
+                    spi_pins[pin_name] = {
+                        "name": pins[pin_name],
+                        "id": board_pin.number if board_pin else None
+                    }
+            
+            # Add SPI properties
+            for key, value in pins.items():
+                if any(x in key for x in ["mosi_props", "miso_props", "sck_props", "cs_props"]):
+                    spi_props.update(value if isinstance(value, dict) else {})
+            conn["spi"] = {**spi_props, "pins": spi_pins}
+        
+        # UART connection
+        if "tx" in pins or "rx" in pins:
+            uart_pins = {}
+            uart_props = {}
+            if "uart_port" in pins:
+                uart_props["port"] = pins["uart_port"]
+            
+            # Add TX pin with id
+            if "tx" in pins:
+                board_pin = board_pins_map.get(pins["tx"])
+                uart_pins["tx"] = {
+                    "name": pins["tx"],
+                    "id": board_pin.number if board_pin else None
+                }
+            
+            # Add RX pin with id
+            if "rx" in pins:
+                board_pin = board_pins_map.get(pins["rx"])
+                uart_pins["rx"] = {
+                    "name": pins["rx"],
+                    "id": board_pin.number if board_pin else None
+                }
+            
+            # Add UART properties
+            for key, value in pins.items():
+                if "tx_props" in key or "rx_props" in key:
+                    uart_props.update(value if isinstance(value, dict) else {})
+            conn["uart"] = {**uart_props, "pins": uart_pins}
+        
+        return conn
+
     # ===== Abstract Methods (Platform-Specific) =====
     
     @abstractmethod

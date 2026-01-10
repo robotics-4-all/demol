@@ -6,8 +6,8 @@ SENSOR[Proximity] HW006 WITH
         power.avg=2 mW
     PINS
         DO[gpio] @ 1,
-        VCC[5V] @ 2,
-        GND[GND] @ 3
+        vcc[5V] @ 2,
+        gnd[GND] @ 3
     TEMPLATES
         raspbian="hw006.py.j2",
         riotos="hw006.c.j2"

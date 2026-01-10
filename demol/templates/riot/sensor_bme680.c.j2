@@ -16,15 +16,15 @@ int init_sensor_{{ name }}_{{ index }}(void)
 {
     bme680_params_t params;
     params.ifsel = BME680_I2C_INTF;
-    params.intf.i2c.dev = I2C_DEV(0);
-    params.intf.i2c.addr = 0x{{ args_p.slave_address|default('77') }};
-    params.temp_os = BME680_OS_{{ args_p.temperature_oversample|default('8') }}X;
-    params.pres_os = BME680_OS_{{ args_p.pressure_oversample|default('4') }}X;
-    params.hum_os = BME680_OS_{{ args_p.humidity_oversample|default('2') }}X;
-    params.filter = BME680_FILTER_SIZE_{{ args_p.filter_size|default('3') }};
+    params.intf.i2c.dev = I2C_DEV({{ conn.i2c.bus|default(0) }});
+    params.intf.i2c.addr = 0x{{ conn.i2c.slave_address|default('77') }};
+    params.temp_os = BME680_OS_{{ attributes.temperature_oversample|default('8') }}X;
+    params.pres_os = BME680_OS_{{ attributes.pressure_oversample|default('4') }}X;
+    params.hum_os = BME680_OS_{{ attributes.humidity_oversample|default('2') }}X;
+    params.filter = BME680_FILTER_SIZE_{{ attributes.filter_size|default('3') }};
     params.gas_measure = BME680_ENABLE_GAS_MEAS;
-    params.heater_temp = {{ args_p.heater_temp|default('320') }};
-    params.heater_dur = {{ args_p.heater_duration|default('150') }};
+    params.heater_temp = {{ attributes.heater_temp|default('320') }};
+    params.heater_dur = {{ attributes.heater_duration|default('150') }};
 
     BME680_SENSOR(&{{ name }}_{{ index }}_dev).amb_temp = 25;
 

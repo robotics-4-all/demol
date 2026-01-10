@@ -90,7 +90,9 @@ class RiotCodeGenerator(BaseCodeGenerator):
         topics = []
         ids = []
         modules = {}
-        args_list = []
+        conns_info = []
+        attributes_list = []
+        op_list = []
         
         for i, conn in enumerate(connections):
             pref = conn.peripheral.ref
@@ -102,7 +104,10 @@ class RiotCodeGenerator(BaseCodeGenerator):
             peripheral_types[base_name] = type(pref).__name__.lower()
             
             # Get frequency from attributes
-            attrs = self.get_peripheral_attributes(pref)
+            attrs = self.get_peripheral_attributes(conn.peripheral)
+            attributes_list.append(attrs)
+            op_list.append(self.get_operational_attributes(pref))
+
             if "frequency" in attrs:
                 frequencies.append(attrs["frequency"])
             elif "poll_period" in attrs and attrs["poll_period"] > 0:
@@ -114,31 +119,14 @@ class RiotCodeGenerator(BaseCodeGenerator):
             ids.append(i)
             modules[i] = base_name
 
-            # Build args for this connection
-            conn_args = {}
-            conn_args.update(attrs)
+            # Build structured connection info
             pins = self.get_pin_mappings(conn, board)
-            board_pins_map = {pin.name: pin for pin in board.pins}
-            for k, v in pins.items():
-                if not k.endswith("_props"):
-                    board_pin = board_pins_map.get(v)
-                    if board_pin:
-                        conn_args[k] = board_pin.number
-                    else:
-                        conn_args[k] = v
-                else:
-                    if isinstance(v, dict):
-                        for pk, pv in v.items():
-                            if pk == "slave_address":
-                                if isinstance(pv, int):
-                                    conn_args[pk] = f"{pv:02x}"
-                                elif isinstance(pv, str) and pv.startswith("0x"):
-                                    conn_args[pk] = pv[2:]
-                                else:
-                                    conn_args[pk] = pv
-                            else:
-                                conn_args[pk] = pv
-            args_list.append(conn_args)
+            conn_info = self._build_conn_info(pins, board)
+            if "i2c" in conn_info and "slave_address" in conn_info["i2c"]:
+                addr = conn_info["i2c"]["slave_address"]
+                if isinstance(addr, int):
+                    conn_info["i2c"]["slave_address"] = f"{addr:02x}"
+            conns_info.append(conn_info)
 
         network = self.device_model.network
         wifi_ssid = getattr(network, "ssid", "")
@@ -162,7 +150,9 @@ class RiotCodeGenerator(BaseCodeGenerator):
             "frequency": frequencies,
             "topic": topics,
             "id": ids,
-            "args": args_list,
+            "conns": conns_info,
+            "attributes_list": attributes_list,
+            "op_list": op_list,
             "num_of_peripherals": len(peripheral_names),
             "broker": broker_config,
             "port": broker_config.get("port", 1883),
@@ -254,10 +244,13 @@ class RiotCodeGenerator(BaseCodeGenerator):
             context = global_context.copy()
             context.update({
                 "name": base_name,
+                "instance": conn.peripheral.name,
                 "index": i,
                 "freq": int(1000 / global_context["frequency"][i]),
                 "topic_name": global_context["topic"][i],
-                "args_p": global_context["args"][i]
+                "conn": global_context["conns"][i],
+                "attributes": global_context["attributes_list"][i],
+                "op": global_context["op_list"][i]
             })
 
             # Generate .c and .h for the sensor/actuator

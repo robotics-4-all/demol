@@ -10,14 +10,14 @@ char {{ name }}_{{ index }}_stack[THREAD_STACKSIZE_MAIN];
 
 void *{{ name }}_{{ index }}_thread(void *args);
 
-static uint8_t {{ name }}_{{ index }}_buf[{{ args_p.num_leds|default(1) }} * WS281X_BYTES_PER_DEVICE];
+static uint8_t {{ name }}_{{ index }}_buf[{{ attributes.num_leds|default(1) }} * WS281X_BYTES_PER_DEVICE];
 
 int init_actuator_{{ name }}_{{ index }}(void)
 {
     ws281x_params_t params;
     params.buf = {{ name }}_{{ index }}_buf;
-    params.numof = {{ args_p.num_leds|default(1) }};
-    params.pin = GPIO_PIN(0, {{ args_p.data_in }});
+    params.numof = {{ attributes.num_leds|default(1) }};
+    params.pin = GPIO_PIN(0, {{ conn.gpio.pins.data_in.id }});
 
     printf("Initialize {{ name|upper }} actuator ... ");
     if (ws281x_init(&{{ name }}_{{ index }}_dev, &params) != 0)

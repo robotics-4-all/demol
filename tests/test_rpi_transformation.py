@@ -157,7 +157,7 @@ def test_rpi_transformation_proximity(tmp_path):
         auth.password="pass";
         
     CONNECT LineSensor WITH
-        POWER GND -- GND_1, VCC -- power_5v_a
+        POWER gnd -- GND_1, vcc -- power_5v_a
         DATA gpio [mode="input"] DO -- GPIO17;
         
     CONNECT ObstacleSensor WITH

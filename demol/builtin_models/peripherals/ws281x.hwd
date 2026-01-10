@@ -10,7 +10,7 @@ ACTUATOR[LedArray] WS281X WITH
         vcc[5V] @ 1,
         gnd[GND] @ 2,
         data_in[gpio] @ 3,
-        data_out[gpio] @ 4
+        ?data_out[gpio] @ 4
     TEMPLATES
         raspbian="ws281x.py.j2",
         riotos="ws281x_riot.c.j2"
