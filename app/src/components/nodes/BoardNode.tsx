@@ -42,6 +42,17 @@ export const BoardNode: FC<BoardNodeProps> = ({ data, selected }) => {
                     </div>
                 </div>
 
+                {data.inputPowerPins && data.inputPowerPins.length > 0 && (
+                    <div className="node-input-power">
+                        <div className="input-power-label">Input Power:</div>
+                        <div className="input-power-pins">
+                            {data.inputPowerPins.map(pin => (
+                                <span key={pin} className="power-pin-badge">{pin}</span>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
                 <div className="node-pins">
                     <div className="pins-label">Pins: {data.pins.length}</div>
                 </div>
@@ -54,6 +65,7 @@ export const BoardNode: FC<BoardNodeProps> = ({ data, selected }) => {
                 id="power"
                 className="handle-power"
                 style={{ top: '30%' }}
+                title="Power Output"
             />
             <Handle
                 type="source"
@@ -61,6 +73,7 @@ export const BoardNode: FC<BoardNodeProps> = ({ data, selected }) => {
                 id="io"
                 className="handle-io"
                 style={{ top: '70%' }}
+                title="IO / Data"
             />
 
             {/* Connection handles (Inputs) */}
@@ -70,13 +83,7 @@ export const BoardNode: FC<BoardNodeProps> = ({ data, selected }) => {
                 id="power"
                 className="handle-power"
                 style={{ top: '30%' }}
-            />
-            <Handle
-                type="target"
-                position={Position.Left}
-                id="io"
-                className="handle-io"
-                style={{ top: '70%' }}
+                title="Power Input"
             />
         </div>
     );

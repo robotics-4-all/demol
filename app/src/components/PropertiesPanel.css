@@ -274,3 +274,17 @@
     border-color: var(--primary);
     color: white;
 }
+
+.field-hint {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 0.25rem;
+    font-style: italic;
+}
+
+input.read-only {
+    background: rgba(255, 255, 255, 0.02) !important;
+    color: var(--text-muted) !important;
+    cursor: default;
+    border-style: dashed !important;
+}

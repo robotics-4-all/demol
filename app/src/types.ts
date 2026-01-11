@@ -28,6 +28,7 @@ export interface Board {
     type: string;
     pins: Pin[];
     operational: OperationalSpecs;
+    inputPowerPins?: string[];
     raw_content?: string;
 }
 

@@ -140,6 +140,39 @@ export const PropertiesPanel: FC<PropertiesPanelProps> = ({
             </div>
 
             <div className="panel-content">
+                {selectedNode && selectedNode.type === 'board' && (
+                    <>
+                        <div className="section">
+                            <h3>General</h3>
+                            <div className="field">
+                                <label>Board Name</label>
+                                <input
+                                    type="text"
+                                    value={selectedNode.data.name}
+                                    readOnly
+                                    className="read-only"
+                                />
+                            </div>
+                        </div>
+                        <div className="section">
+                            <h3>Power Configuration</h3>
+                            <div className="field">
+                                <label>Input Power Pins (comma separated)</label>
+                                <input
+                                    type="text"
+                                    value={selectedNode.data.inputPowerPins?.join(', ') || ''}
+                                    onChange={(e) => {
+                                        const pins = e.target.value.split(',').map(s => s.trim()).filter(s => s !== '');
+                                        onUpdateNode(selectedNode.id, { ...selectedNode.data, inputPowerPins: pins });
+                                    }}
+                                    placeholder="e.g. VCC, VIN"
+                                />
+                                <p className="field-hint">Specify which pins can receive power from external sources.</p>
+                            </div>
+                        </div>
+                    </>
+                )}
+
                 {selectedNode && (selectedNode.type === 'peripheral' || selectedNode.type === 'powersource') && (
                     <>
                         <div className="section">

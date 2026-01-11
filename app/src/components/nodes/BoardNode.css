@@ -94,12 +94,49 @@
     font-weight: 500;
 }
 
+.node-input-power {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding: 0.5rem;
+    background: rgba(239, 68, 68, 0.05);
+    border-radius: 6px;
+    border: 1px dashed rgba(239, 68, 68, 0.2);
+    margin-top: 0.5rem;
+}
+
+.input-power-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--error);
+    text-transform: uppercase;
+}
+
+.input-power-pins {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+}
+
+.power-pin-badge {
+    font-size: 0.7rem;
+    padding: 0.1rem 0.4rem;
+    background: var(--error);
+    color: white;
+    border-radius: 4px;
+    font-weight: 500;
+}
+
 .handle-power {
     background: var(--error) !important;
     border-color: var(--bg-primary) !important;
+    width: 10px !important;
+    height: 10px !important;
 }
 
 .handle-io {
     background: var(--primary) !important;
     border-color: var(--bg-primary) !important;
+    width: 10px !important;
+    height: 10px !important;
 }
