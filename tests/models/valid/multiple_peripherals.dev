@@ -9,24 +9,24 @@ BROKER[MQTT] TestBroker WITH host="localhost", port=1883, auth.username="test", 
 
 CONNECT LED1 WITH
     POWER
-        GND_1 -- gnd,
-        power_3v3_a -- vcc
+        gnd -- GND_1,
+        vcc -- power_3v3_a
     DATA
-        gpio[mode="output"] GPIO17 -- vin
+        gpio[mode="output"] vin -- GPIO17
 ;
 
 CONNECT LED2 WITH
     POWER
-        GND_2 -- gnd,
-        power_3v3_b -- vcc
+        gnd -- GND_2,
+        vcc -- power_3v3_b
     DATA
-        gpio[mode="output"] GPIO18 -- vin
+        gpio[mode="output"] vin -- GPIO18
 ;
 
 CONNECT Sensor1 WITH
     POWER
-        GND_3 -- gnd,
-        power_5v_a -- vcc
+        gnd -- GND_3,
+        vcc -- power_5v_a
     DATA
-        i2c[slave_address=0x76] sda GPIO2 -- sda, scl GPIO3 -- scl
+        i2c[slave_address=0x76] sda sda -- GPIO2, scl scl -- GPIO3
 ;

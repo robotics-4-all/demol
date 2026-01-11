@@ -96,10 +96,27 @@ def check_validation_errors(model, skip_semantics=False):
 
 def get_connection_target(connection):
     """Helper to get the target object and its instance name from a connection"""
-    if hasattr(connection, '_from_inst') and connection._from_inst:
-        return connection._from_ref, connection._from_name
-    if hasattr(connection, '_to_inst') and connection._to_inst:
-        return connection._to_ref, connection._to_name
+    board = getattr(connection, 'board', None)
+    
+    from_inst = getattr(connection, '_from_inst', None)
+    from_ref = getattr(connection, '_from_ref', None)
+    from_name = getattr(connection, '_from_name', "unknown")
+    
+    to_inst = getattr(connection, '_to_inst', None)
+    to_ref = getattr(connection, '_to_ref', None)
+    to_name = getattr(connection, '_to_name', "unknown")
+    
+    # Prefer peripheral (non-board) instance
+    if from_inst and from_ref != board:
+        return from_ref, from_name
+    if to_inst and to_ref != board:
+        return to_ref, to_name
+        
+    # Fallback to from_inst if both are board or none are board
+    if from_inst:
+        return from_ref, from_name
+    if to_inst:
+        return to_ref, to_name
         
     # Fallback for older logic
     if hasattr(connection, 'target') and connection.target:
@@ -744,10 +761,14 @@ def validate_voltage_limits(model) -> None:
         if target_vcc is None:
             continue
         
+        from_ref, from_name, to_ref, to_name = get_connection_endpoints(connection)
+        is_from_board = (from_ref == model.components.board)
+
         # Check if any power connections exceed peripheral's VCC rating
         for pconn in connection.powerConns:
+            board_pin_name = pconn.fromPin if is_from_board else pconn.toPin
             board_pin = next((p for p in model.components.board.pins 
-                            if p.name == pconn.fromPin), None)
+                            if p.name == board_pin_name), None)
             if board_pin and hasattr(board_pin, 'ptype'):
                 voltage = parse_voltage(board_pin.ptype)
                 if voltage is not None and voltage > target_vcc + 0.5:
@@ -835,12 +856,18 @@ def validate_common_ground(model) -> None:
             )
             continue
         
+        from_ref, from_name, to_ref, to_name = get_connection_endpoints(connection)
+        is_from_board = (from_ref == model.components.board)
+        
         # Check if any power connection is GND
         has_gnd = False
         for pconn in connection.powerConns:
-            # Get the board pin
+            # Get the board pin name based on connection direction
+            board_pin_name = pconn.fromPin if is_from_board else pconn.toPin
+            
+            # Get the board pin object
             board_pin = next(
-                (p for p in model.components.board.pins if p.name == pconn.fromPin),
+                (p for p in model.components.board.pins if p.name == board_pin_name),
                 None
             )
             

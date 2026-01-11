@@ -12,8 +12,8 @@ BROKER[MQTT] TestBroker WITH host="localhost", port=1883, auth.username="test", 
 
 CONNECT StatusLED WITH
     POWER
-        GND_1 -- gnd,
-        power_3v3_a -- vcc
+        gnd -- GND_1,
+        vcc -- power_3v3_a
     DATA
-        gpio[mode="output"] GPIO999 -- vin
+        gpio[mode="output"] vin -- GPIO999
 ;
