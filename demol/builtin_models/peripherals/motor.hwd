@@ -20,8 +20,8 @@ ACTUATOR[DCMotor] MotorGeneric WITH
         freq.max=1000 hz
     PINS
         gnd[GND] @ 1,
-        forward[gpio] @ 2,  // The GPIO pin that the forward input of the motor driver chip is connected
-        backward[gpio] @ 3, // The GPIO pin that the backward input of the motor driver chip is connected
+        forward[pwm] @ 2,  // The GPIO pin that the forward input of the motor driver chip is connected
+        backward[pwm] @ 3, // The GPIO pin that the backward input of the motor driver chip is connected
         vcc[5V] @ 4
     TEMPLATES
         raspbian="motor.py.j2",

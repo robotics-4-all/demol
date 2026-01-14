@@ -1,0 +1,17 @@
+DEVICE TestPWM WITH description="Test PWM connection", author="test", os=raspbian;
+
+USE RaspberryPi_4B_4GB;
+USE MotorGeneric[TestMotor];
+
+NETWORK[WiFi] WITH ssid="TestWiFi", password="test123";
+
+BROKER[MQTT] TestBroker WITH host="localhost", port=1883, auth.username="test", auth.password="test", ssl=False;
+
+CONNECT TestMotor WITH
+    POWER
+        gnd -- GND_1,
+        vcc -- power_5v_a
+    DATA
+        pwm[frequency=1000, duty_cycle=50] forward -- GPIO18, backward -- GPIO19
+;
+

@@ -32,6 +32,7 @@ def model_proc(model, metamodel):
         validate_i2c_connection,
         validate_spi_connection,
         validate_uart_connection,
+        validate_pwm_connection,
         validate_no_pin_conflicts,
         validate_i2c_address_uniqueness,
         validate_voltage_limits,

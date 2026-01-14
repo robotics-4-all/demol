@@ -77,7 +77,7 @@ PinConnection:
 PowerConnection: PinConnection;
 
 DataConnection:
-    GPIOConnection | I2CConnection | SPIConnection | UARTConnection
+    GPIOConnection | I2CConnection | SPIConnection | UARTConnection | PWMConnection
 ;
 
 GPIOConnection:
@@ -94,6 +94,10 @@ SPIConnection:
 
 UARTConnection:
     type='uart' ('[' props*=AttributeSet[','] ']')? pins+=PinMapping[',']
+;
+
+PWMConnection:
+    type='pwm' ('[' props*=AttributeSet[','] ']')? pins+=PinConnection[',']
 ;
 
 PinMapping:

@@ -195,6 +195,8 @@ class BaseCodeGenerator(ABC):
                 pins.update(self._extract_spi_pins(connection, data_conn, board_pins_map))
             elif conn_type == "uart":
                 pins.update(self._extract_uart_pins(connection, data_conn, board_pins_map))
+            elif conn_type == "pwm":
+                pins.update(self._extract_pwm_pins(connection, data_conn, board_pins_map))
             else:
                 raise TypeError(f"Not a valid IO Connection Type: {conn_type}")
         
@@ -299,6 +301,33 @@ class BaseCodeGenerator(ABC):
         
         return pins
 
+    def _extract_pwm_pins(self, conn, data_conn, board_pins_map) -> Dict[str, Any]:
+        """Extract PWM pin mappings and properties."""
+        pins = {}
+        
+        # Extract PWM properties
+        pwm_props = {}
+        for prop in data_conn.props:
+            if prop.name in ["frequency", "duty_cycle", "channel"]:
+                pwm_props[prop.name] = self._convert_attribute_value(prop.value)
+        
+        # Handle pins based on peripheral pin name
+        for pin_map in data_conn.pins:
+            board_pin_name, periph_pin_name = self._get_board_and_periph_pins(conn, pin_map)
+            board_pin = board_pins_map.get(board_pin_name)
+            
+            pins[periph_pin_name] = board_pin_name
+            pins[f"{periph_pin_name}_props"] = pwm_props
+            
+            # Extract PWM channel from board pin's function definition if not in props
+            if board_pin and 'channel' not in pwm_props:
+                pwm_channel = self._get_channel_from_pin(board_pin, "pwm")
+                if pwm_channel is not None:
+                    pins["pwm_channel"] = pwm_channel
+        
+        return pins
+
+
     def _get_board_and_periph_pins(self, conn, pin_map):
         """Helper to identify which pin is the board pin and which is the peripheral pin.
         """
@@ -336,6 +365,26 @@ class BaseCodeGenerator(ABC):
                     if hasattr(func, 'bus'):
                         return func.bus
         return 0
+    
+    def _get_channel_from_pin(self, board_pin, function_type: str) -> int:
+        """Extract channel number from board pin's function definition.
+        
+        Args:
+            board_pin: Board pin object with funcs attribute
+            function_type: Type of function to look for (e.g., 'pwm')
+            
+        Returns:
+            Channel number as integer, or None if not found
+        """
+        if hasattr(board_pin, 'funcs'):
+            for func in board_pin.funcs:
+                # Check if this function matches the type we're looking for
+                if hasattr(func, 'ptype') and func.ptype == function_type:
+                    # Return the channel number from the function definition
+                    if hasattr(func, 'channel'):
+                        return func.channel
+        return None
+
     
     def _convert_dict_attribute(self, dict_attr) -> Dict[str, Any]:
         """Convert DictAttribute object to Python dictionary.
@@ -488,7 +537,38 @@ class BaseCodeGenerator(ABC):
                     uart_props.update(value if isinstance(value, dict) else {})
             conn["uart"] = {**uart_props, "pins": uart_pins}
         
+        # PWM connection
+        pwm_pins = {}
+        pwm_props = {}
+        for key, value in pins.items():
+            if key.endswith("_props") and "pwm" in key.lower():
+                pwm_props.update(value if isinstance(value, dict) else {})
+            elif not key.endswith("_props") and key not in ["sda", "scl", "mosi", "miso", "sck", "cs", "tx", "rx", "i2c_bus", "spi_bus", "uart_port", "pwm_channel"]:
+                # Check if this is a PWM pin (not already handled by other connection types)
+                if key not in gpio_pins:
+                    board_pin = board_pins_map.get(value)
+                    if board_pin:
+                        # Check if pin has PWM functionality
+                        has_pwm = False
+                        if hasattr(board_pin, 'funcs'):
+                            for func in board_pin.funcs:
+                                if hasattr(func, 'ptype') and 'pwm' in str(func.ptype).lower():
+                                    has_pwm = True
+                                    break
+                        if has_pwm:
+                            pwm_pins[key] = {
+                                "name": value,
+                                "id": board_pin.number if board_pin else None
+                            }
+        
+        if "pwm_channel" in pins:
+            pwm_props["channel"] = pins["pwm_channel"]
+        
+        if pwm_pins or pwm_props:
+            conn["pwm"] = {**pwm_props, "pins": pwm_pins}
+        
         return conn
+
 
     # ===== Abstract Methods (Platform-Specific) =====
     

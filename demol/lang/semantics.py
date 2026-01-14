@@ -592,6 +592,70 @@ def validate_uart_connection(board_tx, board_rx, peripheral_tx, peripheral_rx,
         )
 
 
+def validate_pwm_connection(board_pin, peripheral_pin, connection) -> None:
+    """
+    Validate PWM connection.
+    
+    Checks:
+    - Both pins have PWM functionality
+    - Valid PWM properties (frequency, duty_cycle)
+    """
+    # Validate properties
+    valid_props = {'frequency', 'duty_cycle', 'channel'}
+    for prop in connection.props:
+        if prop.name not in valid_props:
+            raise_validation_error(
+                connection,
+                f"[Conn-PWM] Invalid property '{prop.name}' for PWM connection. "
+                f"Valid properties are: {', '.join(valid_props)}",
+                "InvalidPropertyError"
+            )
+        
+        if prop.name == 'frequency':
+            if not isinstance(prop.value, (int, float)) or prop.value <= 0:
+                raise_validation_error(
+                    connection,
+                    f"[Conn-PWM] Property 'frequency' must be a positive number.",
+                    "InvalidValueError"
+                )
+        elif prop.name == 'duty_cycle':
+            if not isinstance(prop.value, (int, float)) or not (0 <= prop.value <= 100):
+                raise_validation_error(
+                    connection,
+                    f"[Conn-PWM] Property 'duty_cycle' must be a number between 0 and 100.",
+                    "InvalidValueError"
+                )
+        elif prop.name == 'channel':
+            if not isinstance(prop.value, int) or prop.value < 0:
+                raise_validation_error(
+                    connection,
+                    f"[Conn-PWM] Property 'channel' must be a non-negative integer.",
+                    "InvalidValueError"
+                )
+    
+    
+    # Check board pin PWM functionality
+    board_funcs = get_pin_functions(board_pin)
+    if not any('pwm' in str(f).lower() for f in board_funcs):
+        raise_validation_error(
+            connection,
+            f"[Conn-PWM] Board pin {board_pin.name} does not have PWM functionality",
+            "PWMFunctionError"
+        )
+    
+    # For PWM connections, the peripheral pin is typically a GPIO pin
+    # that will receive the PWM signal, so we don't need to check for PWM functionality
+    # on the peripheral side. We just verify it's a valid IO pin.
+    peripheral_funcs = get_pin_functions(peripheral_pin)
+    if not peripheral_funcs:
+        raise_validation_error(
+            connection,
+            f"[Conn-PWM] Peripheral pin {peripheral_pin.name} is not a valid IO pin",
+            "PWMFunctionError"
+        )
+
+
+
 # ============================================================================
 # Safety Properties
 # ============================================================================
@@ -665,6 +729,10 @@ def validate_no_pin_conflicts(model) -> None:
                         used_pins.append((board_pin, 'UART-TX'))
                     elif pin_map.function == 'rx':
                         used_pins.append((board_pin, 'UART-RX'))
+                elif conn_type == 'pwm':
+                    # PWM uses PinConnection (no function attribute)
+                    used_pins.append((board_pin, 'PWM'))
+
         
         # Check for conflicts
         for pin, usage in used_pins:
@@ -1403,6 +1471,22 @@ def validate_connections(model) -> None:
                     # Peripheral to Peripheral? Not supported by validate_uart_connection yet
                     # Or treat source as board?
                     pass
+            
+            elif conn_type == 'pwm':
+                pin_conn = data_conn.pins[0]  # Assuming single pin for PWM for now
+                
+                # Enhanced validation: Check PWM functionality
+                source_pin = data_source_pins_map[pin_conn.fromPin]
+                sink_pin = data_sink_pins_map[pin_conn.toPin]
+                
+                # Determine which pin is the board pin
+                if is_from_board:
+                    validate_pwm_connection(source_pin, sink_pin, data_conn)
+                elif is_to_board:
+                    validate_pwm_connection(sink_pin, source_pin, data_conn)
+                else:
+                    # Peripheral to Peripheral - treat source as board
+                    validate_pwm_connection(source_pin, sink_pin, data_conn)
 
 
 def validate_unique_peripheral_names(model) -> None:

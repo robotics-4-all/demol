@@ -9,7 +9,7 @@ ACTUATOR[Led] LedGeneric WITH
         freq.max=1000 hz
     PINS
         gnd[GND] @ 1,
-        vin[gpio] @ 2,
+        vin[pwm,gpio] @ 2,
         vcc[3V3] @ 3
     TEMPLATES
         raspbian="led.py.j2",
