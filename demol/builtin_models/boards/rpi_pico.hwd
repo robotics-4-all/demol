@@ -55,7 +55,6 @@ BOARD[ARDUINO] RPiPico WITH
         VSYS[5V] @ 39,
         VBUS[5V] @ 40
     PLATFORMS
-        riotos {
-            board = "rpi-pico"
-        }
+        riotos.board = "rpi-pico"
+
 ;

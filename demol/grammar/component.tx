@@ -308,8 +308,10 @@ TemplateMapping:
 ;
 
 PlatformMapping:
-    os=OperatingSystem '{'
-        attributes*=AttributeSet[',']
-    '}'
+    os=OperatingSystem (
+        '{' attributes*=AttributeSet[','] '}' |
+        '.' attributes+=AttributeSet
+    )
 ;
+
 

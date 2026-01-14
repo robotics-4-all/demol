@@ -35,7 +35,6 @@ BOARD[ESP] WemosD1Mini WITH
         gnd[GND] @ 15,
         power_5v[5V] @ 16
     PLATFORMS
-        riotos {
-            board = "esp8266-esp-12x"
-        }
+        riotos.board = "esp8266-esp-12x"
+
 ;

@@ -58,7 +58,6 @@ BOARD[ESP] ESP32Wroom32 WITH
         GPIO7[gpio] @ 37,
         GPIO6[gpio] @ 38
     PLATFORMS
-        riotos {
-            board = "esp32-wroom-32"
-        }
+        riotos.board = "esp32-wroom-32"
+
 ;
