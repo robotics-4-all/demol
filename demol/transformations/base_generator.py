@@ -6,8 +6,7 @@ This module provides a base class that all platform-specific code generators
 
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Dict, Any, List
-import warnings
+from typing import Any, Dict, List, Optional
 import logging
 
 import jinja2
@@ -17,15 +16,15 @@ logger = logging.getLogger(__name__)
 
 class BaseCodeGenerator(ABC):
     """Abstract base class for code generators with direct model access.
-    
+
     This class provides common functionality for querying textX device models
     and extracting information needed for code generation. Platform-specific
     generators should inherit from this class and implement the abstract methods.
     """
-    
+
     def __init__(self, device_model, output_dir: Path):
         """Initialize generator with device model and output directory.
-        
+
         Args:
             device_model: Parsed textX device model
             output_dir: Directory where generated code will be written
@@ -33,25 +32,25 @@ class BaseCodeGenerator(ABC):
         self.device_model = device_model
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
-    
+
     # ===== Common Model Query Methods =====
-    
+
     def get_broker_config(self) -> Dict[str, Any]:
         """Query broker configuration from device model.
-        
+
         Returns:
             Dictionary containing broker configuration (host, port, ssl, auth)
-            
+
         Raises:
             TypeError: If broker is not an MQTTBroker
         """
         broker = self.device_model.broker
-        
+
         if type(broker).__name__ != "MQTTBroker":
             raise TypeError(
                 "This transformation does not support other Broker types than MQTTBroker."
             )
-        
+
         config = {
             "host": broker.host,
             "port": broker.port,
@@ -59,10 +58,10 @@ class BaseCodeGenerator(ABC):
             "username": "",
             "password": "",
         }
-        
+
         # Extract authentication
         auth_type = type(broker.auth).__name__
-        
+
         if auth_type == "AuthPlain":
             config["username"] = getattr(broker.auth, "username", "")
             config["password"] = getattr(broker.auth, "password", "")
@@ -71,46 +70,46 @@ class BaseCodeGenerator(ABC):
                 "This transformation uses commlib-py library and only supports "
                 "plain authentication for MQTTBroker."
             )
-        
+
         return config
-    
+
     def get_board(self):
         """Query board from device model.
-        
+
         Returns:
             Board object from the model
         """
         return self.device_model.components.board
-    
-    def get_connections(self) -> List:
+
+    def get_connections(self) -> List[Any]:
         """Query all peripheral connections from device model.
-        
+
         Returns:
             List of connection objects
         """
-        return self.device_model.connections
-    
+        return list(self.device_model.connections)
+
     def get_peripheral_attributes(self, peripheral_ref) -> Dict[str, Any]:
         """Extract attributes from peripheral definition and instance.
-        
+
         Args:
             peripheral_ref: Reference to peripheral object (type) or ComponentInstance
-            
+
         Returns:
             Dictionary of attribute name-value pairs
         """
         result = {}
-        
+
         # Determine if we have a ComponentInstance or a Peripheral (type)
-        if hasattr(peripheral_ref, 'ref'):
+        if hasattr(peripheral_ref, "ref"):
             # It's a ComponentInstance (e.g., from USE statement)
             instance = peripheral_ref
             type_ref = instance.ref
-            
+
             # 1. Start with default values from the type definition (.hwd)
             for item in type_ref.attributes:
                 result[item.name] = self._convert_attribute_value(item.default)
-            
+
             # 2. Override with values from the instance definition (.dev)
             for attr_set in instance.attributes:
                 result[attr_set.name] = self._convert_attribute_value(attr_set.value)
@@ -118,21 +117,21 @@ class BaseCodeGenerator(ABC):
             # It's just the Peripheral type reference
             for item in peripheral_ref.attributes:
                 result[item.name] = self._convert_attribute_value(item.default)
-                
+
         return result
 
     def get_platform_attributes(self, obj, os_name: str) -> Dict[str, Any]:
         """Extract platform-specific attributes for a given OS.
-        
+
         Args:
             obj: Object with platforms attribute (e.g., Board)
             os_name: Name of the operating system (e.g., 'riotos', 'raspbian')
-            
+
         Returns:
             Dictionary of attribute name-value pairs
         """
         result = {}
-        if hasattr(obj, 'platforms') and obj.platforms:
+        if hasattr(obj, "platforms") and obj.platforms:
             for platform in obj.platforms:
                 if platform.os == os_name:
                     for attr in platform.attributes:
@@ -142,10 +141,10 @@ class BaseCodeGenerator(ABC):
 
     def get_operational_attributes(self, peripheral_ref) -> Dict[str, Any]:
         """Extract operational attributes from peripheral definition.
-        
+
         Args:
             peripheral_ref: Reference to peripheral object with operational block
-            
+
         Returns:
             Dictionary of operational attribute name-value pairs
         """
@@ -154,7 +153,7 @@ class BaseCodeGenerator(ABC):
             "vcc": op.vcc,
             "ioVcc": getattr(op, "iovcc", op.vcc),
         }
-        
+
         # Add power consumption if present
         if hasattr(op, "min") and op.min:
             result["power_min"] = {"value": op.min.value, "unit": op.min.unit}
@@ -162,80 +161,94 @@ class BaseCodeGenerator(ABC):
             result["power_max"] = {"value": op.max.value, "unit": op.max.unit}
         if hasattr(op, "avg") and op.avg:
             result["power_avg"] = {"value": op.avg.value, "unit": op.avg.unit}
-            
+
         # Add frequency if present
         if hasattr(op, "freq_max") and op.freq_max:
             result["freq_max"] = {"value": op.freq_max.value, "unit": op.freq_max.unit}
-            
+
         return result
-    
+
     def get_pin_mappings(self, connection, board) -> Dict[str, Any]:
         """Extract pin mappings from data connections.
-        
+
         Args:
             connection: Connection object
             board: Board object for pin lookups
-            
+
         Returns:
             Dictionary containing pin mappings and properties by connection type
         """
         pins = {}
         board_pins_map = {pin.name: pin for pin in board.pins}
-        
-        data_connections = connection.dataConns if hasattr(connection, 'dataConns') else connection
-        
+
+        data_connections = (
+            connection.dataConns if hasattr(connection, "dataConns") else connection
+        )
+
         for data_conn in data_connections:
             conn_type = data_conn.type
-            
+
             if conn_type == "gpio":
-                pins.update(self._extract_gpio_pins(connection, data_conn, board_pins_map))
+                pins.update(
+                    self._extract_gpio_pins(connection, data_conn, board_pins_map)
+                )
             elif conn_type == "i2c":
-                pins.update(self._extract_i2c_pins(connection, data_conn, board_pins_map))
+                pins.update(
+                    self._extract_i2c_pins(connection, data_conn, board_pins_map)
+                )
             elif conn_type == "spi":
-                pins.update(self._extract_spi_pins(connection, data_conn, board_pins_map))
+                pins.update(
+                    self._extract_spi_pins(connection, data_conn, board_pins_map)
+                )
             elif conn_type == "uart":
-                pins.update(self._extract_uart_pins(connection, data_conn, board_pins_map))
+                pins.update(
+                    self._extract_uart_pins(connection, data_conn, board_pins_map)
+                )
             elif conn_type == "pwm":
-                pins.update(self._extract_pwm_pins(connection, data_conn, board_pins_map))
+                pins.update(
+                    self._extract_pwm_pins(connection, data_conn, board_pins_map)
+                )
             else:
                 raise TypeError(f"Not a valid IO Connection Type: {conn_type}")
-        
+
         return pins
-    
+
     # ===== Helper Methods for Pin Extraction =====
-    
+
     def _extract_gpio_pins(self, conn, data_conn, board_pins_map) -> Dict[str, Any]:
         """Extract GPIO pin mappings and properties."""
         pins = {}
-        
+
         # Extract GPIO properties
         gpio_props = {}
         for prop in data_conn.props:
             if prop.name in ["mode", "pullup", "pulldown"]:
                 gpio_props[prop.name] = self._convert_attribute_value(prop.value)
-        
+
         # Handle pins based on peripheral pin name
         for pin_map in data_conn.pins:
             board_pin, periph_pin = self._get_board_and_periph_pins(conn, pin_map)
             pins[periph_pin] = board_pin
             pins[f"{periph_pin}_props"] = gpio_props
-        
+
         return pins
-    
+
     def _extract_i2c_pins(self, conn, data_conn, board_pins_map) -> Dict[str, Any]:
         """Extract I2C pin mappings, bus info, and properties."""
         pins = {}
-        
+
         # Extract I2C properties
         i2c_props = {}
         for prop in data_conn.props:
             if prop.name in ["slave_address", "bus_speed"]:
                 i2c_props[prop.name] = self._convert_attribute_value(prop.value)
-        
+
         for pin_map in data_conn.pins:
-            board_pin_name, periph_pin_name = self._get_board_and_periph_pins(conn, pin_map)
+            board_pin_name, periph_pin_name = self._get_board_and_periph_pins(
+                conn, pin_map
+            )
             board_pin = board_pins_map.get(board_pin_name)
-            
+
             if pin_map.function == "sda":
                 pins["sda"] = board_pin_name
                 # Extract I2C bus from board pin's function definition
@@ -244,23 +257,25 @@ class BaseCodeGenerator(ABC):
             elif pin_map.function == "scl":
                 pins["scl"] = board_pin_name
             pins[f"{pin_map.function}_props"] = i2c_props
-        
+
         return pins
-    
+
     def _extract_spi_pins(self, conn, data_conn, board_pins_map) -> Dict[str, Any]:
         """Extract SPI pin mappings, bus info, and properties."""
         pins = {}
-        
+
         # Extract SPI properties
         spi_props = {}
         for prop in data_conn.props:
             if prop.name in ["bus_speed", "mode"]:
                 spi_props[prop.name] = self._convert_attribute_value(prop.value)
-        
+
         for pin_map in data_conn.pins:
-            board_pin_name, periph_pin_name = self._get_board_and_periph_pins(conn, pin_map)
+            board_pin_name, periph_pin_name = self._get_board_and_periph_pins(
+                conn, pin_map
+            )
             board_pin = board_pins_map.get(board_pin_name)
-            
+
             if pin_map.function == "mosi":
                 pins["mosi"] = board_pin_name
                 # Extract SPI bus from board pin's function definition
@@ -273,23 +288,25 @@ class BaseCodeGenerator(ABC):
             elif pin_map.function == "cs":
                 pins["cs"] = board_pin_name
             pins[f"{pin_map.function}_props"] = spi_props
-        
+
         return pins
-    
+
     def _extract_uart_pins(self, conn, data_conn, board_pins_map) -> Dict[str, Any]:
         """Extract UART pin mappings, port info, and properties."""
         pins = {}
-        
+
         # Extract UART properties
         uart_props = {}
         for prop in data_conn.props:
             if prop.name in ["baudrate", "parity", "stop_bits", "data_bits"]:
                 uart_props[prop.name] = self._convert_attribute_value(prop.value)
-        
+
         for pin_map in data_conn.pins:
-            board_pin_name, periph_pin_name = self._get_board_and_periph_pins(conn, pin_map)
+            board_pin_name, periph_pin_name = self._get_board_and_periph_pins(
+                conn, pin_map
+            )
             board_pin = board_pins_map.get(board_pin_name)
-            
+
             if pin_map.function == "tx":
                 pins["tx"] = board_pin_name
                 # Extract UART port from board pin's function definition
@@ -298,100 +315,99 @@ class BaseCodeGenerator(ABC):
             elif pin_map.function == "rx":
                 pins["rx"] = board_pin_name
             pins[f"{pin_map.function}_props"] = uart_props
-        
+
         return pins
 
     def _extract_pwm_pins(self, conn, data_conn, board_pins_map) -> Dict[str, Any]:
         """Extract PWM pin mappings and properties."""
         pins = {}
-        
+
         # Extract PWM properties
         pwm_props = {}
         for prop in data_conn.props:
             if prop.name in ["frequency", "duty_cycle", "channel"]:
                 pwm_props[prop.name] = self._convert_attribute_value(prop.value)
-        
+
         # Handle pins based on peripheral pin name
         for pin_map in data_conn.pins:
-            board_pin_name, periph_pin_name = self._get_board_and_periph_pins(conn, pin_map)
+            board_pin_name, periph_pin_name = self._get_board_and_periph_pins(
+                conn, pin_map
+            )
             board_pin = board_pins_map.get(board_pin_name)
-            
+
             pins[periph_pin_name] = board_pin_name
             pins[f"{periph_pin_name}_props"] = pwm_props
-            
+
             # Extract PWM channel from board pin's function definition if not in props
-            if board_pin and 'channel' not in pwm_props:
+            if board_pin and "channel" not in pwm_props:
                 pwm_channel = self._get_channel_from_pin(board_pin, "pwm")
                 if pwm_channel is not None:
                     pins["pwm_channel"] = pwm_channel
-        
+
         return pins
 
-
     def _get_board_and_periph_pins(self, conn, pin_map):
-        """Helper to identify which pin is the board pin and which is the peripheral pin.
-        """
+        """Helper to identify which pin is the board pin and which is the peripheral pin."""
         from_comp = conn.from_comp
-        to_comp = conn.to_comp
-        
+        _ = conn.to_comp
+
         # Check if from_comp is the board
         is_from_board = False
-        if hasattr(from_comp, 'ref'):
-            if type(from_comp.ref).__name__ == 'BoardDef':
+        if hasattr(from_comp, "ref"):
+            if type(from_comp.ref).__name__ == "BoardDef":
                 is_from_board = True
-        elif type(from_comp).__name__ == 'BoardDef':
+        elif type(from_comp).__name__ == "BoardDef":
             is_from_board = True
-            
+
         if is_from_board:
             return pin_map.fromPin, pin_map.toPin
         else:
             return pin_map.toPin, pin_map.fromPin
-    
+
     def _get_bus_from_pin(self, board_pin, function_type: str) -> int:
         """Extract bus/port number from board pin's function definition.
-        
+
         Args:
             board_pin: Board pin object with funcs attribute
             function_type: Type of function to look for (e.g., 'sda', 'mosi', 'tx')
-            
+
         Returns:
             Bus/port number as integer, defaults to 0 if not found
         """
-        if hasattr(board_pin, 'funcs'):
+        if hasattr(board_pin, "funcs"):
             for func in board_pin.funcs:
                 # Check if this function matches the type we're looking for
-                if hasattr(func, 'ptype') and func.ptype == function_type:
+                if hasattr(func, "ptype") and func.ptype == function_type:
                     # Return the bus number from the function definition
-                    if hasattr(func, 'bus'):
-                        return func.bus
+                    if hasattr(func, "bus"):
+                        return int(func.bus)
         return 0
-    
-    def _get_channel_from_pin(self, board_pin, function_type: str) -> int:
+
+    def _get_channel_from_pin(self, board_pin, function_type: str) -> Optional[int]:
         """Extract channel number from board pin's function definition.
-        
+
         Args:
             board_pin: Board pin object with funcs attribute
             function_type: Type of function to look for (e.g., 'pwm')
-            
+
         Returns:
             Channel number as integer, or None if not found
         """
-        if hasattr(board_pin, 'funcs'):
+        if hasattr(board_pin, "funcs"):
             for func in board_pin.funcs:
                 # Check if this function matches the type we're looking for
-                if hasattr(func, 'ptype') and func.ptype == function_type:
+                if hasattr(func, "ptype") and func.ptype == function_type:
                     # Return the channel number from the function definition
-                    if hasattr(func, 'channel'):
-                        return func.channel
+                    if hasattr(func, "channel"):
+                        return int(func.channel)
         return None
 
-    
     def _convert_dict_attribute(self, dict_attr) -> Dict[str, Any]:
         """Convert DictAttribute object to Python dictionary.
-        
+
         Args:
             dict_attr: DictAttribute object from model
-            
+
         Returns:
             Python dictionary with attribute values
         """
@@ -399,13 +415,13 @@ class BaseCodeGenerator(ABC):
         for item in dict_attr.items:
             result[item.key] = item.value
         return result
-    
+
     def _convert_attribute_value(self, value) -> Any:
         """Convert AttributeValue to Python object.
-        
+
         Args:
             value: AttributeValue object from model
-            
+
         Returns:
             Python object (list, dict, or primitive)
         """
@@ -413,178 +429,212 @@ class BaseCodeGenerator(ABC):
         if v_type == "ListValue":
             return [self._convert_attribute_value(v) for v in value.items]
         elif v_type == "DictValue":
-            return {item.key: self._convert_attribute_value(item.value) for item in value.items}
+            return {
+                item.key: self._convert_attribute_value(item.value)
+                for item in value.items
+            }
         elif v_type == "AttributeSet":
-             return {attr.name: self._convert_attribute_value(attr.value) for attr in value.attributes}
+            return {
+                attr.name: self._convert_attribute_value(attr.value)
+                for attr in value.attributes
+            }
         else:
             # VALUE (HEX, NUMBER, STRING, BOOL)
-            if isinstance(value, str) and value.lower().startswith('0x'):
+            if isinstance(value, str) and value.lower().startswith("0x"):
                 try:
                     return int(value, 16)
                 except ValueError:
                     return value
             return value
-    
 
-    
     def _build_conn_info(self, pins: Dict[str, Any], board) -> Dict[str, Any]:
         """Build structured connection information dictionary.
-        
+
         Args:
             pins: Pin mappings dictionary
             board: Board object
-            
+
         Returns:
             Structured connection dictionary organized by type
         """
         conn = {}
         board_pins_map = {pin.name: pin for pin in board.pins}
-        
+
         # GPIO connection
         gpio_pins = {}
         gpio_props = {}
         for key, value in pins.items():
             if key.endswith("_props") and "gpio" in key.lower():
                 gpio_props.update(value if isinstance(value, dict) else {})
-            elif not key.endswith("_props") and key not in ["sda", "scl", "mosi", "miso", "sck", "cs", "tx", "rx", "i2c_bus", "spi_bus", "uart_port"]:
+            elif not key.endswith("_props") and key not in [
+                "sda",
+                "scl",
+                "mosi",
+                "miso",
+                "sck",
+                "cs",
+                "tx",
+                "rx",
+                "i2c_bus",
+                "spi_bus",
+                "uart_port",
+            ]:
                 # Add pin name and id
                 board_pin = board_pins_map.get(value)
                 gpio_pins[key] = {
                     "name": value,
-                    "id": board_pin.number if board_pin else None
+                    "id": board_pin.number if board_pin else None,
                 }
-        
+
         if gpio_pins or gpio_props:
             conn["gpio"] = {**gpio_props, "pins": gpio_pins}
-        
+
         # I2C connection
         if "sda" in pins or "scl" in pins:
             i2c_pins = {}
             i2c_props = {}
             if "i2c_bus" in pins:
                 i2c_props["bus"] = pins["i2c_bus"]
-            
+
             # Add SDA pin with id
             if "sda" in pins:
                 board_pin = board_pins_map.get(pins["sda"])
                 i2c_pins["sda"] = {
                     "name": pins["sda"],
-                    "id": board_pin.number if board_pin else None
+                    "id": board_pin.number if board_pin else None,
                 }
-            
+
             # Add SCL pin with id
             if "scl" in pins:
                 board_pin = board_pins_map.get(pins["scl"])
                 i2c_pins["scl"] = {
                     "name": pins["scl"],
-                    "id": board_pin.number if board_pin else None
+                    "id": board_pin.number if board_pin else None,
                 }
-            
+
             # Add I2C properties
             for key, value in pins.items():
                 if "sda_props" in key or "scl_props" in key:
                     i2c_props.update(value if isinstance(value, dict) else {})
             conn["i2c"] = {**i2c_props, "pins": i2c_pins}
-        
+
         # SPI connection
         if "mosi" in pins or "miso" in pins or "sck" in pins:
             spi_pins = {}
             spi_props = {}
             if "spi_bus" in pins:
                 spi_props["bus"] = pins["spi_bus"]
-            
+
             # Add pin mappings with ids
             for pin_name in ["mosi", "miso", "sck", "cs"]:
                 if pin_name in pins:
                     board_pin = board_pins_map.get(pins[pin_name])
                     spi_pins[pin_name] = {
                         "name": pins[pin_name],
-                        "id": board_pin.number if board_pin else None
+                        "id": board_pin.number if board_pin else None,
                     }
-            
+
             # Add SPI properties
             for key, value in pins.items():
-                if any(x in key for x in ["mosi_props", "miso_props", "sck_props", "cs_props"]):
+                if any(
+                    x in key
+                    for x in ["mosi_props", "miso_props", "sck_props", "cs_props"]
+                ):
                     spi_props.update(value if isinstance(value, dict) else {})
             conn["spi"] = {**spi_props, "pins": spi_pins}
-        
+
         # UART connection
         if "tx" in pins or "rx" in pins:
             uart_pins = {}
             uart_props = {}
             if "uart_port" in pins:
                 uart_props["port"] = pins["uart_port"]
-            
+
             # Add TX pin with id
             if "tx" in pins:
                 board_pin = board_pins_map.get(pins["tx"])
                 uart_pins["tx"] = {
                     "name": pins["tx"],
-                    "id": board_pin.number if board_pin else None
+                    "id": board_pin.number if board_pin else None,
                 }
-            
+
             # Add RX pin with id
             if "rx" in pins:
                 board_pin = board_pins_map.get(pins["rx"])
                 uart_pins["rx"] = {
                     "name": pins["rx"],
-                    "id": board_pin.number if board_pin else None
+                    "id": board_pin.number if board_pin else None,
                 }
-            
+
             # Add UART properties
             for key, value in pins.items():
                 if "tx_props" in key or "rx_props" in key:
                     uart_props.update(value if isinstance(value, dict) else {})
             conn["uart"] = {**uart_props, "pins": uart_pins}
-        
+
         # PWM connection
         pwm_pins = {}
         pwm_props = {}
         for key, value in pins.items():
             if key.endswith("_props") and "pwm" in key.lower():
                 pwm_props.update(value if isinstance(value, dict) else {})
-            elif not key.endswith("_props") and key not in ["sda", "scl", "mosi", "miso", "sck", "cs", "tx", "rx", "i2c_bus", "spi_bus", "uart_port", "pwm_channel"]:
+            elif not key.endswith("_props") and key not in [
+                "sda",
+                "scl",
+                "mosi",
+                "miso",
+                "sck",
+                "cs",
+                "tx",
+                "rx",
+                "i2c_bus",
+                "spi_bus",
+                "uart_port",
+                "pwm_channel",
+            ]:
                 # Check if this is a PWM pin (not already handled by other connection types)
                 if key not in gpio_pins:
                     board_pin = board_pins_map.get(value)
                     if board_pin:
                         # Check if pin has PWM functionality
                         has_pwm = False
-                        if hasattr(board_pin, 'funcs'):
+                        if hasattr(board_pin, "funcs"):
                             for func in board_pin.funcs:
-                                if hasattr(func, 'ptype') and 'pwm' in str(func.ptype).lower():
+                                if (
+                                    hasattr(func, "ptype")
+                                    and "pwm" in str(func.ptype).lower()
+                                ):
                                     has_pwm = True
                                     break
                         if has_pwm:
                             pwm_pins[key] = {
                                 "name": value,
-                                "id": board_pin.number if board_pin else None
+                                "id": board_pin.number if board_pin else None,
                             }
-        
+
         if "pwm_channel" in pins:
             pwm_props["channel"] = pins["pwm_channel"]
-        
+
         if pwm_pins or pwm_props:
             conn["pwm"] = {**pwm_props, "pins": pwm_pins}
-        
+
         return conn
 
-
     # ===== Abstract Methods (Platform-Specific) =====
-    
+
     @abstractmethod
     def generate(self) -> None:
         """Generate code for target platform.
-        
+
         This method should orchestrate the entire code generation process,
         calling other generation methods as needed.
         """
         pass
-    
+
     @abstractmethod
     def setup_template_environment(self) -> jinja2.Environment:
         """Setup Jinja2 environment with platform-specific templates.
-        
+
         Returns:
             Configured Jinja2 Environment object
         """

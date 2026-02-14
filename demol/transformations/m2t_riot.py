@@ -12,8 +12,7 @@ from typing import Dict, Any, List, Optional
 
 import jinja2
 
-from demol.definitions import TEMPLATES, REPO_PATH
-from demol.lang import build_model
+from demol.definitions import TEMPLATES
 from .base_generator import BaseCodeGenerator
 
 # Configure logging
@@ -23,67 +22,67 @@ logger = logging.getLogger(__name__)
 
 class PeripheralTemplateMapper:
     """Maps peripheral types to their corresponding Jinja2 templates for RiotOS."""
-    
+
     @classmethod
     def get_template_base(cls, peripheral_ref) -> Optional[str]:
         """Get template base name for a peripheral.
-        
+
         Example: if riotos="bme680.c.j2", returns "bme680".
         """
-        if hasattr(peripheral_ref, 'templates') and peripheral_ref.templates:
+        if hasattr(peripheral_ref, "templates") and peripheral_ref.templates:
             for template_mapping in peripheral_ref.templates:
-                if template_mapping.os == 'riotos':
-                    tmpl = template_mapping.template
+                if template_mapping.os == "riotos":
+                    tmpl: str = str(template_mapping.template)
                     # Strip .c.j2 or .j2
                     base = tmpl
                     if tmpl.endswith(".c.j2"):
                         base = tmpl[:-5]
                     elif tmpl.endswith(".j2"):
                         base = tmpl[:-3]
-                    
+
                     # Strip _riot suffix if present
                     if base.endswith("_riot"):
                         base = base[:-5]
                     return base
-        
+
         # Fallback based on type
         peripheral_type = type(peripheral_ref).__name__
         if peripheral_type == "Sensor":
             return "unsupported_sensor"
         elif peripheral_type == "Actuator":
             return "unsupported_actuator"
-            
+
         return None
 
 
 class RiotCodeGenerator(BaseCodeGenerator):
     """Generates RiotOS C code from device model."""
-    
+
     def __init__(self, device_model, output_dir: Path):
         """Initialize code generator with device model.
-        
+
         Args:
             device_model: Parsed textX device model
             output_dir: Output directory for generated code
         """
         super().__init__(device_model, output_dir)
         self.env = self.setup_template_environment()
-    
+
     def setup_template_environment(self) -> jinja2.Environment:
         """Setup Jinja2 environment with RiotOS-specific templates.
-        
+
         Returns:
             Configured Jinja2 Environment
         """
         fsloader = jinja2.FileSystemLoader(TEMPLATES)
         return jinja2.Environment(loader=fsloader)
-    
+
     def build_global_context(self) -> Dict[str, Any]:
         """Build global context for main.c and Makefile."""
         connections = self.get_connections()
         board = self.get_board()
         broker_config = self.get_broker_config()
-        
+
         peripheral_names = {}
         peripheral_types = {}
         frequencies = []
@@ -93,16 +92,16 @@ class RiotCodeGenerator(BaseCodeGenerator):
         conns_info = []
         attributes_list = []
         op_list = []
-        
+
         for i, conn in enumerate(connections):
             pref = conn.peripheral.ref
             base_name = PeripheralTemplateMapper.get_template_base(pref)
             if not base_name:
                 continue
-                
+
             peripheral_names[i] = base_name
             peripheral_types[base_name] = type(pref).__name__.lower()
-            
+
             # Get frequency from attributes
             attrs = self.get_peripheral_attributes(conn.peripheral)
             attributes_list.append(attrs)
@@ -114,8 +113,10 @@ class RiotCodeGenerator(BaseCodeGenerator):
                 frequencies.append(1.0 / attrs["poll_period"])
             else:
                 frequencies.append(1.0)
-                
-            topics.append(conn.remote if conn.remote else f"device/{conn.peripheral.name}")
+
+            topics.append(
+                conn.remote if conn.remote else f"device/{conn.peripheral.name}"
+            )
             ids.append(i)
             modules[i] = base_name
 
@@ -134,7 +135,7 @@ class RiotCodeGenerator(BaseCodeGenerator):
 
         # Board name mapping for RiotOS
         board_name = board.name.lower()
-        platform_attrs = self.get_platform_attributes(board, 'riotos')
+        platform_attrs = self.get_platform_attributes(board, "riotos")
         if "board" in platform_attrs:
             board_name = platform_attrs["board"]
         elif board_name == "esp32wroom32":
@@ -169,11 +170,11 @@ class RiotCodeGenerator(BaseCodeGenerator):
 
     def get_peripheral_counts(self) -> Dict[str, int]:
         """Count occurrences of each peripheral type.
-        
+
         Returns:
             Dictionary mapping peripheral base name to count.
         """
-        counts = {}
+        counts: dict = {}
         for connection in self.get_connections():
             pref = connection.peripheral.ref
             base_name = PeripheralTemplateMapper.get_template_base(pref)
@@ -183,16 +184,16 @@ class RiotCodeGenerator(BaseCodeGenerator):
 
     def get_dependencies(self) -> List[str]:
         """Collect RIOT dependencies from all used peripherals.
-        
+
         Returns:
             List of RIOT module names.
         """
         riot_deps = set()
         for connection in self.get_connections():
             peripheral_ref = connection.peripheral.ref
-            if hasattr(peripheral_ref, 'dependencies'):
+            if hasattr(peripheral_ref, "dependencies"):
                 for dep_mapping in peripheral_ref.dependencies:
-                    if dep_mapping.target == 'riotos':
+                    if dep_mapping.target == "riotos":
                         for item in dep_mapping.items:
                             if isinstance(item, str):
                                 riot_deps.add(item)
@@ -205,53 +206,63 @@ class RiotCodeGenerator(BaseCodeGenerator):
         """Generate all RiotOS code."""
         logger.info("Generating RiotOS code...")
         global_context = self.build_global_context()
-        
+
         # Generate main.c
         template = self.env.get_template("main.c.j2")
         self._write_template(template, global_context, self.output_dir / "main.c")
-        
+
         # Generate Makefile
         template = self.env.get_template("Makefile.j2")
         self._write_template(template, global_context, self.output_dir / "Makefile")
 
         # Generate MQTT broker files
         template = self.env.get_template("mqtt_broker.c.j2")
-        self._write_template(template, global_context, self.output_dir / "mqtt_broker.c")
+        self._write_template(
+            template, global_context, self.output_dir / "mqtt_broker.c"
+        )
         template = self.env.get_template("mqtt_broker.h.j2")
-        self._write_template(template, global_context, self.output_dir / "mqtt_broker.h")
+        self._write_template(
+            template, global_context, self.output_dir / "mqtt_broker.h"
+        )
 
         # Generate JSON handler files
         template = self.env.get_template("json_handler.c.j2")
-        self._write_template(template, global_context, self.output_dir / "json_handler.c")
+        self._write_template(
+            template, global_context, self.output_dir / "json_handler.c"
+        )
         template = self.env.get_template("json_handler.h.j2")
-        self._write_template(template, global_context, self.output_dir / "json_handler.h")
-        
+        self._write_template(
+            template, global_context, self.output_dir / "json_handler.h"
+        )
+
         # Generate build script
         template = self.env.get_template("build_docker.sh.j2")
         script_path = self.output_dir / "build_docker.sh"
         self._write_template(template, global_context, script_path)
         # Make script executable
         os.chmod(script_path, 0o755)
-        
+
         # Generate peripheral drivers
         for i, conn in enumerate(self.get_connections()):
             pref = conn.peripheral.ref
             base_name = PeripheralTemplateMapper.get_template_base(pref)
             if not base_name:
                 continue
-            
+
             # Build context for this specific peripheral
             context = global_context.copy()
-            context.update({
-                "name": base_name,
-                "instance": conn.peripheral.name,
-                "index": i,
-                "freq": int(1000 / global_context["frequency"][i]),
-                "topic_name": global_context["topic"][i],
-                "conn": global_context["conns"][i],
-                "attributes": global_context["attributes_list"][i],
-                "op": global_context["op_list"][i]
-            })
+            context.update(
+                {
+                    "name": base_name,
+                    "instance": conn.peripheral.name,
+                    "index": i,
+                    "freq": int(1000 / global_context["frequency"][i]),
+                    "topic_name": global_context["topic"][i],
+                    "conn": global_context["conns"][i],
+                    "attributes": global_context["attributes_list"][i],
+                    "op": global_context["op_list"][i],
+                }
+            )
 
             # Generate .c and .h for the sensor/actuator
             # We look for sensor_<base_name>.c.j2 or actuator_<base_name>.c.j2
@@ -259,10 +270,16 @@ class RiotCodeGenerator(BaseCodeGenerator):
             try:
                 c_template = self.env.get_template(f"{p_type}_{base_name}.c.j2")
                 h_template = self.env.get_template(f"{p_type}_{base_name}.h.j2")
-                self._write_template(c_template, context, self.output_dir / f"{p_type}_{base_name}_{i}.c")
-                self._write_template(h_template, context, self.output_dir / f"{p_type}_{base_name}_{i}.h")
+                self._write_template(
+                    c_template, context, self.output_dir / f"{p_type}_{base_name}_{i}.c"
+                )
+                self._write_template(
+                    h_template, context, self.output_dir / f"{p_type}_{base_name}_{i}.h"
+                )
             except jinja2.TemplateNotFound:
-                logger.warning(f"Templates for {p_type} {base_name} not found, skipping.")
+                logger.warning(
+                    f"Templates for {p_type} {base_name} not found, skipping."
+                )
 
         logger.info("RiotOS code generation complete!")
 
@@ -273,7 +290,7 @@ class RiotCodeGenerator(BaseCodeGenerator):
         logger.info(f"Generated: {output_path}")
 
 
-def m2t_riot(model, output_dir='.'):
+def m2t_riot(model, output_dir="."):
     """Transform a DeMoL device model object to RiotOS code."""
     output_path = Path(output_dir)
     if not output_path.exists():
