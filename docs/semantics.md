@@ -118,10 +118,10 @@ $$\mathit{Voltage} = \mathbb{R} \cup \{\mathsf{GND}\}$$
 where $\mathsf{GND}$ represents the ground reference (0V).
 
 #### Voltage Parsing Function
-$$\llbracket \cdot \rrbracket_V : \mathit{String} \rightharpoonup \mathit{Voltage}$$
+$$\lbrack\!\lbrack \cdot \rbrack\!\rbrack_{V} : \mathit{String} \rightharpoonup \mathit{Voltage}$$
 
 Defined by:
-$$\llbracket s \rrbracket_V = \begin{cases}
+$$\lbrack\!\lbrack s \rbrack\!\rbrack_{V} = \begin{cases}
 \mathsf{GND} & \text{if } s \in \{\text{"GND"}, \text{"gnd"}, \text{"0V"}\} \\
 v & \text{if } s = v\text{"V"} \land v \in \mathbb{R}^+ \\
 v & \text{if } s = v\text{"V3"} \land v = 3.3 \\
@@ -449,7 +449,7 @@ g_1 = \mathsf{PWM} \land (g_2 = \mathsf{PWM} \lor g_2 = \mathsf{GPIO}) & \text{i
 ### 6.3 Protocol Semantics
 
 #### I2C Protocol
-$$\llbracket \mathsf{I2C} \rrbracket = \langle \mathit{addr}, \mathit{speed}, \mathit{bus} \rangle$$
+$$\lbrack\!\lbrack \mathsf{I2C} \rbrack\!\rbrack = \langle \mathit{addr}, \mathit{speed}, \mathit{bus} \rangle$$
 
 **Constraints:**
 $$\begin{align*}
@@ -464,7 +464,7 @@ $$\mathcal{I} : \mathit{DataConn} \rightharpoonup \mathit{I2CSemantics}$$
 where $\mathit{I2CSemantics} = \mathit{Address} \times \mathit{Speed} \times \mathit{Bus}$
 
 #### SPI Protocol
-$$\llbracket \mathsf{SPI} \rrbracket = \langle \mathit{mode}, \mathit{speed}, \mathit{bus} \rangle$$
+$$\lbrack\!\lbrack \mathsf{SPI} \rbrack\!\rbrack = \langle \mathit{mode}, \mathit{speed}, \mathit{bus} \rangle$$
 
 **Constraints:**
 $$\begin{align*}
@@ -474,7 +474,7 @@ $$\begin{align*}
 \end{align*}$$
 
 #### UART Protocol
-$$\llbracket \mathsf{UART} \rrbracket = \langle \mathit{baud}, \mathit{parity}, \mathit{stop}, \mathit{data} \rangle$$
+$$\lbrack\!\lbrack \mathsf{UART} \rbrack\!\rbrack = \langle \mathit{baud}, \mathit{parity}, \mathit{stop}, \mathit{data} \rangle$$
 
 **Constraints:**
 $$\begin{align*}
@@ -486,7 +486,7 @@ $$\begin{align*}
 
 #### 6.3.1 GPIO Protocol
 
-$$\llbracket \mathsf{GPIO} \rrbracket = \langle \mathit{mode}, \mathit{pullup}, \mathit{pulldown} \rangle$$
+$$\lbrack\!\lbrack \mathsf{GPIO} \rbrack\!\rbrack = \langle \mathit{mode}, \mathit{pullup}, \mathit{pulldown} \rangle$$
 
 **Constraints:**
 $$\begin{align*}
@@ -506,7 +506,7 @@ Per-pin mode overrides may be specified via the `gpio_modes` attribute on the pe
 
 #### 6.3.2 PWM Protocol
 
-$$\llbracket \mathsf{PWM} \rrbracket = \langle \mathit{frequency}, \mathit{duty\_cycle}, \mathit{channel} \rangle$$
+$$\lbrack\!\lbrack \mathsf{PWM} \rbrack\!\rbrack = \langle \mathit{frequency}, \mathit{duty\_cycle}, \mathit{channel} \rangle$$
 
 **Constraints:**
 $$\begin{align*}
@@ -561,9 +561,9 @@ $$\mathsf{primaryProto}(p) = \arg\max_{\pi \in \mathit{protos}(p)} \mathsf{prior
 SmartConnect declarations are resolved sequentially in declaration order, threading the pin pool state:
 
 $$\frac{
-\mathit{pool}_0 = \mathsf{initPool}(board, C) \quad \forall i \in [1, |SC|] : (conn_i, \mathit{pool}_i) = \mathcal{R}(sc_i, D, \mathit{pool}_{i-1})
+\mathit{pool}_{0} = \mathsf{initPool}(board, C) \quad \forall i \in [1, |SC|] : (conn_{i}, \mathit{pool}_{i}) = \mathcal{R}(sc_{i}, D, \mathit{pool}_{i-1})
 }{
-D' = D[connections := C \cup \{conn_1, \ldots, conn_{|SC|}\}]
+D' = D[connections := C \cup \{conn_{1}, \ldots, conn_{|SC|}\}]
 } \; [\text{SC-SEQ}]$$
 
 #### 6.4.5 Power Pin Resolution
@@ -648,7 +648,7 @@ $$\mathsf{WF}_{\text{sc-target}}(D) \Leftrightarrow \forall sc \in smart\_conns 
 SmartConnect can only target sensors and actuators, not boards.
 
 #### WF-7: SmartConnect Uniqueness
-$$\mathsf{WF}_{\text{sc-unique}}(D) \Leftrightarrow \forall sc_1, sc_2 \in smart\_conns : sc_1 \neq sc_2 \Rightarrow sc_1.tgt \neq sc_2.tgt$$
+$$\mathsf{WF}_{\text{sc-unique}}(D) \Leftrightarrow \forall sc_{1}, sc_{2} \in smart\_conns : sc_{1} \neq sc_{2} \Rightarrow sc_{1}.tgt \neq sc_{2}.tgt$$
 
 Each peripheral can have at most one SmartConnect declaration.
 
