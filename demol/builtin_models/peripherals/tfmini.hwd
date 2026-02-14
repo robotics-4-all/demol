@@ -15,5 +15,6 @@ SENSOR[Distance] TFMini WITH
     DEPENDENCIES
         raspbian=["pyserial"]
     ATTRIBUTES
+        uart_baudrate[int] = 115200,
         serial_port[str] = "/dev/ttyAMA0"
 ;

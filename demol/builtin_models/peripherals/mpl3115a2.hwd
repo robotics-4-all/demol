@@ -16,4 +16,6 @@ SENSOR[Env] Mpl3115a2 WITH
         riotos="mpl3115a2_riot.c.j2"
     DEPENDENCIES
         riotos=["mpl3115a2"]
+    ATTRIBUTES
+        i2c_address[int] = 96
 ;

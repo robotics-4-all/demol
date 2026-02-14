@@ -17,6 +17,7 @@ SENSOR[Env] BME680 WITH
         raspbian=["bme680"],
         riotos=["bme680"]
     ATTRIBUTES
+        i2c_address[int] = 118,
         poll_period[int] = 10,
         humidity_oversample[int] = 2,
         pressure_oversample[int] = 4,

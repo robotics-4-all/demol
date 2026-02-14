@@ -74,6 +74,7 @@ ACTUATOR[ServoController] PCA9685 WITH
         raspbian=["adafruit-circuitpython-pca9685", "adafruit-circuitpython-motor"],
         riotos=["pca9685"]
     ATTRIBUTES
+        i2c_address[int] = 64,
         channels[int] = 16,
         frequency[int] = 50
 ;

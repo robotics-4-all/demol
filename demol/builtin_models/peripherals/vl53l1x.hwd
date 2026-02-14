@@ -20,4 +20,6 @@ SENSOR[Distance] VL53L1X WITH
     DEPENDENCIES
         raspbian=["vl53l1x"],
         riotos=["vl53l1x"]
+    ATTRIBUTES
+        i2c_address[int] = 41
 ;

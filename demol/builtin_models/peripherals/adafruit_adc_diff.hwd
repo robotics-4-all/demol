@@ -31,6 +31,7 @@ SENSOR[ADC] ADCDifferentialPi WITH
     DEPENDENCIES
         raspbian=["ADCDifferentialPi"]
     ATTRIBUTES
+        i2c_address[int] = 104,
         num_channels[int] = 8,
         resolution[list] = [12, 14, 16, 18],
         gain[list] = [1, 2, 4, 8],
