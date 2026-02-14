@@ -5,25 +5,26 @@ from demol.lang import build_model
 from demol.lang.semantics import get_validation_errors, get_passed_rules, ValidationError
 from textx import TextXSemanticError
 from demol.transformations import (
-    m2t_device_svg, 
-    m2t_docs, 
-    m2t_rpi, 
+    m2t_device_svg,
+    m2t_docs,
+    m2t_rpi,
     m2t_riot,
     m2m_smauto,
     m2t_infrastructure_svg,
-    demol_to_json
+    demol_to_json,
 )
 
 
 def handle_build_model(model_filepath, skip_semantics=False):
     """Helper to build model and handle validation errors gracefully"""
+
     def print_results(errors, semantic_error_msg=None):
         passed = get_passed_rules()
         if passed:
             click.echo("")
             click.secho("Passed Semantic Rules:", fg="green", bold=True)
             for rule in passed:
-                click.secho(f"  ✓ ", fg="green", bold=True, nl=False)
+                click.secho("  ✓ ", fg="green", bold=True, nl=False)
                 click.secho(f"{rule['name']}: ", bold=True, nl=False)
                 click.secho(f"{rule['description']}")
 
@@ -31,20 +32,22 @@ def handle_build_model(model_filepath, skip_semantics=False):
             click.echo("")
             click.secho(f"Found {len(errors)} validation error(s):", fg="red", bold=True)
             for err in errors:
-                loc = err['loc']
-                line = loc.get('line', '?')
-                col = loc.get('col', '?')
-                filename = os.path.basename(loc.get('filename', 'unknown'))
-                
-                click.secho(f"  ✗ ", fg="red", bold=True, nl=False)
+                loc = err["loc"]
+                line = loc.get("line", "?")
+                col = loc.get("col", "?")
+                filename = os.path.basename(loc.get("filename", "unknown"))
+
+                click.secho("  ✗ ", fg="red", bold=True, nl=False)
                 click.secho(f"{err['msg']} ", nl=False)
                 click.secho(f"({filename}:{line}:{col})", fg="cyan")
-            
+
             click.echo("")
             if not skip_semantics:
                 click.secho(f"[!] Validation failed with {len(errors)} error(s).", fg="red", bold=True)
             else:
-                click.secho(f"[!] Model built with {len(errors)} error(s) (skip_semantics=True).", fg="yellow", bold=True)
+                click.secho(
+                    f"[!] Model built with {len(errors)} error(s) (skip_semantics=True).", fg="yellow", bold=True
+                )
         elif semantic_error_msg:
             # Fallback for other semantic errors not caught by our collector
             click.secho(f"\n[!] Semantic Error: {semantic_error_msg}", fg="red", bold=True)
@@ -61,6 +64,7 @@ def handle_build_model(model_filepath, skip_semantics=False):
         sys.exit(1)
     except Exception as e:
         import traceback
+
         traceback.print_exc()
         click.secho(f"\n[!] Unexpected Error: {e}", fg="red", bold=True)
         sys.exit(1)
@@ -69,8 +73,8 @@ def handle_build_model(model_filepath, skip_semantics=False):
 @click.group("demol")
 @click.pass_context
 def cli(ctx):
-   """DeMoL CLI - A DSL for modeling IoT Devices"""
-   pass
+    """DeMoL CLI - A DSL for modeling IoT Devices"""
+    pass
 
 
 @cli.command("validate")
@@ -78,11 +82,11 @@ def cli(ctx):
 @click.option("--skip-semantics", is_flag=True, help="Build model even if semantic rules are failing")
 @click.pass_context
 def validate(ctx, model_filepath, skip_semantics):
-    print(f'[*] Running validation for model {model_filepath}')
+    print(f"[*] Running validation for model {model_filepath}")
     model = handle_build_model(model_filepath, skip_semantics=skip_semantics)
     if model:
         errors = get_validation_errors()
-        # If skip_semantics was True and there were errors, handle_build_model 
+        # If skip_semantics was True and there were errors, handle_build_model
         # already printed the passed rules and errors.
         if not errors:
             passed = get_passed_rules()
@@ -90,15 +94,15 @@ def validate(ctx, model_filepath, skip_semantics):
                 click.echo("")
                 click.secho("Passed Semantic Rules:", fg="green", bold=True)
                 for rule in passed:
-                    click.secho(f"  ✓ ", fg="green", bold=True, nl=False)
+                    click.secho("  ✓ ", fg="green", bold=True, nl=False)
                     click.secho(f"{rule['name']}: ", bold=True, nl=False)
                     click.secho(f"{rule['description']}")
-        
+
         click.echo("")
         if errors:
-            print(f'[✓] Validation finished with {len(errors)} semantic error(s) (ignored).')
+            print(f"[✓] Validation finished with {len(errors)} semantic error(s) (ignored).")
         else:
-            print(f'[✓] Validation passed!')
+            print("[✓] Validation passed!")
 
 
 @cli.group("generate")
@@ -113,11 +117,11 @@ def generate():
 @click.option("--skip-semantics", is_flag=True, help="Build model even if semantic rules are failing")
 def generate_docs(model_filepath, output_dir, skip_semantics):
     """Generate hardware documentation (Markdown + SVGs)"""
-    print(f'[*] Generating documentation for model {model_filepath}')
+    print(f"[*] Generating documentation for model {model_filepath}")
     model = handle_build_model(model_filepath, skip_semantics=skip_semantics)
     if model:
         m2t_docs(model, output_dir=output_dir)
-        print(f'[✓] Documentation generated successfully.')
+        print("[✓] Documentation generated successfully.")
 
 
 @generate.command("rpi")
@@ -126,11 +130,11 @@ def generate_docs(model_filepath, output_dir, skip_semantics):
 @click.option("--skip-semantics", is_flag=True, help="Build model even if semantic rules are failing")
 def generate_rpi(model_filepath, output_dir, skip_semantics):
     """Generate Python code for Raspberry Pi"""
-    print(f'[*] Generating Raspberry Pi code for model {model_filepath}')
+    print(f"[*] Generating Raspberry Pi code for model {model_filepath}")
     model = handle_build_model(model_filepath, skip_semantics=skip_semantics)
     if model:
         m2t_rpi(model, output_dir=output_dir)
-        print(f'[✓] Raspberry Pi code generated successfully.')
+        print("[✓] Raspberry Pi code generated successfully.")
 
 
 @generate.command("riot")
@@ -139,11 +143,11 @@ def generate_rpi(model_filepath, output_dir, skip_semantics):
 @click.option("--skip-semantics", is_flag=True, help="Build model even if semantic rules are failing")
 def generate_riot(model_filepath, output_dir, skip_semantics):
     """Generate C code for RiotOS"""
-    print(f'[*] Generating RiotOS code for model {model_filepath}')
+    print(f"[*] Generating RiotOS code for model {model_filepath}")
     model = handle_build_model(model_filepath, skip_semantics=skip_semantics)
     if model:
         m2t_riot(model, output_dir=output_dir)
-        print(f'[✓] RiotOS code generated successfully.')
+        print("[✓] RiotOS code generated successfully.")
 
 
 @generate.command("smauto")
@@ -152,11 +156,11 @@ def generate_riot(model_filepath, output_dir, skip_semantics):
 @click.option("--skip-semantics", is_flag=True, help="Build model even if semantic rules are failing")
 def generate_smauto(model_filepath, output_dir, skip_semantics):
     """Generate SMAuto model from DeMoL model"""
-    print(f'[*] Generating SMAuto model for model {model_filepath}')
+    print(f"[*] Generating SMAuto model for model {model_filepath}")
     model = handle_build_model(model_filepath, skip_semantics=skip_semantics)
     if model:
         m2m_smauto(model, output_dir=output_dir)
-        print(f'[✓] SMAuto model generated successfully.')
+        print("[✓] SMAuto model generated successfully.")
 
 
 @generate.command("svg")
@@ -169,14 +173,14 @@ def generate_svg(model_filepath, output_dir, infrastructure, skip_semantics):
     model = handle_build_model(model_filepath, skip_semantics=skip_semantics)
     if model:
         if infrastructure:
-            print(f'[*] Generating Infrastructure SVG for model {model_filepath}')
-            filename = os.path.join(output_dir, f'{model.metadata.name}_infrastructure.svg')
+            print(f"[*] Generating Infrastructure SVG for model {model_filepath}")
+            filename = os.path.join(output_dir, f"{model.metadata.name}_infrastructure.svg")
             m2t_infrastructure_svg(model, filename)
         else:
-            print(f'[*] Generating Wiring SVG for model {model_filepath}')
-            filename = os.path.join(output_dir, f'{model.metadata.name}.svg')
+            print(f"[*] Generating Wiring SVG for model {model_filepath}")
+            filename = os.path.join(output_dir, f"{model.metadata.name}.svg")
             m2t_device_svg(model, filename)
-        print(f'[✓] SVG generated successfully.')
+        print("[✓] SVG generated successfully.")
 
 
 @generate.command("json")
@@ -185,19 +189,20 @@ def generate_svg(model_filepath, output_dir, infrastructure, skip_semantics):
 @click.option("--skip-semantics", is_flag=True, help="Build model even if semantic rules are failing")
 def generate_json(model_filepath, output_dir, skip_semantics):
     """Generate JSON representation of the model"""
-    print(f'[*] Generating JSON for model {model_filepath}')
+    print(f"[*] Generating JSON for model {model_filepath}")
     model = handle_build_model(model_filepath, skip_semantics=skip_semantics)
     if model:
-        filename = os.path.join(output_dir, f'{model.metadata.name}.json')
+        filename = os.path.join(output_dir, f"{model.metadata.name}.json")
         import json
-        with open(filename, 'w') as f:
+
+        with open(filename, "w") as f:
             json.dump(demol_to_json(model), f, indent=4)
-        print(f'[✓] JSON generated successfully: {filename}')
+        print(f"[✓] JSON generated successfully: {filename}")
 
 
 def main():
-   cli(prog_name="demol")
+    cli(prog_name="demol")
 
 
-if __name__ == '__main__':
-   main()
+if __name__ == "__main__":
+    main()

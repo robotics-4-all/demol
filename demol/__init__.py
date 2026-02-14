@@ -6,11 +6,11 @@ from demol.lang import (
 )
 
 
-@language('demol-component', '*.hwd')
+@language("demol-component", "*.hwd")
 def component_language():
     return get_component_mm()
 
 
-@language('demol-device', '*.dev')
+@language("demol-device", "*.dev")
 def device_language():
     return get_device_mm()
