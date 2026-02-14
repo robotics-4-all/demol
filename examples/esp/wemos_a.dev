@@ -15,9 +15,9 @@ USE HCSR04P[Sonar];
 
 CONNECT Sonar WITH
     POWER
-        gnd -- GND,
-        power_3v3 -- VCC
+        GND -- gnd,
+        VCC -- power_3v3
     DATA
-        gpio d3 -- trigger,
-        gpio d4 -- echo
+        gpio[mode="output"] trigger -- d3,
+        gpio[mode="input"] echo -- d4
     @ "my_wemos.sensors.distance.sonar";

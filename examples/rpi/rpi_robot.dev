@@ -29,8 +29,8 @@ CONNECT LeftMotor WITH
         gnd -- GND_1, 
         vcc -- power_5v_a
     DATA 
-        gpio[mode="output"] forward -- GPIO17,
-        gpio[mode="output"] backward -- GPIO27
+        pwm forward -- GPIO12,
+        pwm backward -- GPIO13
     @ "robot/motors/left";
 
 CONNECT RightMotor WITH
@@ -38,8 +38,8 @@ CONNECT RightMotor WITH
         gnd -- GND_2, 
         vcc -- power_5v_b
     DATA 
-        gpio[mode="output"] forward -- GPIO23,
-        gpio[mode="output"] backward -- GPIO24
+        pwm forward -- GPIO18,
+        pwm backward -- GPIO19
     @ "robot/motors/right";
 
 CONNECT ObstacleSensor WITH
@@ -55,5 +55,5 @@ CONNECT AlarmBuzzer WITH
     POWER 
         gnd -- GND_4
     DATA 
-        gpio[mode="output"] vin -- GPIO18
+        gpio[mode="output"] vin -- GPIO17
     @ "robot/alerts/buzzer";
