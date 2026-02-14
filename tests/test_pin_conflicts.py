@@ -2,6 +2,7 @@ import pytest
 from textx import TextXSemanticError
 from demol.lang.device import get_device_mm
 
+
 def test_gpio_pin_conflict():
     """Test that connecting two peripherals to the same GPIO pin raises a PinConflictError."""
     model_str = """
@@ -25,6 +26,7 @@ def test_gpio_pin_conflict():
     mm = get_device_mm()
     with pytest.raises(TextXSemanticError, match=r"Pin conflict detected"):
         mm.model_from_str(model_str)
+
 
 def test_i2c_pin_sharing_allowed():
     """Test that sharing I2C pins (SDA/SCL) is allowed."""
@@ -50,6 +52,7 @@ def test_i2c_pin_sharing_allowed():
     # Should not raise an error
     mm.model_from_str(model_str)
 
+
 def test_power_pin_sharing_allowed():
     """Test that sharing Power pins (GND/VCC) is allowed."""
     model_str = """
@@ -73,6 +76,7 @@ def test_power_pin_sharing_allowed():
     mm = get_device_mm()
     # Should not raise an error
     mm.model_from_str(model_str)
+
 
 def test_mixed_usage_conflict():
     """Test conflict between GPIO and Special Function (e.g. UART) on same pin."""

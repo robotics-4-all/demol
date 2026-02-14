@@ -1,10 +1,10 @@
 from textx.exceptions import TextXSemanticError
 import pytest
-import warnings
 
 # ============================================================================
 # PWM Connection Tests (validate_pwm_connection)
 # ============================================================================
+
 
 def test_pwm_valid_connection(device_mm):
     """Test valid PWM connection with all properties."""

@@ -3,9 +3,11 @@ import warnings
 from textx.exceptions import TextXSemanticError
 from demol.lang.device import get_device_mm
 
+
 @pytest.fixture
 def device_mm():
     return get_device_mm()
+
 
 def test_power_path_valid_board_to_peripheral(device_mm):
     """
@@ -38,6 +40,7 @@ def test_power_path_valid_board_to_peripheral(device_mm):
         power_warnings = [warning for warning in w if "MissingPowerSourceWarning" in str(warning.message)]
         assert len(power_warnings) == 0, f"Unexpected power warnings: {power_warnings}"
 
+
 def test_power_path_valid_direct_powersource(device_mm):
     """
     Test valid power path: Peripheral powered directly by power source.
@@ -65,9 +68,10 @@ def test_power_path_valid_direct_powersource(device_mm):
         device_mm.model_from_str(model_str)
         power_warnings = [warning for warning in w if "MissingPowerSourceWarning" in str(warning.message)]
         # Board should have warning, but peripheral should not
-        board_warnings = [warning for warning in power_warnings if "WemosD1Mini" in str(warning.message)]
+        _board_warnings = [warning for warning in power_warnings if "WemosD1Mini" in str(warning.message)]
         periph_warnings = [warning for warning in power_warnings if "HCSR04_1" in str(warning.message)]
         assert len(periph_warnings) == 0, f"Peripheral should not have power warning: {periph_warnings}"
+
 
 def test_power_path_missing_board_power(device_mm):
     """
@@ -95,6 +99,7 @@ def test_power_path_missing_board_power(device_mm):
         # Both board and peripheral should have warnings
         assert len(power_warnings) >= 2, f"Expected warnings for board and peripheral: {power_warnings}"
 
+
 def test_power_path_missing_peripheral_power(device_mm):
     """
     Test warning when peripheral has no power connection.
@@ -120,6 +125,7 @@ def test_power_path_missing_peripheral_power(device_mm):
     # This will fail with MissingEssentialConnectionError because VCC/GND are essential for HCSR04
     with pytest.raises(TextXSemanticError, match="Essential pin '(VCC|GND)'"):
         device_mm.model_from_str(model_str)
+
 
 def test_power_path_chained_power(device_mm):
     """
@@ -151,6 +157,7 @@ def test_power_path_chained_power(device_mm):
         power_warnings = [warning for warning in w if "MissingPowerSourceWarning" in str(warning.message)]
         assert len(power_warnings) == 0, f"No power warnings expected: {power_warnings}"
 
+
 def test_power_path_gnd_only_not_enough(device_mm):
     """
     Test that GND-only connection does not satisfy power path requirement.
@@ -179,6 +186,7 @@ def test_power_path_gnd_only_not_enough(device_mm):
         power_warnings = [warning for warning in w if "MissingPowerSourceWarning" in str(warning.message)]
         # Should have warnings because GND-only is not sufficient
         assert len(power_warnings) > 0, "Expected power warnings for insufficient power connection"
+
 
 def test_power_path_multiple_sources(device_mm):
     """

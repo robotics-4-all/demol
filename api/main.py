@@ -5,28 +5,25 @@ from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
 import os
 import sys
-import json
 import tarfile
 import io
-from textx import metamodel_from_file
 
 # Add project root to path to import demol
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../")))
 
-from demol.lang import build_model, get_device_mm, get_component_mm
+from demol.lang import build_model, get_component_mm
 from demol.transformations import (
-    json_to_demol, 
+    json_to_demol,
     demol_to_json,
     m2t_rpi,
     m2t_riot,
     m2t_docs,
     m2m_smauto,
     m2t_device_svg,
-    m2t_infrastructure_svg
+    m2t_infrastructure_svg,
 )
 from demol.definitions import BOARD_MODEL_REPO_PATH, PERIPHERAL_MODEL_REPO_PATH, POWER_SOURCE_MODEL_REPO_PATH
 import tempfile
-import shutil
 
 app = FastAPI(title="DeMoL Designer API")
 
@@ -39,17 +36,20 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 @app.get("/api/health")
 async def health_check():
     return {"status": "ok"}
+
 
 # Models
 class Pin(BaseModel):
     name: str
     type: str
     number: int
-    status: Optional[str] = 'essential'
+    status: Optional[str] = "essential"
     functions: Optional[List[str]] = None
+
 
 class OperationalSpecs(BaseModel):
     vcc: str
@@ -58,6 +58,7 @@ class OperationalSpecs(BaseModel):
     memory: Optional[Dict[str, Any]] = None
     power: Optional[Dict[str, Any]] = None
 
+
 class Board(BaseModel):
     id: str
     name: str
@@ -65,6 +66,7 @@ class Board(BaseModel):
     pins: List[Pin]
     operational: OperationalSpecs
     raw_content: Optional[str] = None
+
 
 class Peripheral(BaseModel):
     id: str
@@ -78,6 +80,7 @@ class Peripheral(BaseModel):
     attributes: Optional[Dict[str, Any]] = None
     raw_content: Optional[str] = None
 
+
 class PowerSource(BaseModel):
     id: str
     name: str
@@ -88,15 +91,17 @@ class PowerSource(BaseModel):
     operational: Dict[str, Any]
     raw_content: Optional[str] = None
 
+
 class Network(BaseModel):
-    type: str # 'WiFi' or 'Eth'
+    type: str  # 'WiFi' or 'Eth'
     ssid: Optional[str] = None
     password: Optional[str] = None
     address: Optional[str] = None
     channel: Optional[str] = None
 
+
 class Broker(BaseModel):
-    type: str # 'MQTT', 'AMQP', 'Redis'
+    type: str  # 'MQTT', 'AMQP', 'Redis'
     name: str
     host: str
     port: int
@@ -112,6 +117,7 @@ class Broker(BaseModel):
     password: Optional[str] = None
     key: Optional[str] = None
 
+
 class DeviceModel(BaseModel):
     name: str
     description: str
@@ -124,7 +130,6 @@ class DeviceModel(BaseModel):
     network: Optional[Network] = None
     broker: Optional[Broker] = None
 
-from demol.lang.semantics import clear_validation_results
 
 # Helper to load models
 def load_hwd_model(path, mm):
@@ -132,7 +137,7 @@ def load_hwd_model(path, mm):
     try:
         model = mm.model_from_file(path)
         return model
-    except Exception as e:
+    except Exception:
         return None
 
 
@@ -140,7 +145,7 @@ def load_hwd_model(path, mm):
 async def get_boards():
     mm = get_component_mm(skip_semantics=True)
     boards = []
-    
+
     if os.path.exists(BOARD_MODEL_REPO_PATH):
         files = os.listdir(BOARD_MODEL_REPO_PATH)
         for filename in files:
@@ -150,17 +155,18 @@ async def get_boards():
                 if model:
                     board_data = demol_to_json(model)
                     board_data["id"] = filename
-                    with open(path, 'r') as f:
+                    with open(path, "r") as f:
                         board_data["raw_content"] = f.read()
                     boards.append(board_data)
-    
+
     return boards
+
 
 @app.get("/api/peripherals", response_model=List[Peripheral])
 async def get_peripherals():
     mm = get_component_mm(skip_semantics=True)
     peripherals = []
-    
+
     if os.path.exists(PERIPHERAL_MODEL_REPO_PATH):
         files = os.listdir(PERIPHERAL_MODEL_REPO_PATH)
         for filename in files:
@@ -170,17 +176,18 @@ async def get_peripherals():
                 if model:
                     periph_data = demol_to_json(model)
                     periph_data["id"] = filename
-                    with open(path, 'r') as f:
+                    with open(path, "r") as f:
                         periph_data["raw_content"] = f.read()
                     peripherals.append(periph_data)
-    
+
     return peripherals
+
 
 @app.get("/api/powersources", response_model=List[PowerSource])
 async def get_powersources():
     mm = get_component_mm(skip_semantics=True)
     powersources = []
-    
+
     if os.path.exists(POWER_SOURCE_MODEL_REPO_PATH):
         files = os.listdir(POWER_SOURCE_MODEL_REPO_PATH)
         for filename in files:
@@ -190,10 +197,10 @@ async def get_powersources():
                 if model:
                     ps_data = demol_to_json(model)
                     ps_data["id"] = filename
-                    with open(path, 'r') as f:
+                    with open(path, "r") as f:
                         ps_data["raw_content"] = f.read()
                     powersources.append(ps_data)
-    
+
     return powersources
 
 
@@ -201,48 +208,50 @@ async def get_powersources():
 async def validate_model(model: DeviceModel):
     from demol.lang.semantics import get_validation_errors, get_validation_warnings, clear_validation_results
     import tempfile
-    
+
     # 1. Generate DSL
     content = json_to_demol(model)
-    
+
     # 2. Validate using DeMoL
-    with tempfile.NamedTemporaryFile(suffix='.dev', mode='w', delete=False) as f:
+    with tempfile.NamedTemporaryFile(suffix=".dev", mode="w", delete=False) as f:
         f.write(content)
         temp_path = f.name
-    
+
     valid = False
     try:
         build_model(temp_path, skip_semantics=False)
         valid = True
-    except Exception as e:
+    except Exception:
         print(f"Validation error: {e}")
     finally:
         if os.path.exists(temp_path):
             os.remove(temp_path)
-            
+
     errors = get_validation_errors()
     warnings = get_validation_warnings()
-    
+
     # Format results for frontend
     formatted_errors = [f"{e['type']}: {e['msg']}" for e in errors]
     formatted_warnings = [f"{w['type']}: {w['msg']}" for w in warnings]
-    
-    # If model_from_file failed but no semantic errors were collected, 
+
+    # If model_from_file failed but no semantic errors were collected,
     # it might be a syntax error
     if not valid and not formatted_errors:
-        formatted_errors.append(f"SyntaxError: The generated model is syntactically invalid.")
+        formatted_errors.append("SyntaxError: The generated model is syntactically invalid.")
 
     return {
         "valid": valid and len(formatted_errors) == 0,
         "errors": formatted_errors,
         "warnings": formatted_warnings,
-        "dsl": content
+        "dsl": content,
     }
+
 
 @app.post("/api/export")
 async def export_model(model: DeviceModel):
     content = json_to_demol(model)
     return {"content": content}
+
 
 def create_tarball(directory):
     """Create a tarball from a directory in memory"""
@@ -252,85 +261,89 @@ def create_tarball(directory):
     file_obj.seek(0)
     return file_obj
 
+
 @app.post("/api/generate/docs")
 async def generate_docs(model: DeviceModel):
     content = json_to_demol(model)
     with tempfile.TemporaryDirectory() as tmp_dir:
-        with tempfile.NamedTemporaryFile(suffix='.dev', mode='w', delete=False) as f:
+        with tempfile.NamedTemporaryFile(suffix=".dev", mode="w", delete=False) as f:
             f.write(content)
             temp_model_path = f.name
         try:
             dm = build_model(temp_model_path, skip_semantics=True)
             m2t_docs(dm, output_dir=tmp_dir)
-            
+
             tarball = create_tarball(tmp_dir)
             filename = f"{dm.metadata.name}_docs.tar.gz"
-            
+
             return StreamingResponse(
                 tarball,
                 media_type="application/x-gzip",
-                headers={"Content-Disposition": f"attachment; filename={filename}"}
+                headers={"Content-Disposition": f"attachment; filename={filename}"},
             )
-        except Exception as e:
+        except Exception:
             return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
         finally:
             if os.path.exists(temp_model_path):
                 os.remove(temp_model_path)
+
 
 @app.post("/api/generate/smauto")
 async def generate_smauto(model: DeviceModel):
     content = json_to_demol(model)
     with tempfile.TemporaryDirectory() as tmp_dir:
-        with tempfile.NamedTemporaryFile(suffix='.dev', mode='w', delete=False) as f:
+        with tempfile.NamedTemporaryFile(suffix=".dev", mode="w", delete=False) as f:
             f.write(content)
             temp_model_path = f.name
         try:
             dm = build_model(temp_model_path, skip_semantics=True)
             m2m_smauto(dm, output_dir=tmp_dir)
-            
+
             tarball = create_tarball(tmp_dir)
             filename = f"{dm.metadata.name}_smauto.tar.gz"
-            
+
             return StreamingResponse(
                 tarball,
                 media_type="application/x-gzip",
-                headers={"Content-Disposition": f"attachment; filename={filename}"}
+                headers={"Content-Disposition": f"attachment; filename={filename}"},
             )
-        except Exception as e:
+        except Exception:
             return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
         finally:
             if os.path.exists(temp_model_path):
                 os.remove(temp_model_path)
 
+
 @app.post("/api/generate/svg")
 async def generate_svg(model: DeviceModel):
     content = json_to_demol(model)
     with tempfile.TemporaryDirectory() as tmp_dir:
-        with tempfile.NamedTemporaryFile(suffix='.dev', mode='w', delete=False) as f:
+        with tempfile.NamedTemporaryFile(suffix=".dev", mode="w", delete=False) as f:
             f.write(content)
             temp_model_path = f.name
         try:
             dm = build_model(temp_model_path, skip_semantics=True)
-            
-            wiring_filename = os.path.join(tmp_dir, f'{dm.metadata.name}.svg')
+
+            wiring_filename = os.path.join(tmp_dir, f"{dm.metadata.name}.svg")
             m2t_device_svg(dm, wiring_filename)
-            
-            infra_filename = os.path.join(tmp_dir, f'{dm.metadata.name}_infrastructure.svg')
+
+            infra_filename = os.path.join(tmp_dir, f"{dm.metadata.name}_infrastructure.svg")
             m2t_infrastructure_svg(dm, infra_filename)
-            
+
             tarball = create_tarball(tmp_dir)
             filename = f"{dm.metadata.name}_svg.tar.gz"
-            
+
             return StreamingResponse(
                 tarball,
                 media_type="application/x-gzip",
-                headers={"Content-Disposition": f"attachment; filename={filename}"}
+                headers={"Content-Disposition": f"attachment; filename={filename}"},
             )
-        except Exception as e:
+        except Exception:
             return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
         finally:
             if os.path.exists(temp_model_path):
                 os.remove(temp_model_path)
+
 
 @app.post("/api/generate/source")
 @app.post("/api/generate/source/{platform}")
@@ -338,54 +351,49 @@ async def generate_source(model: DeviceModel, platform: Optional[str] = None):
     # 1. Determine platform
     if not platform:
         platform = model.os
-    
+
     # Map OS to transformation
-    platform_map = {
-        "raspbian": "rpi",
-        "riotos": "riot",
-        "rpi": "rpi",
-        "riot": "riot"
-    }
-    
+    platform_map = {"raspbian": "rpi", "riotos": "riot", "rpi": "rpi", "riot": "riot"}
+
     target_platform = platform_map.get(platform.lower())
     if not target_platform:
         raise HTTPException(status_code=400, detail=f"Unsupported platform: {platform}")
 
     # 2. Generate DSL
     content = json_to_demol(model)
-    
+
     # 3. Create temp directory for generation
     with tempfile.TemporaryDirectory() as tmp_dir:
-        with tempfile.NamedTemporaryFile(suffix='.dev', mode='w', delete=False) as f:
+        with tempfile.NamedTemporaryFile(suffix=".dev", mode="w", delete=False) as f:
             f.write(content)
             temp_model_path = f.name
-        
+
         try:
             # 4. Build model
             dm = build_model(temp_model_path, skip_semantics=True)
-            
+
             # 5. Run transformation
             if target_platform == "rpi":
                 m2t_rpi(dm, output_dir=tmp_dir)
             elif target_platform == "riot":
                 m2t_riot(dm, output_dir=tmp_dir)
-            
+
             tarball = create_tarball(tmp_dir)
             filename = f"{dm.metadata.name}_{target_platform}_source.tar.gz"
-            
+
             return StreamingResponse(
                 tarball,
                 media_type="application/x-gzip",
-                headers={"Content-Disposition": f"attachment; filename={filename}"}
+                headers={"Content-Disposition": f"attachment; filename={filename}"},
             )
-        except Exception as e:
+        except Exception:
             return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
         finally:
             if os.path.exists(temp_model_path):
                 os.remove(temp_model_path)
 
 
-
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(app, host="0.0.0.0", port=8000)

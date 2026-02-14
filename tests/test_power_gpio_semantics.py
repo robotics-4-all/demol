@@ -1,10 +1,10 @@
 from textx.exceptions import TextXSemanticError
 import pytest
-import warnings
 
 # ============================================================================
 # Power Connection Tests (validate_power_connection)
 # ============================================================================
+
 
 def test_power_valid_3v3(device_mm):
     model_str = """
@@ -26,6 +26,7 @@ def test_power_valid_3v3(device_mm):
     with pytest.raises(TextXSemanticError, match="Incompatible power connection"):
         device_mm.model_from_str(model_str)
 
+
 def test_power_valid_5v(device_mm):
     model_str = """
     DEVICE TestDevice WITH description="Test", author="Test", os=raspbian;
@@ -41,8 +42,9 @@ def test_power_valid_5v(device_mm):
         DATA
             i2c[slave_address=0x76] sda sda -- GPIO2, scl scl -- GPIO3;
     """
-    with pytest.warns(UserWarning): # Ignore IO voltage warning
+    with pytest.warns(UserWarning):  # Ignore IO voltage warning
         device_mm.model_from_str(model_str)
+
 
 def test_power_gnd_mismatch(device_mm):
     model_str = """
@@ -62,6 +64,7 @@ def test_power_gnd_mismatch(device_mm):
     with pytest.raises(TextXSemanticError, match="Cannot connect GND pin to power pin"):
         device_mm.model_from_str(model_str)
 
+
 def test_power_missing_ground_warning(device_mm):
     model_str = """
     DEVICE TestDevice WITH description="Test", author="Test", os=raspbian;
@@ -80,14 +83,17 @@ def test_power_missing_ground_warning(device_mm):
     with pytest.raises(TextXSemanticError, match="Essential pin 'gnd'"):
         device_mm.model_from_str(model_str)
 
+
 def test_voltage_limit_exceeded(device_mm):
     # Need a peripheral with low VCC (e.g. 3.3V) and connect to 5V
     # Let's try to find a 3.3V peripheral.
-    pass 
+    pass
+
 
 # ============================================================================
 # GPIO Connection Tests (validate_gpio_connection)
 # ============================================================================
+
 
 def test_gpio_valid(device_mm):
     model_str = """
@@ -108,6 +114,7 @@ def test_gpio_valid(device_mm):
     # Should pass without error
     device_mm.model_from_str(model_str)
 
+
 def test_gpio_invalid_mode(device_mm):
     model_str = """
     DEVICE TestDevice WITH description="Test", author="Test", os=raspbian;
@@ -124,6 +131,7 @@ def test_gpio_invalid_mode(device_mm):
     """
     with pytest.raises(TextXSemanticError, match="Invalid mode"):
         device_mm.model_from_str(model_str)
+
 
 def test_gpio_non_gpio_pin(device_mm):
     model_str = """
@@ -143,6 +151,7 @@ def test_gpio_non_gpio_pin(device_mm):
     with pytest.raises(TextXSemanticError, match="does not have GPIO"):
         device_mm.model_from_str(model_str)
 
+
 def test_gpio_deprecated_name(device_mm):
     model_str = """
     DEVICE TestDevice WITH description="Test", author="Test", os=raspbian;
@@ -159,6 +168,7 @@ def test_gpio_deprecated_name(device_mm):
     """
     with pytest.raises(TextXSemanticError, match="deprecated"):
         device_mm.model_from_str(model_str)
+
 
 def test_gpio_invalid_property(device_mm):
     model_str = """

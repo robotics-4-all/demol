@@ -1,6 +1,7 @@
 from textx.exceptions import TextXSemanticError
 import pytest
 
+
 def test_missing_pin_on_source(device_mm):
     """
     Test that referencing a non-existent pin on the source component (Peripheral)
@@ -23,6 +24,7 @@ def test_missing_pin_on_source(device_mm):
     with pytest.raises(TextXSemanticError, match="Source pin 'non_existent_pin' not found"):
         device_mm.model_from_str(model_str)
 
+
 def test_missing_pin_on_target(device_mm):
     """
     Test that referencing a non-existent pin on the target component (Board)
@@ -43,6 +45,7 @@ def test_missing_pin_on_target(device_mm):
     with pytest.raises(TextXSemanticError, match="Target pin 'non_existent_pin' not found"):
         device_mm.model_from_str(model_str)
 
+
 def test_missing_power_pin_on_board(device_mm):
     """
     Test that referencing a non-existent power pin on the board
@@ -61,6 +64,7 @@ def test_missing_power_pin_on_board(device_mm):
     """
     with pytest.raises(TextXSemanticError, match="Pin 'non_existent_power_pin' not found"):
         device_mm.model_from_str(model_str)
+
 
 def test_missing_power_pin_on_peripheral(device_mm):
     """
