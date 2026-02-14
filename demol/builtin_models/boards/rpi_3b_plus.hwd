@@ -1,6 +1,7 @@
 BOARD[RPI] RaspberryPi_3B_Plus WITH
     OP
         vcc=5V,
+        ioVcc=3V3,
         memory.flash=16 gb,
         memory.ram=1 gb,
         cpu.family=PiArmCortex,
