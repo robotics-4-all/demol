@@ -12,7 +12,8 @@ DeviceModel:
         uses+=Use
         (network=Network)?
         (broker=MessageBroker)?
-        connections+=Connect
+        connections*=Connect
+        smartConnections*=SmartConnect
     )#
 ;
 
@@ -68,6 +69,10 @@ Connect:
 	    ("@" remote=STRING)?
     )#
     ';'
+;
+
+SmartConnect:
+    'SMARTCONNECT' target=[ComponentInstance:FQN] ("@" remote=STRING)? ';'
 ;
 
 PinConnection:
