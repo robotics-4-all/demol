@@ -9,7 +9,7 @@ ACTUATOR[LedArray] WS2812 WITH
     PINS
         VCC[5V] @ 1,
         GND[GND] @ 2,
-        DIN[gpio,mosi-0] @ 3
+        DIN[gpio] @ 3
     TEMPLATES
         raspbian="ws2812.py.j2",
         riotos="ws2812_riot.c.j2"

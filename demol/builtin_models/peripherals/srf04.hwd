@@ -13,4 +13,6 @@ SENSOR[Distance] SRF04 WITH
     TEMPLATES
         raspbian="srf04.py.j2",
         riotos="srf04_riot.c.j2"
+    ATTRIBUTES
+        gpio_modes[dict] = {trigger = "output", echo = "input"}
 ;
