@@ -106,6 +106,21 @@ def model_proc(model, metamodel):
     )
 
     # ========================================================================
+    # SmartConnect: Validate declarations
+    # ========================================================================
+    if hasattr(model, "smartConnections") and model.smartConnections:
+        from demol.lang.semantics.validators.smart_connection import (
+            validate_smart_connections,
+        )
+
+        run_rule(
+            "SmartConnect Validation",
+            validate_smart_connections,
+            model,
+            desc="SmartConnect declarations are valid",
+        )
+
+    # ========================================================================
     # Well-Formedness: Broker requirements
     # ========================================================================
     run_rule(
@@ -280,6 +295,14 @@ def enrich_model(model):
         board=board, peripherals=peripherals, powerSources=power_sources
     )
 
+    # ========================================================================
+    # Resolve SmartConnect declarations into synthetic connections
+    # ========================================================================
+    if hasattr(model, "smartConnections") and model.smartConnections:
+        from demol.lang.smart_connection import resolve_smart_connections
+
+        resolve_smart_connections(model)
+
     device_name = model.metadata.name.strip('"')
 
     for c in model.connections:
@@ -375,6 +398,7 @@ def get_device_mm(
             ),
             "Connect.from_comp": "~uses.components",
             "Connect.to_comp": "~uses.components",
+            "SmartConnect.target": "~uses.components",
         }
     )
 

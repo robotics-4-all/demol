@@ -110,6 +110,12 @@ from .validators.general import (
     validate_connections,
 )
 
+# SmartConnect validators
+from .validators.smart_connection import (
+    SmartConnectValidator,
+    validate_smart_connections,
+)
+
 # Base validator class
 from .validators.base import BaseValidator
 
@@ -190,4 +196,7 @@ __all__ = [
     "ConnectionsOrchestratorValidator",
     "validate_dependency_sources",
     "validate_connections",
+    # SmartConnect validators
+    "SmartConnectValidator",
+    "validate_smart_connections",
 ]
