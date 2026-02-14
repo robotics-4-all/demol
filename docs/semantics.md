@@ -15,6 +15,7 @@
    - 3.2 [Pin Domain](#32-pin-domain)
    - 3.3 [Component Domain](#33-component-domain)
    - 3.4 [Connection Domain](#34-connection-domain)
+     - 3.4.1 [SmartConnect Domain](#341-smartconnect-domain)
    - 3.5 [Protocol Domain](#35-protocol-domain)
    - 3.6 [Device Model Domain](#36-device-model-domain)
 4. [Abstract Syntax](#4-abstract-syntax)
@@ -27,6 +28,9 @@
    - 6.1 [Power Connection Semantics](#61-power-connection-semantics)
    - 6.2 [Data Connection Semantics](#62-data-connection-semantics)
    - 6.3 [Protocol Semantics](#63-protocol-semantics)
+     - 6.3.1 [GPIO Protocol](#631-gpio-protocol)
+     - 6.3.2 [PWM Protocol](#632-pwm-protocol)
+   - 6.4 [SmartConnect Resolution Semantics](#64-smartconnect-resolution-semantics)
 7. [Well-Formedness Constraints](#7-well-formedness-constraints)
    - 7.1 [Structural Well-Formedness](#71-structural-well-formedness)
    - 7.2 [Referential Integrity](#72-referential-integrity)
@@ -34,6 +38,7 @@
    - 8.1 [Electrical Safety](#81-electrical-safety)
    - 8.2 [Protocol Safety](#82-protocol-safety)
    - 8.3 [Resource Safety](#83-resource-safety)
+   - 8.4 [SmartConnect Safety](#84-smartconnect-safety)
 9. [Validation Algorithm](#9-validation-algorithm)
 10. [Formal Proofs](#10-formal-proofs)
 
@@ -208,6 +213,29 @@ $$\mathit{Connection} = \mathit{Component} \times \mathit{Component} \times \mat
 
 Components: $(comp_1, comp_2, power\_conns, data\_conns)$
 
+#### 3.4.1 SmartConnect Domain
+
+A SmartConnect declaration requests automatic pin resolution:
+$$\mathit{SmartConnDecl} = \mathit{ComponentRef} \times \mathit{Topic}?$$
+
+where $\mathit{ComponentRef}$ references a peripheral instance and $\mathit{Topic} \in \mathit{String}$ is an optional broker topic.
+
+#### Pin Pool
+
+The pin pool tracks board pin availability during resolution:
+$$\mathit{PinPool} = \mathit{Identifier} \rightharpoonup (\mathit{Identifier} \times \mathit{UsageType})^*$$
+
+where:
+$$\mathit{UsageType} = \{\mathsf{POWER}, \mathsf{I2C\text{-}SDA}, \mathsf{I2C\text{-}SCL}, \mathsf{SPI}, \mathsf{UART}, \mathsf{PWM}, \mathsf{GPIO}\}$$
+
+#### Shareability Predicate
+
+$$\mathsf{shareable}(u) \Leftrightarrow u \in \{\mathsf{POWER}, \mathsf{I2C\text{-}SDA}, \mathsf{I2C\text{-}SCL}\}$$
+
+#### Pin Availability
+
+$$\mathsf{available}(pin, u, \mathit{pool}) \Leftrightarrow pin \notin \mathsf{dom}(\mathit{pool}) \lor (\mathsf{shareable}(u) \land \forall (id, u') \in \mathit{pool}(pin) : u' = u)$$
+
 ### 3.5 Protocol Domain
 
 #### Protocol Types
@@ -231,10 +259,11 @@ $$\mathit{ProtocolProps}(\pi) = \begin{cases}
 $$\begin{align*}
 \mathit{Device} = &\; \mathit{Identifier} \times \mathit{Metadata} \times \mathit{Component} \\
 &\times \mathcal{P}(\mathit{Component}) \times \mathcal{P}(\mathit{Component}) \\
-&\times \mathcal{P}(\mathit{Connection}) \times \mathit{Broker} \times \mathit{Network}
+&\times \mathcal{P}(\mathit{Connection}) \times \mathcal{P}(\mathit{SmartConnDecl}) \\
+&\times \mathit{Broker} \times \mathit{Network}
 \end{align*}$$
 
-Components: $(name, metadata, board, peripherals, power\_sources, connections, broker, network)$
+Components: $(name, metadata, board, peripherals, power\_sources, connections, smart\_conns, broker, network)$
 
 #### Constraints
 $$\begin{align*}
@@ -289,6 +318,13 @@ where:
 - $func \in \mathit{Identifier}$ : pin function
 - $p_1, p_2 \in \mathit{Identifier}$ : pin names
 
+#### SmartConnect Declaration
+$$sc \in \mathit{SmartConnDecl} ::= \mathsf{SMARTCONNECT}\; tgt\; (\mathsf{@}\; topic)?\; \mathsf{;}$$
+
+where:
+- $tgt \in \mathit{Identifier}$ : peripheral instance name
+- $topic \in \mathit{String}$ : optional broker topic
+
 ### 4.2 Syntactic Well-Formedness
 
 A syntactic structure is well-formed if it satisfies:
@@ -296,7 +332,10 @@ A syntactic structure is well-formed if it satisfies:
 $$\begin{align*}
 \mathsf{WF}_{syn}(d) \Leftrightarrow &\; \mathsf{unique}(\mathit{ids}(P)) \\
 \land &\; \mathsf{unique}(\mathit{ids}(S)) \\
-\land &\; \forall c \in C : \mathsf{referenced}(c, P \cup S \cup \{b\})
+\land &\; \forall c \in C : \mathsf{referenced}(c, P \cup S \cup \{b\}) \\
+\land &\; \forall sc \in SC : \mathsf{referenced}(sc.tgt, P) \\
+\land &\; \mathsf{unique}(\mathit{targets}(SC)) \\
+\land &\; \mathit{targets}(SC) \cap \mathit{targets}(C) = \emptyset
 \end{align*}$$
 
 where:
@@ -329,6 +368,13 @@ $$\frac{
 }{
 \Gamma \vdash \mathsf{CONNECT}\; src : tgt\; \mathsf{WITH}\; proto : \mathsf{Valid}
 }$$
+
+**SmartConnect Typing**
+$$\frac{
+\Gamma \vdash tgt : \mathsf{Peripheral} \quad tgt \notin \mathit{targets}(C)
+}{
+\Gamma \vdash \mathsf{SMARTCONNECT}\; tgt : \mathsf{Valid}
+} \; [\text{T-SmartConn}]$$
 
 ### 5.2 Scope and Binding
 
@@ -391,7 +437,13 @@ $$\mathsf{matches}(f, g_1, g_2, \pi) \Leftrightarrow \begin{cases}
 g_1 = \mathsf{GPIO} \land g_2 = \mathsf{GPIO} & \text{if } \pi = \mathsf{GPIO} \\
 g_1 = (\mathsf{SDA}, n) \land g_2 = (\mathsf{SDA}, n) \land f = \text{sda} & \text{if } \pi = \mathsf{I2C} \\
 g_1 = (\mathsf{SCL}, n) \land g_2 = (\mathsf{SCL}, n) \land f = \text{scl} & \text{if } \pi = \mathsf{I2C} \\
-\vdots
+g_1 = (\mathsf{MOSI}, n) \land g_2 = (\mathsf{MOSI}, n) \land f = \text{mosi} & \text{if } \pi = \mathsf{SPI} \\
+g_1 = (\mathsf{MISO}, n) \land g_2 = (\mathsf{MISO}, n) \land f = \text{miso} & \text{if } \pi = \mathsf{SPI} \\
+g_1 = (\mathsf{SCK}, n) \land g_2 = (\mathsf{SCK}, n) \land f = \text{sck} & \text{if } \pi = \mathsf{SPI} \\
+g_1 = (\mathsf{CS}, n) \land g_2 = (\mathsf{CS}, n) \land f = \text{cs} & \text{if } \pi = \mathsf{SPI} \\
+g_1 = (\mathsf{TX}, n) \land g_2 = (\mathsf{RX}, n) \land f = \text{tx} & \text{if } \pi = \mathsf{UART} \\
+g_1 = (\mathsf{RX}, n) \land g_2 = (\mathsf{TX}, n) \land f = \text{rx} & \text{if } \pi = \mathsf{UART} \\
+g_1 = \mathsf{PWM} \land (g_2 = \mathsf{PWM} \lor g_2 = \mathsf{GPIO}) & \text{if } \pi = \mathsf{PWM}
 \end{cases}$$
 
 ### 6.3 Protocol Semantics
@@ -432,6 +484,140 @@ $$\begin{align*}
 \mathit{data} &\in \{5, 6, 7, 8\}
 \end{align*}$$
 
+#### 6.3.1 GPIO Protocol
+
+$$\llbracket \mathsf{GPIO} \rrbracket = \langle \mathit{mode}, \mathit{pullup}, \mathit{pulldown} \rangle$$
+
+**Constraints:**
+$$\begin{align*}
+\mathit{mode} &\in \{\mathsf{input}, \mathsf{output}\} \\
+\mathit{pullup} &\in \mathbb{B} \\
+\mathit{pulldown} &\in \mathbb{B}
+\end{align*}$$
+
+**GPIO Mode Inference** (for SmartConnect):
+$$\mathit{inferMode}(p) = \begin{cases}
+\mathsf{input} & \text{if } \pi_{type}(p) = \mathsf{Sensor} \\
+\mathsf{output} & \text{if } \pi_{type}(p) = \mathsf{Actuator} \\
+\mathsf{input} & \text{otherwise (default)}
+\end{cases}$$
+
+Per-pin mode overrides may be specified via the `gpio_modes` attribute on the peripheral definition, taking precedence over type-based inference.
+
+#### 6.3.2 PWM Protocol
+
+$$\llbracket \mathsf{PWM} \rrbracket = \langle \mathit{frequency}, \mathit{duty\_cycle}, \mathit{channel} \rangle$$
+
+**Constraints:**
+$$\begin{align*}
+\mathit{frequency} &\in \mathbb{R}^+ \\
+\mathit{duty\_cycle} &\in [0, 100] \subset \mathbb{R} \\
+\mathit{channel} &\in \mathbb{N}
+\end{align*}$$
+
+**Semantic Function:**
+$$\mathcal{W} : \mathit{DataConn} \rightharpoonup \mathit{PWMSemantics}$$
+
+where $\mathit{PWMSemantics} = \mathit{Frequency} \times \mathit{DutyCycle} \times \mathit{Channel}$
+
+### 6.4 SmartConnect Resolution Semantics
+
+SmartConnect automatically resolves pin assignments by matching peripheral pin requirements against available board pins. Resolution produces synthesized connections that are structurally identical to manual `CONNECT` objects, enabling all existing validators and generators to operate without modification.
+
+#### 6.4.1 Resolution Function
+
+$$\mathcal{R} : \mathit{SmartConnDecl} \times \mathit{Device} \times \mathit{PinPool} \to \mathit{Connection} \times \mathit{PinPool}$$
+
+The resolver takes a SmartConnect declaration, the device model, and the current pin pool state, producing a synthesized connection and an updated pin pool.
+
+#### 6.4.2 Protocol Priority
+
+Pin classification uses a priority ordering to select the primary protocol for multi-function pins:
+
+$$\mathsf{priority} : \mathit{Protocol} \to \mathbb{N}$$
+
+$$\mathsf{priority}(\pi) = \begin{cases}
+4 & \text{if } \pi = \mathsf{I2C} \\
+3 & \text{if } \pi = \mathsf{SPI} \\
+2 & \text{if } \pi = \mathsf{UART} \\
+1 & \text{if } \pi = \mathsf{PWM} \\
+0 & \text{if } \pi = \mathsf{GPIO}
+\end{cases}$$
+
+#### 6.4.3 Pin Classification
+
+Each IO pin is classified by its highest-priority protocol function:
+
+$$\mathsf{classify} : \mathcal{P}(\mathit{Pin}) \to (\mathit{Protocol} \to \mathcal{P}(\mathit{Pin}))$$
+
+$$\mathsf{classify}(\mathit{pins})(\pi) = \{p \in \mathit{pins} \mid \mathsf{primaryProto}(p) = \pi\}$$
+
+where:
+
+$$\mathsf{primaryProto}(p) = \arg\max_{\pi \in \mathit{protos}(p)} \mathsf{priority}(\pi)$$
+
+#### 6.4.4 Sequential Resolution
+
+SmartConnect declarations are resolved sequentially in declaration order, threading the pin pool state:
+
+$$\frac{
+\mathit{pool}_0 = \mathsf{initPool}(board, C) \quad \forall i \in [1, |SC|] : (conn_i, \mathit{pool}_i) = \mathcal{R}(sc_i, D, \mathit{pool}_{i-1})
+}{
+D' = D[connections := C \cup \{conn_1, \ldots, conn_{|SC|}\}]
+} \; [\text{SC-SEQ}]$$
+
+#### 6.4.5 Power Pin Resolution
+
+For each power pin on the peripheral, find a compatible board power pin:
+
+$$\frac{
+p \in \mathit{powerPins}(periph) \quad bp = \mathsf{findPower}(\mathit{pool}, \pi_{volt}(p)) \quad bp \neq \bot
+}{
+(p, bp) \in \mathit{power\_conns} \quad \mathit{pool}' = \mathit{pool}[bp \mapsto \mathit{pool}(bp) \cup \{(periph, \mathsf{POWER})\}]
+} \; [\text{SC-POWER}]$$
+
+Power pins prefer unused board pins, falling back to already-used shareable pins.
+
+#### 6.4.6 Data Pin Resolution
+
+Data pins are resolved in protocol priority order (I2C first, then SPI, UART, PWM, GPIO):
+
+**I2C Resolution** — requires `i2c_address` attribute on the peripheral:
+
+$$\frac{
+p \in \mathsf{classify}(\mathit{ioPins})(\mathsf{I2C}) \quad bp = \mathsf{findFunc}(\mathit{pool}, \pi_{func}(p).type, \pi_{func}(p).bus)
+}{
+(p, bp) \in \mathit{data\_mappings}
+} \; [\text{SC-I2C}]$$
+
+**UART Resolution** — applies TX/RX crossover:
+
+$$\frac{
+\pi_{func}(p) = (\mathsf{TX}, n) \quad bp = \mathsf{findFunc}(\mathit{pool}, \mathsf{RX}, n) \quad bp \neq \bot
+}{
+(p, bp) \in \mathit{data\_mappings}
+} \; [\text{SC-UART-CROSS}]$$
+
+$$\frac{
+\pi_{func}(p) = (\mathsf{RX}, n) \quad bp = \mathsf{findFunc}(\mathit{pool}, \mathsf{TX}, n) \quad bp \neq \bot
+}{
+(p, bp) \in \mathit{data\_mappings}
+} \; [\text{SC-UART-CROSS}]$$
+
+**GPIO Resolution** — mode inferred from component type:
+
+$$\frac{
+p \in \mathsf{classify}(\mathit{ioPins})(\mathsf{GPIO}) \quad bp = \mathsf{findGPIO}(\mathit{pool}) \quad m = \mathit{inferMode}(periph)
+}{
+(\mathsf{GPIO}, \{(p, bp)\}, \{\text{mode} \mapsto m\}) \in \mathit{data\_conns}
+} \; [\text{SC-GPIO}]$$
+
+#### 6.4.7 Determinism
+
+Resolution is deterministic: board pins are sorted by physical pin number, and SmartConnect declarations are processed in declaration order.
+
+$$\forall D, sc, \mathit{pool} : |\{\mathcal{R}(sc, D, \mathit{pool})\}| \leq 1$$
+
 ---
 
 ## 7. Well-Formedness Constraints
@@ -442,7 +628,7 @@ $$\begin{align*}
 $$\mathsf{WF}_{\text{single-board}}(D) \Leftrightarrow |\{board\}| = 1$$
 
 #### WF-2: All Peripherals Connected
-$$\mathsf{WF}_{\text{all-connected}}(D) \Leftrightarrow \forall p \in peripherals : \exists c \in connections : p \in \{c.src, c.tgt\}$$
+$$\mathsf{WF}_{\text{all-connected}}(D) \Leftrightarrow \forall p \in peripherals : (\exists c \in connections : p \in \{c.src, c.tgt\}) \lor (\exists sc \in smart\_conns : sc.tgt = p)$$
 
 #### WF-3: Unique Peripheral Names
 $$\mathsf{WF}_{\text{unique-names}}(D) \Leftrightarrow \forall p_1, p_2 \in peripherals : p_1 \neq p_2 \Rightarrow \pi_{name}(p_1) \neq \pi_{name}(p_2)$$
@@ -455,6 +641,21 @@ $$\mathsf{WF}_{\text{essential}}(D, p) \Leftrightarrow \forall pin \in \mathit{p
 
 where:
 $$\mathsf{connected}(pin, C) \Leftrightarrow \exists c \in C : pin \in \mathsf{usedPins}(c)$$
+
+#### WF-6: SmartConnect Target Type
+$$\mathsf{WF}_{\text{sc-target}}(D) \Leftrightarrow \forall sc \in smart\_conns : \pi_{type}(\mathsf{resolve}(sc.tgt, \Gamma)) = \mathsf{Peripheral}$$
+
+SmartConnect can only target sensors and actuators, not boards.
+
+#### WF-7: SmartConnect Uniqueness
+$$\mathsf{WF}_{\text{sc-unique}}(D) \Leftrightarrow \forall sc_1, sc_2 \in smart\_conns : sc_1 \neq sc_2 \Rightarrow sc_1.tgt \neq sc_2.tgt$$
+
+Each peripheral can have at most one SmartConnect declaration.
+
+#### WF-8: SmartConnect-Connect Exclusivity
+$$\mathsf{WF}_{\text{sc-exclusive}}(D) \Leftrightarrow \mathit{targets}(smart\_conns) \cap \mathit{targets}(connections) = \emptyset$$
+
+A peripheral must use either manual `CONNECT` or `SMARTCONNECT`, not both.
 
 ### 7.2 Referential Integrity
 
@@ -519,6 +720,18 @@ $$\mathsf{Safety}_{\text{power-path}}(D) \Leftrightarrow \forall p \in periphera
 where reachability is defined transitively:
 $$\mathsf{reachable}(p, S, C) \Leftrightarrow p \in S \lor \exists c \in C : c.tgt = p \land \mathsf{reachable}(c.src, S, C)$$
 
+### 8.4 SmartConnect Safety
+
+#### Safety-8: SmartConnect Pin Allocation
+$$\mathsf{Safety}_{\text{sc-alloc}}(D) \Leftrightarrow \forall sc \in smart\_conns : \mathcal{R}(sc, D, \mathit{pool}) \neq \bot$$
+
+Every SmartConnect declaration must successfully resolve — all mandatory peripheral pins must find matching available board pins.
+
+#### Safety-9: Resolution Preserves Pin Conflict Freedom
+$$\mathsf{Safety}_{\text{sc-conflicts}}(D) \Leftrightarrow \mathsf{Safety}_{\text{pin-conflicts}}(D[connections := connections \cup \mathsf{resolved}(smart\_conns)])$$
+
+After resolution, all connections (manual and synthesized) collectively satisfy pin conflict freedom. This is guaranteed by the shareability predicate in the PinPool.
+
 ---
 
 ## 9. Validation Algorithm
@@ -545,7 +758,23 @@ Output: (valid, errors)
 7.    if ¬WF_unique-pins(p) then
 8.       errors ← errors ∪ {DUPLICATE_PIN_ERROR(p)}
 
-9. // Referential integrity
+9. // SmartConnect structural validation
+10. for each sc ∈ smartConnections do
+11.    if target(sc) ∈ boards then
+12.       errors ← errors ∪ {SC_TARGET_ERROR(sc)}
+13.    if target(sc) ∈ targets(connections) then
+14.       errors ← errors ∪ {SC_CONFLICT_ERROR(sc)}
+
+15. // SmartConnect resolution
+16. pool ← INIT_POOL(board, connections)
+17. for each sc ∈ smartConnections (in declaration order) do
+18.    (conn, pool) ← RESOLVE(sc, D, pool)
+19.    if conn ≠ ⊥ then
+20.       connections ← connections ∪ {conn}
+21.    else
+22.       errors ← errors ∪ {SC_RESOLUTION_ERROR(sc)}
+
+23. // Referential integrity
 10. for each c ∈ connections do
 11.    if ¬RI_pins(c) then
 12.       errors ← errors ∪ {INVALID_PIN_REF(c)}
@@ -578,7 +807,8 @@ Output: (valid, errors)
 - Pin conflict check: $O(m^2 \cdot p)$
 - I2C uniqueness: $O(m^2)$
 - Power path: $O(n \cdot m)$ (graph traversal)
-- **Total:** $O(m^2 \cdot p + n \cdot m)$
+- SmartConnect resolution: $O(|SC| \cdot p)$
+- **Total:** $O(m^2 \cdot p + n \cdot m + |SC| \cdot p)$
 
 **Space Complexity:** $O(n \cdot p + m)$
 
@@ -591,11 +821,14 @@ Output: (valid, errors)
 **Theorem 1 (Soundness):** If $\mathcal{V}(D) = (\mathsf{true}, \emptyset)$, then $D$ represents a physically safe and electrically valid device configuration.
 
 **Proof Sketch:**
-1. By WF rules, structural constraints hold
-2. By Safety-1, no pin conflicts exist
-3. By Safety-2, voltage limits respected
-4. By Safety-7, all components powered
-5. Therefore, $D$ is safe ∎
+1. By WF rules (WF-1 through WF-5), structural constraints hold
+2. By WF-6/7/8, SmartConnect structural constraints hold
+3. By Safety-1, no pin conflicts exist
+4. By Safety-2, voltage limits respected
+5. By Safety-7, all components powered
+6. By §6.4 determinism, SmartConnect resolution is unique and produces valid connections
+7. By Safety-8/9, resolved connections satisfy pin conflict freedom
+8. Therefore, $D$ is safe ∎
 
 ### 10.2 Decidability Theorem
 
@@ -616,6 +849,10 @@ Output: (valid, errors)
 - Voltage incompatibility → PC-2, Safety-2
 - Protocol errors → DC-1, Safety-5
 - Missing power → Safety-7
+- SmartConnect target errors → WF-6
+- SmartConnect duplicate → WF-7
+- SmartConnect-Connect conflict → WF-8
+- SmartConnect pin allocation failure → Safety-8
 ∎
 
 ---
@@ -629,9 +866,13 @@ Output: (valid, errors)
 
 <component-ref> ::= <type> "[" <id> "]" ( "WITH" <attributes> )?
 
-<connections> ::= ( "CONNECT" <conn-spec> ";" )*
+<connections> ::= ( <connect> | <smart-connect> )*
+
+<connect> ::= "CONNECT" <conn-spec> ";"
 
 <conn-spec> ::= (<id> ":")? <id> "WITH" <power-block>? <data-block>?
+
+<smart-connect> ::= "SMARTCONNECT" <id> ( "@" <string> )? ";"
 
 <power-block> ::= "POWER" ( <pin-mapping> ( "," <pin-mapping> )* )
 
@@ -640,6 +881,8 @@ Output: (valid, errors)
 <protocol-conn> ::= <protocol> ( "[" <properties> "]" )? <pin-mappings>
 
 <pin-mapping> ::= <id> "--" <id>
+
+<pwm-conn> ::= "pwm" ( "[" <properties> "]" )? <pin-mappings>
 ```
 
 ---
@@ -663,6 +906,18 @@ reachable :: Component → Set Component → Set Connection → Bool
 buildEnvironment :: Device → Environment
 ```
 
+### SmartConnect Functions
+```haskell
+resolveSmartConnect :: SmartConnDecl → Device → PinPool → (Connection, PinPool)
+initPool :: Board → Set Connection → PinPool
+classify :: Set Pin → Map Protocol (Set Pin)
+primaryProto :: Pin → Protocol
+inferMode :: Component → GPIOMode
+findPowerPin :: PinPool → Voltage → Maybe Pin
+findIOPin :: PinPool → PinFunction → Bus → Maybe Pin
+findGPIOPin :: PinPool → Maybe Pin
+```
+
 ---
 
 ## References
@@ -675,6 +930,6 @@ buildEnvironment :: Device → Environment
 
 ---
 
-**Document Version:** 2.0  
-**Last Updated:** 2026-01-14  
+**Document Version:** 3.0  
+**Last Updated:** 2026-02-14  
 **Status:** Formal Specification
