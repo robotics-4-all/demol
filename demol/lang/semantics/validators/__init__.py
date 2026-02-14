@@ -2,4 +2,4 @@
 
 from .base import BaseValidator
 
-__all__ = ['BaseValidator']
+__all__ = ["BaseValidator"]
