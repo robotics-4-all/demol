@@ -87,7 +87,7 @@ build/                  # Generated output (RIOT firmware projects)
 - Pin syntax: `name[function] @ number` (e.g., `GPIO4[gpio,adc] @ 7`)
 - Connection syntax: `protocol[props] board_pin -- peripheral_pin`
 - `@` in CONNECT block specifies message broker topic
-- Formal semantics spec in `SEMANTICS.md` (mathematical notation, inference rules)
+- Formal semantics spec in `docs/semantics.md` (mathematical notation, inference rules)
 
 ## COMMANDS
 
