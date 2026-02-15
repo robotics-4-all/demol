@@ -1,4 +1,4 @@
-FROM python:3.10-slim
+FROM python:3.11-slim
 
 WORKDIR /app
 
@@ -8,16 +8,16 @@ RUN apt-get update && apt-get install -y \
     make \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements
+# Copy requirements and install dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
-RUN pip install pytest pytest-cov flake8 mypy
+RUN pip install --no-cache-dir pytest pytest-cov flake8 black mypy
 
 # Copy the source code
 COPY . .
 
 # Install the package
-RUN pip install -e .
+RUN pip install --no-cache-dir -e .
 
-# Default command to run tests
-CMD ["make", "test-local"]
+# Default: run full CI pipeline
+CMD ["make", "ci-check"]

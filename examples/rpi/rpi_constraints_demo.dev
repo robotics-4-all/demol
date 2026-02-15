@@ -1,0 +1,80 @@
+// Constrained Sensor Array — demonstrates User-Defined Constraints
+//
+// Scenario: A building management system with strict requirements:
+// minimum sensor redundancy, power budget limits, and connection
+// count validation. Constraints are checked at validation time and
+// produce clear error messages when violated.
+
+DEVICE BuildingManager WITH
+    description="Building management with user-defined constraints",
+    author="DeMoL",
+    os=raspbian;
+
+USE RaspberryPi_5_8GB;
+
+USE BME680[ZoneSensor1],
+    BME680[ZoneSensor2],
+    HCSR04[OccupancySensor],
+    LedGeneric[ZoneIndicator],
+    BuzzerGeneric[FireAlarm];
+
+NETWORK[WiFi] WITH ssid="BuildingNet", password="bldg_secure";
+
+BROKER[MQTT] Broker WITH
+    host="192.168.0.100", port=1883,
+    auth.username="bms", auth.password="bms_pass";
+
+// Zone 1 environment sensor (I2C address 0x76)
+CONNECT ZoneSensor1 WITH
+    POWER gnd -- GND_1, vcc -- power_5v_a
+    DATA i2c[slave_address=0x76] sda sda -- GPIO2, scl scl -- GPIO3
+    @ "building/zone1/env";
+
+// Zone 2 environment sensor (I2C address 0x77)
+CONNECT ZoneSensor2 WITH
+    POWER gnd -- GND_2, vcc -- power_5v_b
+    DATA i2c[slave_address=0x77] sda sda -- GPIO2, scl scl -- GPIO3
+    @ "building/zone2/env";
+
+// Occupancy detection via ultrasonic
+CONNECT OccupancySensor WITH
+    POWER GND -- GND_3, VCC -- power_5v_b
+    DATA
+        gpio[mode="output"] trigger -- GPIO23,
+        gpio[mode="input"] echo -- GPIO24
+    @ "building/occupancy";
+
+// Zone status indicator
+CONNECT ZoneIndicator WITH
+    POWER gnd -- GND_4, vcc -- power_3v3_b
+    DATA gpio[mode="output"] vin -- GPIO17
+    @ "building/zone_status";
+
+// Fire alarm buzzer
+CONNECT FireAlarm WITH
+    POWER gnd -- GND_5
+    DATA gpio[mode="output"] vin -- GPIO27
+    @ "building/fire_alarm";
+
+// ── User-Defined Constraints ─────────────────────────────────────────
+
+// Redundancy: at least 2 sensors for fault tolerance
+CONSTRAINT sensor_redundancy: count(SENSOR) >= 2
+    MESSAGE "Building code requires at least 2 sensors for redundancy";
+
+// Power budget: total peripheral power must stay under 500 mW
+CONSTRAINT power_ceiling: sum_power(PERIPHERAL) < 500 mW
+    MESSAGE "Total peripheral power exceeds 500 mW facility limit";
+
+// Connectivity: every peripheral must be connected
+CONSTRAINT all_connected: count(CONNECTION) >= 5
+    MESSAGE "All 5 peripherals must have connections";
+
+// Actuator minimum: need at least 1 actuator for alerts
+CONSTRAINT has_actuators: count(ACTUATOR) >= 1
+    MESSAGE "At least one actuator required for emergency alerts";
+
+// Sampling for environment sensors
+SAMPLING ZoneSensor1 WITH rate = 1 hz, mode = continuous;
+SAMPLING ZoneSensor2 WITH rate = 1 hz, mode = continuous;
+SAMPLING OccupancySensor WITH rate = 10 hz, mode = on_change, threshold = 0.3;

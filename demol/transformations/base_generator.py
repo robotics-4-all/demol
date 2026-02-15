@@ -47,9 +47,7 @@ class BaseCodeGenerator(ABC):
         broker = self.device_model.broker
 
         if type(broker).__name__ != "MQTTBroker":
-            raise TypeError(
-                "This transformation does not support other Broker types than MQTTBroker."
-            )
+            raise TypeError("This transformation does not support other Broker types than MQTTBroker.")
 
         config = {
             "host": broker.host,
@@ -67,8 +65,7 @@ class BaseCodeGenerator(ABC):
             config["password"] = getattr(broker.auth, "password", "")
         elif auth_type in ("AuthCert", "AuthApiKey"):
             raise TypeError(
-                "This transformation uses commlib-py library and only supports "
-                "plain authentication for MQTTBroker."
+                "This transformation uses commlib-py library and only supports " "plain authentication for MQTTBroker."
             )
 
         return config
@@ -82,12 +79,37 @@ class BaseCodeGenerator(ABC):
         return self.device_model.components.board
 
     def get_connections(self) -> List[Any]:
-        """Query all peripheral connections from device model.
-
-        Returns:
-            List of connection objects
-        """
         return list(self.device_model.connections)
+
+    _FREQ_UNIT_TO_HZ = {
+        "ghz": 1e9,
+        "mhz": 1e6,
+        "khz": 1e3,
+        "hz": 1.0,
+    }
+
+    def get_sampling_config(self, instance_name: str) -> Optional[Dict[str, Any]]:
+        """Look up SAMPLING config for a peripheral instance.
+
+        Returns dict with keys: rate_hz, mode, buffer, threshold, rate, rate_unit
+        or None if no SAMPLING declared for this instance.
+        """
+        samplings = getattr(self.device_model, "samplings", [])
+        for s in samplings:
+            target_name = getattr(s.target, "name", None)
+            if target_name == instance_name:
+                rate = float(s.rate) if s.rate else 1.0
+                unit = str(s.rate_unit).lower() if s.rate_unit else "hz"
+                rate_hz = rate * self._FREQ_UNIT_TO_HZ.get(unit, 1.0)
+                return {
+                    "rate": rate,
+                    "rate_unit": unit,
+                    "rate_hz": rate_hz,
+                    "mode": getattr(s, "mode", None) or "continuous",
+                    "buffer": getattr(s, "buffer", 0) or 0,
+                    "threshold": getattr(s, "threshold", 0.0) or 0.0,
+                }
+        return None
 
     def get_peripheral_attributes(self, peripheral_ref) -> Dict[str, Any]:
         """Extract attributes from peripheral definition and instance.
@@ -181,33 +203,21 @@ class BaseCodeGenerator(ABC):
         pins = {}
         board_pins_map = {pin.name: pin for pin in board.pins}
 
-        data_connections = (
-            connection.dataConns if hasattr(connection, "dataConns") else connection
-        )
+        data_connections = connection.dataConns if hasattr(connection, "dataConns") else connection
 
         for data_conn in data_connections:
             conn_type = data_conn.type
 
             if conn_type == "gpio":
-                pins.update(
-                    self._extract_gpio_pins(connection, data_conn, board_pins_map)
-                )
+                pins.update(self._extract_gpio_pins(connection, data_conn, board_pins_map))
             elif conn_type == "i2c":
-                pins.update(
-                    self._extract_i2c_pins(connection, data_conn, board_pins_map)
-                )
+                pins.update(self._extract_i2c_pins(connection, data_conn, board_pins_map))
             elif conn_type == "spi":
-                pins.update(
-                    self._extract_spi_pins(connection, data_conn, board_pins_map)
-                )
+                pins.update(self._extract_spi_pins(connection, data_conn, board_pins_map))
             elif conn_type == "uart":
-                pins.update(
-                    self._extract_uart_pins(connection, data_conn, board_pins_map)
-                )
+                pins.update(self._extract_uart_pins(connection, data_conn, board_pins_map))
             elif conn_type == "pwm":
-                pins.update(
-                    self._extract_pwm_pins(connection, data_conn, board_pins_map)
-                )
+                pins.update(self._extract_pwm_pins(connection, data_conn, board_pins_map))
             else:
                 raise TypeError(f"Not a valid IO Connection Type: {conn_type}")
 
@@ -244,9 +254,7 @@ class BaseCodeGenerator(ABC):
                 i2c_props[prop.name] = self._convert_attribute_value(prop.value)
 
         for pin_map in data_conn.pins:
-            board_pin_name, periph_pin_name = self._get_board_and_periph_pins(
-                conn, pin_map
-            )
+            board_pin_name, periph_pin_name = self._get_board_and_periph_pins(conn, pin_map)
             board_pin = board_pins_map.get(board_pin_name)
 
             if pin_map.function == "sda":
@@ -271,9 +279,7 @@ class BaseCodeGenerator(ABC):
                 spi_props[prop.name] = self._convert_attribute_value(prop.value)
 
         for pin_map in data_conn.pins:
-            board_pin_name, periph_pin_name = self._get_board_and_periph_pins(
-                conn, pin_map
-            )
+            board_pin_name, periph_pin_name = self._get_board_and_periph_pins(conn, pin_map)
             board_pin = board_pins_map.get(board_pin_name)
 
             if pin_map.function == "mosi":
@@ -302,9 +308,7 @@ class BaseCodeGenerator(ABC):
                 uart_props[prop.name] = self._convert_attribute_value(prop.value)
 
         for pin_map in data_conn.pins:
-            board_pin_name, periph_pin_name = self._get_board_and_periph_pins(
-                conn, pin_map
-            )
+            board_pin_name, periph_pin_name = self._get_board_and_periph_pins(conn, pin_map)
             board_pin = board_pins_map.get(board_pin_name)
 
             if pin_map.function == "tx":
@@ -330,9 +334,7 @@ class BaseCodeGenerator(ABC):
 
         # Handle pins based on peripheral pin name
         for pin_map in data_conn.pins:
-            board_pin_name, periph_pin_name = self._get_board_and_periph_pins(
-                conn, pin_map
-            )
+            board_pin_name, periph_pin_name = self._get_board_and_periph_pins(conn, pin_map)
             board_pin = board_pins_map.get(board_pin_name)
 
             pins[periph_pin_name] = board_pin_name
@@ -429,15 +431,9 @@ class BaseCodeGenerator(ABC):
         if v_type == "ListValue":
             return [self._convert_attribute_value(v) for v in value.items]
         elif v_type == "DictValue":
-            return {
-                item.key: self._convert_attribute_value(item.value)
-                for item in value.items
-            }
+            return {item.key: self._convert_attribute_value(item.value) for item in value.items}
         elif v_type == "AttributeSet":
-            return {
-                attr.name: self._convert_attribute_value(attr.value)
-                for attr in value.attributes
-            }
+            return {attr.name: self._convert_attribute_value(attr.value) for attr in value.attributes}
         else:
             # VALUE (HEX, NUMBER, STRING, BOOL)
             if isinstance(value, str) and value.lower().startswith("0x"):
@@ -536,10 +532,7 @@ class BaseCodeGenerator(ABC):
 
             # Add SPI properties
             for key, value in pins.items():
-                if any(
-                    x in key
-                    for x in ["mosi_props", "miso_props", "sck_props", "cs_props"]
-                ):
+                if any(x in key for x in ["mosi_props", "miso_props", "sck_props", "cs_props"]):
                     spi_props.update(value if isinstance(value, dict) else {})
             conn["spi"] = {**spi_props, "pins": spi_pins}
 
@@ -600,10 +593,7 @@ class BaseCodeGenerator(ABC):
                         has_pwm = False
                         if hasattr(board_pin, "funcs"):
                             for func in board_pin.funcs:
-                                if (
-                                    hasattr(func, "ptype")
-                                    and "pwm" in str(func.ptype).lower()
-                                ):
+                                if hasattr(func, "ptype") and "pwm" in str(func.ptype).lower():
                                     has_pwm = True
                                     break
                         if has_pwm:

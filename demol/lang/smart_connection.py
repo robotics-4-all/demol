@@ -19,7 +19,6 @@ import logging
 from types import SimpleNamespace
 
 from demol.lang.semantics.core import raise_validation_error
-from demol.lang.semantics.utils import parse_voltage, are_voltages_compatible
 
 logger = logging.getLogger(__name__)
 
@@ -360,11 +359,7 @@ class PinPool:
         for pin in self._io_pins_sorted:
             for func in pin.funcs:
                 if func.ptype == "pwm":
-                    if (
-                        channel is not None
-                        and hasattr(func, "channel")
-                        and func.channel != channel
-                    ):
+                    if channel is not None and hasattr(func, "channel") and func.channel != channel:
                         continue
                     if self.is_available(pin.name, "PWM"):
                         return pin
@@ -397,16 +392,13 @@ def resolve_smart_connections(model):
         if "Board" in type(peripheral_ref).__name__:
             raise_validation_error(
                 sc,
-                "SMARTCONNECT cannot target a board. "
-                "Use SMARTCONNECT only for sensors and actuators.",
+                "SMARTCONNECT cannot target a board. " "Use SMARTCONNECT only for sensors and actuators.",
                 "SmartConnect-Target",
             )
             continue
 
         # Resolve all pins
-        power_conns, data_conns = _resolve_peripheral_pins(
-            peripheral_ref, peripheral_inst, board, pool, sc
-        )
+        power_conns, data_conns = _resolve_peripheral_pins(peripheral_ref, peripheral_inst, board, pool, sc)
 
         # Synthesize connection object
         synth = _synthesize_connection(sc, peripheral_inst, power_conns, data_conns)
@@ -448,8 +440,7 @@ def _resolve_peripheral_pins(peripheral_ref, peripheral_inst, board, pool, sc):
         elif not optional:
             raise_validation_error(
                 sc,
-                f"No available {ppin.ptype} board pin "
-                f"for mandatory pin '{ppin.name}' of '{peripheral_inst.name}'.",
+                f"No available {ppin.ptype} board pin " f"for mandatory pin '{ppin.name}' of '{peripheral_inst.name}'.",
                 "SmartConnect-Power",
             )
 
@@ -458,25 +449,19 @@ def _resolve_peripheral_pins(peripheral_ref, peripheral_inst, board, pool, sc):
 
     # 3. Resolve by priority: I2C > SPI > UART > PWM > GPIO
     if classified["i2c"]:
-        _resolve_i2c_pins(
-            classified["i2c"], peripheral_inst, peripheral_ref, pool, sc, data_conns
-        )
+        _resolve_i2c_pins(classified["i2c"], peripheral_inst, peripheral_ref, pool, sc, data_conns)
 
     if classified["spi"]:
         _resolve_spi_pins(classified["spi"], peripheral_inst, pool, sc, data_conns)
 
     if classified["uart"]:
-        _resolve_uart_pins(
-            classified["uart"], peripheral_inst, peripheral_ref, pool, sc, data_conns
-        )
+        _resolve_uart_pins(classified["uart"], peripheral_inst, peripheral_ref, pool, sc, data_conns)
 
     if classified["pwm"]:
         _resolve_pwm_pins(classified["pwm"], peripheral_inst, pool, sc, data_conns)
 
     if classified["gpio"]:
-        _resolve_gpio_pins(
-            classified["gpio"], peripheral_inst, peripheral_ref, pool, sc, data_conns
-        )
+        _resolve_gpio_pins(classified["gpio"], peripheral_inst, peripheral_ref, pool, sc, data_conns)
 
     return power_conns, data_conns
 
@@ -515,14 +500,11 @@ def _resolve_i2c_pins(i2c_pins, peripheral_inst, peripheral_ref, pool, sc, data_
                 )
                 copy_tx_location(sc, pm)
                 pin_mappings.append(pm)
-                pool.mark_used(
-                    board_pin.name, peripheral_inst.name, f"I2C-{func.ptype.upper()}"
-                )
+                pool.mark_used(board_pin.name, peripheral_inst.name, f"I2C-{func.ptype.upper()}")
             elif not optional:
                 raise_validation_error(
                     sc,
-                    f"No available {func.ptype}-{bus_num} board pin "
-                    f"for '{pin.name}' of '{peripheral_inst.name}'.",
+                    f"No available {func.ptype}-{bus_num} board pin " f"for '{pin.name}' of '{peripheral_inst.name}'.",
                     "SmartConnect-I2C",
                 )
                 all_resolved = False
@@ -570,8 +552,7 @@ def _resolve_spi_pins(spi_pins, peripheral_inst, pool, sc, data_conns):
             elif not optional:
                 raise_validation_error(
                     sc,
-                    f"No available {func.ptype}-{bus_num} board pin "
-                    f"for '{pin.name}' of '{peripheral_inst.name}'.",
+                    f"No available {func.ptype}-{bus_num} board pin " f"for '{pin.name}' of '{peripheral_inst.name}'.",
                     "SmartConnect-SPI",
                 )
                 all_resolved = False
@@ -586,9 +567,7 @@ def _resolve_spi_pins(spi_pins, peripheral_inst, pool, sc, data_conns):
             data_conns.append(dc)
 
 
-def _resolve_uart_pins(
-    uart_pins, peripheral_inst, peripheral_ref, pool, sc, data_conns
-):
+def _resolve_uart_pins(uart_pins, peripheral_inst, peripheral_ref, pool, sc, data_conns):
     """Resolve UART pins with TX/RX crossover.
 
     UART crossover: peripheral TX connects to board RX line,
@@ -661,8 +640,7 @@ def _resolve_pwm_pins(pwm_pins, peripheral_inst, pool, sc, data_conns):
         elif not optional:
             raise_validation_error(
                 sc,
-                f"No available PWM board pin "
-                f"for '{pin.name}' of '{peripheral_inst.name}'.",
+                f"No available PWM board pin " f"for '{pin.name}' of '{peripheral_inst.name}'.",
                 "SmartConnect-PWM",
             )
 
@@ -677,9 +655,7 @@ def _get_gpio_modes(peripheral_ref):
     return {}
 
 
-def _resolve_gpio_pins(
-    gpio_pins, peripheral_inst, peripheral_ref, pool, sc, data_conns
-):
+def _resolve_gpio_pins(gpio_pins, peripheral_inst, peripheral_ref, pool, sc, data_conns):
     """Resolve GPIO pins. Mode from gpio_modes attribute, falling back to type inference."""
     default_mode = infer_gpio_mode(peripheral_ref)
     pin_modes = _get_gpio_modes(peripheral_ref)
@@ -701,8 +677,7 @@ def _resolve_gpio_pins(
         elif not optional:
             raise_validation_error(
                 sc,
-                f"No available GPIO board pin "
-                f"for '{pin.name}' of '{peripheral_inst.name}'.",
+                f"No available GPIO board pin " f"for '{pin.name}' of '{peripheral_inst.name}'.",
                 "SmartConnect-GPIO",
             )
 

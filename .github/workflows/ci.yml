@@ -1,0 +1,120 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master, devel]
+  pull_request:
+    branches: [main, master, devel]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ===========================================================================
+  # Lint & Format Check
+  # ===========================================================================
+  lint:
+    name: Lint & Format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install flake8 black
+      - name: Check formatting (black --check)
+        run: black --check --line-length=120 demol/ tests/ scripts/
+      - name: Lint (flake8)
+        run: flake8 demol/ --max-line-length=120 --exclude=__pycache__,.venv
+
+  # ===========================================================================
+  # Type Check
+  # ===========================================================================
+  typecheck:
+    name: Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -e .
+          pip install mypy
+      - name: Run mypy
+        run: mypy demol/ --ignore-missing-imports
+
+  # ===========================================================================
+  # Tests (matrix across Python versions)
+  # ===========================================================================
+  test:
+    name: Test (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -e .
+          pip install pytest pytest-cov
+      - name: Run tests
+        run: python -m pytest tests/ -v --tb=short
+      - name: Run tests with coverage (3.11 only)
+        if: matrix.python-version == '3.11'
+        run: |
+          python -m pytest tests/ --cov=demol --cov-report=xml --cov-report=term
+      - name: Upload coverage artifact
+        if: matrix.python-version == '3.11'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage.xml
+
+  # ===========================================================================
+  # Validate Examples
+  # ===========================================================================
+  validate-examples:
+    name: Validate Example Models
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -e .
+      - name: Validate all example .dev models
+        run: |
+          EXIT_CODE=0
+          for file in examples/rpi/*.dev examples/esp/*.dev; do
+            [ -f "$file" ] || continue
+            echo "--- Validating $file ---"
+            if ! python -m demol.cli.cli validate "$file"; then
+              echo "FAILED: $file"
+              EXIT_CODE=1
+            fi
+          done
+          exit $EXIT_CODE

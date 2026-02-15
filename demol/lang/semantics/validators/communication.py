@@ -38,9 +38,7 @@ class GPIOConnectionValidator(BaseValidator):
         board_funcs = get_pin_functions(board_pin)
         peripheral_funcs = get_pin_functions(peripheral_pin)
 
-        if "gpio" not in board_funcs and not any(
-            "gpio" in str(f).lower() for f in board_funcs
-        ):
+        if "gpio" not in board_funcs and not any("gpio" in str(f).lower() for f in board_funcs):
             raise_validation_error(
                 connection,
                 f"[Conn-GPIO] Board pin {board_pin.name} does not have GPIO functionality. "
@@ -48,9 +46,7 @@ class GPIOConnectionValidator(BaseValidator):
                 "GPIOFunctionError",
             )
 
-        if "gpio" not in peripheral_funcs and not any(
-            "gpio" in str(f).lower() for f in peripheral_funcs
-        ):
+        if "gpio" not in peripheral_funcs and not any("gpio" in str(f).lower() for f in peripheral_funcs):
             raise_validation_error(
                 connection,
                 f"[Conn-GPIO] Peripheral pin {peripheral_pin.name} does not have GPIO functionality. "
@@ -267,9 +263,7 @@ class I2CAddressUniquenessValidator(BaseValidator):
                     continue
 
                 # Identify the bus by the board pins
-                from_ref, from_name, to_ref, to_name = get_connection_endpoints(
-                    connection
-                )
+                from_ref, from_name, to_ref, to_name = get_connection_endpoints(connection)
 
                 # Determine which side is the board
                 if model is not None:
@@ -315,9 +309,7 @@ class SPIConnectionValidator(BaseValidator):
         return "Validates SPI pin functionality and bus configuration"
 
     @staticmethod
-    def validate(
-        board_pins: Dict[str, object], peripheral_pins: Dict[str, object], connection
-    ):
+    def validate(board_pins: Dict[str, object], peripheral_pins: Dict[str, object], connection):
         """
         Validate SPI connection.
 
@@ -392,9 +384,7 @@ class UARTConnectionValidator(BaseValidator):
         return "Validates UART TX/RX pin functionality and communication parameters"
 
     @staticmethod
-    def validate(
-        board_tx, board_rx, peripheral_tx, peripheral_rx, baudrate, connection
-    ):
+    def validate(board_tx, board_rx, peripheral_tx, peripheral_rx, baudrate, connection):
         """
         Validate UART connection.
 
@@ -553,9 +543,7 @@ class PWMConnectionValidator(BaseValidator):
                         "InvalidValueError",
                     )
             elif prop.name == "duty_cycle":
-                if not isinstance(prop.value, (int, float)) or not (
-                    0 <= prop.value <= 100
-                ):
+                if not isinstance(prop.value, (int, float)) or not (0 <= prop.value <= 100):
                     raise_validation_error(
                         connection,
                         "[Conn-PWM] Property 'duty_cycle' must be a number between 0 and 100.",
@@ -587,10 +575,7 @@ class PWMConnectionValidator(BaseValidator):
             return
 
         # Check if pin can accept PWM (either has pwm or gpio functionality)
-        has_io_capability = any(
-            "pwm" in str(f).lower() or "gpio" in str(f).lower()
-            for f in peripheral_funcs
-        )
+        has_io_capability = any("pwm" in str(f).lower() or "gpio" in str(f).lower() for f in peripheral_funcs)
 
         if not has_io_capability:
             raise_validation_error(
@@ -607,13 +592,9 @@ def validate_gpio_connection(board_pin, peripheral_pin, connection):
     GPIOConnectionValidator.validate(board_pin, peripheral_pin, connection)
 
 
-def validate_i2c_connection(
-    board_sda, board_scl, peripheral_sda, peripheral_scl, slave_addr: int, connection
-):
+def validate_i2c_connection(board_sda, board_scl, peripheral_sda, peripheral_scl, slave_addr: int, connection):
     """Validate I2C connection."""
-    I2CConnectionValidator.validate(
-        board_sda, board_scl, peripheral_sda, peripheral_scl, slave_addr, connection
-    )
+    I2CConnectionValidator.validate(board_sda, board_scl, peripheral_sda, peripheral_scl, slave_addr, connection)
 
 
 def validate_i2c_address_uniqueness(model):
@@ -621,20 +602,14 @@ def validate_i2c_address_uniqueness(model):
     I2CAddressUniquenessValidator.validate(model)
 
 
-def validate_spi_connection(
-    board_pins: Dict[str, object], peripheral_pins: Dict[str, object], connection
-):
+def validate_spi_connection(board_pins: Dict[str, object], peripheral_pins: Dict[str, object], connection):
     """Validate SPI connection."""
     SPIConnectionValidator.validate(board_pins, peripheral_pins, connection)
 
 
-def validate_uart_connection(
-    board_tx, board_rx, peripheral_tx, peripheral_rx, baudrate, connection
-):
+def validate_uart_connection(board_tx, board_rx, peripheral_tx, peripheral_rx, baudrate, connection):
     """Validate UART connection."""
-    UARTConnectionValidator.validate(
-        board_tx, board_rx, peripheral_tx, peripheral_rx, baudrate, connection
-    )
+    UARTConnectionValidator.validate(board_tx, board_rx, peripheral_tx, peripheral_rx, baudrate, connection)
 
 
 def validate_pwm_connection(board_pin, peripheral_pin, connection):

@@ -45,6 +45,13 @@ void start_sensor_{{ name }}_{{ index }}({{ name }}_{{ index }}_callback callbac
 void *{{ name }}_{{ index }}_thread(void *args)
 {
     (void)args;
+{% if sampling and sampling.mode == "on_change" %}
+    int prev_dist = 0;
+    int first_reading = 1;
+{% endif %}
+{% if sampling and sampling.mode == "batch" %}
+    int batch_count = 0;
+{% endif %}
 
     while (1)
     {
@@ -52,6 +59,41 @@ void *{{ name }}_{{ index }}_thread(void *args)
 
         if (dist >= 0)
         {
+{% if sampling and sampling.mode == "on_change" %}
+            int changed = first_reading;
+            if (!first_reading) {
+                int threshold = (int)({{ name|upper }}_{{ index }}_THRESHOLD);
+                if (abs(dist - prev_dist) > threshold) {
+                    changed = 1;
+                }
+            }
+            if (changed) {
+                first_reading = 0;
+                prev_dist = dist;
+                printf("[{{ name|upper }}]: Distance = %d mm (changed)\n", dist);
+
+                json_dumps({{ name }}_{{ index }}_json_payload,
+                           JSON_START,
+                           JSON_KEY, "Distance", JSON_INT, dist,
+                           JSON_STOP);
+
+                {{ name }}_{{ index }}_cb({{ name }}_{{ index }}_json_payload);
+            }
+{% elif sampling and sampling.mode == "batch" %}
+            batch_count++;
+            if (batch_count >= {{ name|upper }}_{{ index }}_BATCH_SIZE) {
+                printf("[{{ name|upper }}]: Distance = %d mm (batch %d)\n", dist, batch_count);
+
+                json_dumps({{ name }}_{{ index }}_json_payload,
+                           JSON_START,
+                           JSON_KEY, "Distance", JSON_INT, dist,
+                           JSON_KEY, "batch_count", JSON_INT, batch_count,
+                           JSON_STOP);
+
+                {{ name }}_{{ index }}_cb({{ name }}_{{ index }}_json_payload);
+                batch_count = 0;
+            }
+{% else %}
             printf("[{{ name|upper }}]: Distance = %d mm\n", dist);
 
             json_dumps({{ name }}_{{ index }}_json_payload,
@@ -60,6 +102,7 @@ void *{{ name }}_{{ index }}_thread(void *args)
                        JSON_STOP);
 
             {{ name }}_{{ index }}_cb({{ name }}_{{ index }}_json_payload);
+{% endif %}
         }
         else
         {

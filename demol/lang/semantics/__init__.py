@@ -116,6 +116,48 @@ from .validators.smart_connection import (
     validate_smart_connections,
 )
 
+# Power budget validators
+from .validators.power_budget import (
+    PowerBudgetValidator,
+    validate_power_budget,
+)
+
+# Pin oversubscription validators
+from .validators.pin_oversubscription import (
+    PinOversubscriptionValidator,
+    validate_pin_oversubscription,
+)
+
+# User-defined constraint validators
+from .validators.user_constraints import (
+    UserConstraintValidator,
+    validate_user_constraints,
+)
+
+# Sampling validators
+from .validators.sampling import (
+    SamplingValidator,
+    validate_sampling,
+)
+
+# Multi-broker validators
+from .validators.multi_broker import (
+    MultiBrokerValidator,
+    validate_multi_broker,
+)
+
+# Alert trigger validators
+from .validators.alert import (
+    AlertValidator,
+    validate_alerts,
+)
+
+# Protocol frequency validators
+from .validators.protocol_frequency import (
+    ProtocolFrequencyValidator,
+    validate_protocol_frequency,
+)
+
 # Base validator class
 from .validators.base import BaseValidator
 
@@ -199,4 +241,25 @@ __all__ = [
     # SmartConnect validators
     "SmartConnectValidator",
     "validate_smart_connections",
+    # Power budget validators
+    "PowerBudgetValidator",
+    "validate_power_budget",
+    # Pin oversubscription validators
+    "PinOversubscriptionValidator",
+    "validate_pin_oversubscription",
+    # User-defined constraint validators
+    "UserConstraintValidator",
+    "validate_user_constraints",
+    # Sampling validators
+    "SamplingValidator",
+    "validate_sampling",
+    # Multi-broker validators
+    "MultiBrokerValidator",
+    "validate_multi_broker",
+    # Alert trigger validators
+    "AlertValidator",
+    "validate_alerts",
+    # Protocol frequency validators
+    "ProtocolFrequencyValidator",
+    "validate_protocol_frequency",
 ]

@@ -92,6 +92,7 @@ class RiotCodeGenerator(BaseCodeGenerator):
         conns_info = []
         attributes_list = []
         op_list = []
+        sampling_list = []
 
         for i, conn in enumerate(connections):
             pref = conn.peripheral.ref
@@ -102,21 +103,23 @@ class RiotCodeGenerator(BaseCodeGenerator):
             peripheral_names[i] = base_name
             peripheral_types[base_name] = type(pref).__name__.lower()
 
-            # Get frequency from attributes
             attrs = self.get_peripheral_attributes(conn.peripheral)
             attributes_list.append(attrs)
             op_list.append(self.get_operational_attributes(pref))
 
-            if "frequency" in attrs:
+            sampling = self.get_sampling_config(conn.peripheral.name)
+            sampling_list.append(sampling)
+
+            if sampling:
+                frequencies.append(sampling["rate_hz"])
+            elif "frequency" in attrs:
                 frequencies.append(attrs["frequency"])
             elif "poll_period" in attrs and attrs["poll_period"] > 0:
                 frequencies.append(1.0 / attrs["poll_period"])
             else:
                 frequencies.append(1.0)
 
-            topics.append(
-                conn.remote if conn.remote else f"device/{conn.peripheral.name}"
-            )
+            topics.append(conn.remote if conn.remote else f"device/{conn.peripheral.name}")
             ids.append(i)
             modules[i] = base_name
 
@@ -154,6 +157,7 @@ class RiotCodeGenerator(BaseCodeGenerator):
             "conns": conns_info,
             "attributes_list": attributes_list,
             "op_list": op_list,
+            "sampling_list": sampling_list,
             "num_of_peripherals": len(peripheral_names),
             "broker": broker_config,
             "port": broker_config.get("port", 1883),
@@ -217,23 +221,15 @@ class RiotCodeGenerator(BaseCodeGenerator):
 
         # Generate MQTT broker files
         template = self.env.get_template("mqtt_broker.c.j2")
-        self._write_template(
-            template, global_context, self.output_dir / "mqtt_broker.c"
-        )
+        self._write_template(template, global_context, self.output_dir / "mqtt_broker.c")
         template = self.env.get_template("mqtt_broker.h.j2")
-        self._write_template(
-            template, global_context, self.output_dir / "mqtt_broker.h"
-        )
+        self._write_template(template, global_context, self.output_dir / "mqtt_broker.h")
 
         # Generate JSON handler files
         template = self.env.get_template("json_handler.c.j2")
-        self._write_template(
-            template, global_context, self.output_dir / "json_handler.c"
-        )
+        self._write_template(template, global_context, self.output_dir / "json_handler.c")
         template = self.env.get_template("json_handler.h.j2")
-        self._write_template(
-            template, global_context, self.output_dir / "json_handler.h"
-        )
+        self._write_template(template, global_context, self.output_dir / "json_handler.h")
 
         # Generate build script
         template = self.env.get_template("build_docker.sh.j2")
@@ -261,6 +257,7 @@ class RiotCodeGenerator(BaseCodeGenerator):
                     "conn": global_context["conns"][i],
                     "attributes": global_context["attributes_list"][i],
                     "op": global_context["op_list"][i],
+                    "sampling": global_context["sampling_list"][i],
                 }
             )
 
@@ -270,16 +267,10 @@ class RiotCodeGenerator(BaseCodeGenerator):
             try:
                 c_template = self.env.get_template(f"{p_type}_{base_name}.c.j2")
                 h_template = self.env.get_template(f"{p_type}_{base_name}.h.j2")
-                self._write_template(
-                    c_template, context, self.output_dir / f"{p_type}_{base_name}_{i}.c"
-                )
-                self._write_template(
-                    h_template, context, self.output_dir / f"{p_type}_{base_name}_{i}.h"
-                )
+                self._write_template(c_template, context, self.output_dir / f"{p_type}_{base_name}_{i}.c")
+                self._write_template(h_template, context, self.output_dir / f"{p_type}_{base_name}_{i}.h")
             except jinja2.TemplateNotFound:
-                logger.warning(
-                    f"Templates for {p_type} {base_name} not found, skipping."
-                )
+                logger.warning(f"Templates for {p_type} {base_name} not found, skipping.")
 
         logger.info("RiotOS code generation complete!")
 

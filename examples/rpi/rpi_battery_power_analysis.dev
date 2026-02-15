@@ -1,0 +1,58 @@
+// Battery-Powered Field Sensor — demonstrates Power Budget & Battery Runtime
+//
+// Scenario: A portable environmental monitoring station powered by a
+// USB power bank. The `demol analyze power` command computes total
+// power draw and estimates battery runtime based on the power source
+// capacity. Ideal for field deployments where autonomy matters.
+
+DEVICE FieldStation WITH
+    description="Battery-powered field sensor with power budget analysis",
+    author="DeMoL",
+    os=raspbian;
+
+USE RaspberryPi_4B_4GB;
+
+USE BME680[WeatherSensor],
+    SRF04[DepthSensor],
+    LedGeneric[StatusLed];
+
+// Battery power source — 10000 mAh USB power bank
+USE usb_power_bank[FieldBattery];
+
+NETWORK[WiFi] WITH ssid="FieldNet", password="f13ld_m0n";
+
+BROKER[MQTT] Broker WITH
+    host="field-gateway.local", port=1883,
+    auth.username="field", auth.password="f13ld_s3nsor";
+
+// Connect battery to board
+CONNECT FieldBattery WITH
+    POWER vcc -- power_5v_a, gnd -- GND_1;
+
+// Weather sensor via I2C
+CONNECT WeatherSensor WITH
+    POWER gnd -- GND_2, vcc -- power_5v_b
+    DATA i2c[slave_address=0x76] sda sda -- GPIO2, scl scl -- GPIO3
+    @ "field/weather";
+
+// Depth/distance sensor via GPIO
+CONNECT DepthSensor WITH
+    POWER gnd -- GND_3, vcc -- power_5v_b
+    DATA
+        gpio[mode="output"] trigger -- GPIO23,
+        gpio[mode="input"] echo -- GPIO24
+    @ "field/depth";
+
+// Status LED
+CONNECT StatusLed WITH
+    POWER gnd -- GND_4, vcc -- power_3v3_b
+    DATA gpio[mode="output"] vin -- GPIO17
+    @ "field/status";
+
+// Low-frequency sampling to conserve battery
+SAMPLING WeatherSensor WITH rate = 500 mhz, mode = continuous;
+SAMPLING DepthSensor WITH rate = 1 hz, mode = on_change, threshold = 1.0;
+
+// Power constraints for field deployment
+CONSTRAINT max_power: sum_power(PERIPHERAL) < 500 mW
+    MESSAGE "Peripheral power must stay under 500 mW for battery life";

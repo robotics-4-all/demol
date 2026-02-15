@@ -23,9 +23,7 @@ def parse_pins(pins):
         pin_data = {
             "name": p.name,
             "number": p.number,
-            "status": "optional"
-            if getattr(p, "optional", None) == "?"
-            else "essential",
+            "status": "optional" if getattr(p, "optional", None) == "?" else "essential",
             "type": "power" if "power" in class_name else "io",
         }
 
@@ -52,9 +50,7 @@ def board_to_json(comp) -> Dict[str, Any]:
         if hasattr(comp.operational, "cpu_family"):
             op["cpu"]["family"] = to_plain_value(comp.operational.cpu_family)
         if hasattr(comp.operational, "memory_ram"):
-            op["memory"]["ram"] = (
-                f"{comp.operational.memory_ram} {comp.operational.memory_ram_unit}"
-            )
+            op["memory"]["ram"] = f"{comp.operational.memory_ram} {comp.operational.memory_ram_unit}"
 
     return {
         "name": comp.name,
@@ -75,13 +71,9 @@ def peripheral_to_json(comp) -> Dict[str, Any]:
         if hasattr(comp.operational, "vcc"):
             op["vcc"] = to_plain_value(comp.operational.vcc)
         if hasattr(comp.operational, "min"):
-            op["power"]["min"] = (
-                f"{comp.operational.min.value} {comp.operational.min.unit}"
-            )
+            op["power"]["min"] = f"{comp.operational.min.value} {comp.operational.min.unit}"
         if hasattr(comp.operational, "max"):
-            op["power"]["max"] = (
-                f"{comp.operational.max.value} {comp.operational.max.unit}"
-            )
+            op["power"]["max"] = f"{comp.operational.max.value} {comp.operational.max.unit}"
 
     # Extract attributes
     attrs = {}
@@ -113,13 +105,9 @@ def powersource_to_json(comp) -> Dict[str, Any]:
         if hasattr(comp.operational, "voltage"):
             op["voltage"] = to_plain_value(comp.operational.voltage)
         if hasattr(comp.operational, "capacity"):
-            op["capacity"] = (
-                f"{comp.operational.capacity} {comp.operational.capacity_unit}"
-            )
+            op["capacity"] = f"{comp.operational.capacity} {comp.operational.capacity_unit}"
         if hasattr(comp.operational, "max_current"):
-            op["max_current"] = (
-                f"{comp.operational.max_current} {comp.operational.max_current_unit}"
-            )
+            op["max_current"] = f"{comp.operational.max_current} {comp.operational.max_current_unit}"
 
     return {
         "name": comp.name,
@@ -182,9 +170,7 @@ def device_to_json(model) -> Dict[str, Any]:
 
         if conn.powerConns:
             for pc in conn.powerConns:
-                c_data["mappings"].append(
-                    {"section": "power", "fromPin": pc.fromPin, "toPin": pc.toPin}
-                )
+                c_data["mappings"].append({"section": "power", "fromPin": pc.fromPin, "toPin": pc.toPin})
 
         if conn.dataConns:
             # Take the first data connection type
@@ -228,10 +214,8 @@ def device_to_json(model) -> Dict[str, Any]:
             "channel": getattr(net, "channel", None),
         }
 
-    # Broker
-    if hasattr(model, "broker") and model.broker:
-        br = model.broker
-        res["broker"] = {
+    def _broker_to_dict(br):
+        return {
             "type": br.__class__.__name__.replace("Broker", ""),
             "name": br.name,
             "host": br.host,
@@ -248,6 +232,14 @@ def device_to_json(model) -> Dict[str, Any]:
             "password": getattr(br, "auth_password", None),
             "key": getattr(br, "auth_key", None),
         }
+
+    brokers = getattr(model, "brokers", [])
+    if brokers:
+        res["broker"] = _broker_to_dict(brokers[0])
+        if len(brokers) > 1:
+            res["brokers"] = [_broker_to_dict(b) for b in brokers]
+    elif hasattr(model, "broker") and model.broker:
+        res["broker"] = _broker_to_dict(model.broker)
 
     return res
 
@@ -308,9 +300,7 @@ def json_to_demol(model_data) -> str:
 
         for p in peripherals:
             p_name = get_val(p, "name", "").replace(" ", "_")
-            p_inst_name = (
-                get_val(p, "instanceName") or get_val(p, "name", "")
-            ).replace(" ", "_")
+            p_inst_name = (get_val(p, "instanceName") or get_val(p, "name", "")).replace(" ", "_")
             p_def = f"{p_name} [{p_inst_name}]"
 
             attrs = get_val(p, "attributes", {})
@@ -334,9 +324,7 @@ def json_to_demol(model_data) -> str:
 
         for ps in power_sources:
             ps_name = get_val(ps, "name", "").replace(" ", "_")
-            ps_inst_name = (
-                get_val(ps, "instanceName") or get_val(ps, "name", "")
-            ).replace(" ", "_")
+            ps_inst_name = (get_val(ps, "instanceName") or get_val(ps, "name", "")).replace(" ", "_")
             use_defs.append(f"{ps_name} [{ps_inst_name}]")
 
             node_id = get_val(ps, "nodeId")

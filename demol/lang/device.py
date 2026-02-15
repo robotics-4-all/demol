@@ -41,6 +41,7 @@ def model_proc(model, metamodel):
         validate_single_board,
         validate_broker_security,
         validate_network_requirements,
+        validate_multi_broker,
         clear_validation_results,
         check_validation_errors,
         get_validation_errors,
@@ -131,6 +132,16 @@ def model_proc(model, metamodel):
     )
 
     # ========================================================================
+    # Well-Formedness: Multi-broker uniqueness and VIA resolution
+    # ========================================================================
+    run_rule(
+        "Multi-Broker Validation",
+        validate_multi_broker,
+        model,
+        desc="Broker names are unique and VIA references resolve",
+    )
+
+    # ========================================================================
     # Well-Formedness: Network requirements (network is configured)
     # ========================================================================
     run_rule(
@@ -217,6 +228,84 @@ def model_proc(model, metamodel):
     )
 
     # ========================================================================
+    # Safety: Power Budget Analysis
+    # ========================================================================
+    from demol.lang.semantics.validators.power_budget import validate_power_budget
+
+    run_rule(
+        "Power Budget",
+        validate_power_budget,
+        model,
+        desc="Total peripheral power within board supply capability",
+    )
+
+    # ========================================================================
+    # Warning: Pin Function Oversubscription
+    # ========================================================================
+    from demol.lang.semantics.validators.pin_oversubscription import (
+        validate_pin_oversubscription,
+    )
+
+    run_rule(
+        "Pin Oversubscription",
+        validate_pin_oversubscription,
+        model,
+        desc="Multi-function pins not silently losing bus capabilities",
+    )
+
+    # ========================================================================
+    # Sampling Configuration Validation
+    # ========================================================================
+    from demol.lang.semantics.validators.sampling import validate_sampling
+
+    run_rule(
+        "Sampling Config",
+        validate_sampling,
+        model,
+        desc="SAMPLING blocks are well-formed (rate, mode, duplicates)",
+    )
+
+    # ========================================================================
+    # User-Defined Constraints
+    # ========================================================================
+    from demol.lang.semantics.validators.user_constraints import (
+        validate_user_constraints,
+    )
+
+    run_rule(
+        "User Constraints",
+        validate_user_constraints,
+        model,
+        desc="User-defined CONSTRAINT expressions are satisfied",
+    )
+
+    # ========================================================================
+    # Protocol Frequency / Bus Speed Validation
+    # ========================================================================
+    from demol.lang.semantics.validators.protocol_frequency import (
+        validate_protocol_frequency,
+    )
+
+    run_rule(
+        "Protocol Frequency",
+        validate_protocol_frequency,
+        model,
+        desc="I2C/SPI bus speeds are within standard limits",
+    )
+
+    # ========================================================================
+    # Alert Trigger Validation
+    # ========================================================================
+    from demol.lang.semantics.validators.alert import validate_alerts
+
+    run_rule(
+        "Alert Triggers",
+        validate_alerts,
+        model,
+        desc="ALERT triggers are well-formed (source, targets, VIA)",
+    )
+
+    # ========================================================================
     # Topic Format Validation (based on broker type)
     # ========================================================================
     run_rule(
@@ -236,9 +325,7 @@ def model_proc(model, metamodel):
     if not errors:
         logger.info("All validation checks passed!")
     else:
-        logger.warning(
-            "Model built with %d semantic error(s) (skip_semantics=True)", len(errors)
-        )
+        logger.warning("Model built with %d semantic error(s) (skip_semantics=True)", len(errors))
 
 
 def enrich_model(model):
@@ -250,23 +337,39 @@ def enrich_model(model):
     from types import SimpleNamespace
 
     # ========================================================================
-    # Process Broker Authentication (create auth object)
+    # Multiple Brokers: backward-compat 'model.broker' property
     # ========================================================================
-    if hasattr(model, "broker") and model.broker:
+    brokers = getattr(model, "brokers", [])
+    # Provide backward-compatible 'model.broker' pointing to first broker
+    if brokers:
+        model.broker = brokers[0]
+    else:
+        model.broker = None
+
+    # Build broker lookup by name for VIA resolution
+    broker_map = {}
+    for b in brokers:
+        broker_map[b.name] = b
+    model._broker_map = broker_map
+
+    # ========================================================================
+    # Process Broker Authentication (create auth object for ALL brokers)
+    # ========================================================================
+    for broker in brokers:
         auth_attrs = {}
 
         # Check for auth properties and collect them
-        if hasattr(model.broker, "auth_username"):
-            auth_attrs["username"] = model.broker.auth_username
-        if hasattr(model.broker, "auth_password"):
-            auth_attrs["password"] = model.broker.auth_password
-        if hasattr(model.broker, "auth_key"):
-            auth_attrs["key"] = model.broker.auth_key
+        if hasattr(broker, "auth_username"):
+            auth_attrs["username"] = broker.auth_username
+        if hasattr(broker, "auth_password"):
+            auth_attrs["password"] = broker.auth_password
+        if hasattr(broker, "auth_key"):
+            auth_attrs["key"] = broker.auth_key
 
         # Create auth object if there are auth properties
         if auth_attrs:
             auth_obj = SimpleNamespace(**auth_attrs)
-            setattr(model.broker, "auth", auth_obj)
+            setattr(broker, "auth", auth_obj)
 
     # ========================================================================
     # Extract board and peripherals from USE statements
@@ -291,9 +394,7 @@ def enrich_model(model):
                     peripherals.append(comp_inst)
 
     # Create a synthetic 'components' object for backward compatibility
-    model.components = SimpleNamespace(
-        board=board, peripherals=peripherals, powerSources=power_sources
-    )
+    model.components = SimpleNamespace(board=board, peripherals=peripherals, powerSources=power_sources)
 
     # ========================================================================
     # Resolve SmartConnect declarations into synthetic connections
@@ -352,24 +453,29 @@ def enrich_model(model):
         target_name = from_name if from_inst else to_name
 
         # ====================================================================
+        # Resolve VIA broker reference for this connection
+        # ====================================================================
+        via_name = getattr(c, "via", None)
+        if via_name and via_name in model._broker_map:
+            setattr(c, "_resolved_broker", model._broker_map[via_name])
+        elif model.broker:
+            setattr(c, "_resolved_broker", model.broker)
+        else:
+            setattr(c, "_resolved_broker", None)
+
+        # ====================================================================
         # Auto-generate topic if not specified (if broker or network is present)
         # ====================================================================
-        has_net = (hasattr(model, "broker") and model.broker) or (
-            hasattr(model, "network") and model.network
-        )
+        has_net = (model.broker is not None) or (hasattr(model, "network") and model.network)
         if has_net and not c.remote and target_ref and hasattr(target_ref, "type"):
             peripheral_type = type(target_ref).__name__
             peripheral_msg = target_ref.type
 
-            default_topic = (
-                f'"{device_name}.{peripheral_type}.{peripheral_msg}.{target_name}"'
-            )
+            default_topic = f'"{device_name}.{peripheral_type}.{peripheral_msg}.{target_name}"'
             c.remote = default_topic.lower().strip('""')
 
 
-def get_device_mm(
-    debug: bool = False, global_repo: bool = False, skip_semantics: bool = False
-):
+def get_device_mm(debug: bool = False, global_repo: bool = False, skip_semantics: bool = False):
     mm = metamodel_from_file(
         os.path.join(METAMODEL_REPO_PATH, "device.tx"),
         auto_init_attributes=True,
@@ -393,12 +499,13 @@ def get_device_mm(
     mm.register_scope_providers(
         {
             "*.*": scoping_providers.FQNImportURI(importAs=True),
-            "ComponentInstance.ref": scoping_providers.FQNGlobalRepo(
-                os.path.join(DEVICES_MODEL_REPO_PATH, "*/*.hwd")
-            ),
+            "ComponentInstance.ref": scoping_providers.FQNGlobalRepo(os.path.join(DEVICES_MODEL_REPO_PATH, "*/*.hwd")),
             "Connect.from_comp": "~uses.components",
             "Connect.to_comp": "~uses.components",
             "SmartConnect.target": "~uses.components",
+            "SamplingConfig.target": "~uses.components",
+            "AlertTrigger.source": "~uses.components",
+            "AlertActivate.target": "~uses.components",
         }
     )
 

@@ -37,6 +37,7 @@ dependencies = [
     "click>=8.1.7",
     "python-multipart>=0.0.9",
     "aiofiles>=23.2.1",
+    "pygls>=2.0.0",
 ]
 
 [project.optional-dependencies]

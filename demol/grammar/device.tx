@@ -11,9 +11,12 @@ DeviceModel:
         metadata=Device
         uses+=Use
         (network=Network)?
-        (broker=MessageBroker)?
+        brokers*=MessageBroker
         connections*=Connect
         smartConnections*=SmartConnect
+        samplings*=SamplingConfig
+        constraints*=UserConstraint
+        alerts*=AlertTrigger
     )#
 ;
 
@@ -67,12 +70,13 @@ Connect:
 	    ('POWER' powerConns*=PowerConnection[','])?
         ('DATA' dataConns+=DataConnection[','])?
 	    ("@" remote=STRING)?
+	    ('VIA' via=ID)?
     )#
     ';'
 ;
 
 SmartConnect:
-    'SMARTCONNECT' target=[ComponentInstance:FQN] ("@" remote=STRING)? ';'
+    'SMARTCONNECT' target=[ComponentInstance:FQN] ("@" remote=STRING)? ('VIA' via=ID)? ';'
 ;
 
 PinConnection:
@@ -107,4 +111,140 @@ PWMConnection:
 
 PinMapping:
     (function=ID fromPin=ID '--' toPin=ID)
+;
+
+
+// ========================================================================
+// Sampling Configuration
+// ========================================================================
+
+SamplingConfig:
+    'SAMPLING' target=[ComponentInstance:FQN] 'WITH'
+    (
+        ('rate' '=' rate=NUMBER rate_unit=FrequencyUnit)
+        ('mode' '=' mode=SamplingMode)?
+        ('buffer' '=' buffer=INT)?
+        ('threshold' '=' threshold=NUMBER)?
+    )#[',']
+    ';'
+;
+
+SamplingMode:
+    'continuous' | 'on_change' | 'on_demand' | 'batch'
+;
+
+
+// ========================================================================
+// User-Defined Constraints
+// ========================================================================
+
+UserConstraint:
+    'CONSTRAINT' name=ID ':' expr=ConstraintExpr
+    ('MESSAGE' message=STRING)?
+    ';'
+;
+
+ConstraintExpr:
+    ComparisonExpr
+;
+
+ComparisonExpr:
+    left=AdditiveExpr op=ComparisonOp right=AdditiveExpr
+;
+
+ComparisonOp:
+    '<=' | '>=' | '!=' | '==' | '<' | '>'
+;
+
+AdditiveExpr:
+    operands=UnaryExpr (operators=AdditiveOp operands=UnaryExpr)*
+;
+
+AdditiveOp:
+    '+' | '-'
+;
+
+UnaryExpr:
+    MultiplicativeExpr
+;
+
+MultiplicativeExpr:
+    operands=AtomExpr (operators=MultiplicativeOp operands=AtomExpr)*
+;
+
+MultiplicativeOp:
+    '*' | '/'
+;
+
+AtomExpr:
+    FunctionCallExpr | PropertyAccessExpr | NumberLiteral | StringLiteral | BoolLiteral
+;
+
+FunctionCallExpr:
+    func=BuiltinFunc '(' arg=FunctionArg ')'
+;
+
+BuiltinFunc:
+    'count' | 'sum_power' | 'avg_power' | 'max_power'
+;
+
+FunctionArg:
+    'SENSOR' | 'ACTUATOR' | 'PERIPHERAL' | 'CONNECTION'
+;
+
+PropertyAccessExpr:
+    segments+=ID['.']
+;
+
+NumberLiteral:
+    value=NUMBER (unit=ConstraintUnit)?
+;
+
+ConstraintUnit:
+    PowerUnit | CapacityUnit | CurrentUnit | FrequencyUnit
+;
+
+StringLiteral:
+    value=STRING
+;
+
+BoolLiteral:
+    value=BOOL
+;
+
+
+// ========================================================================
+// Alert Triggers
+// ========================================================================
+
+AlertTrigger:
+    'ALERT' name=ID 'ON' source=[ComponentInstance:FQN]
+    'WHEN' condition=AlertConditionExpr
+    'THEN' actions+=AlertAction
+    ('COOLDOWN' cooldown=NUMBER cooldown_unit=FrequencyUnit)?
+    ';'
+;
+
+AlertConditionExpr:
+    left=AlertComparison (op=AlertLogicOp right=AlertConditionExpr)?
+;
+
+AlertLogicOp:
+    '&&' | '||'
+;
+
+AlertComparison:
+    property=ID op=ComparisonOp value=NUMBER (unit=ConstraintUnit)?
+;
+
+AlertAction:
+    AlertPublish | AlertActivate
+;
+
+AlertPublish:
+    'PUBLISH' topic=STRING ('VIA' via=ID)?
+;
+
+AlertActivate:
+    'ACTIVATE' target=[ComponentInstance:FQN]
 ;

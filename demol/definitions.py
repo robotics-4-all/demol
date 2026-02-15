@@ -15,18 +15,12 @@ RIOT_SOURCE_DIRNAME = "src"
 DIAGRAMS_DIRNAME = "diagrams"
 METAMODEL_REPO_PATH = os.path.join(THIS_DIR_PATH, "grammar")
 
-DEVICES_MODEL_REPO_PATH = os.getenv(
-    "DEVICES_MODEL_REPO_PATH", os.path.join(THIS_DIR_PATH, "builtin_models")
-)
+DEVICES_MODEL_REPO_PATH = os.getenv("DEVICES_MODEL_REPO_PATH", os.path.join(THIS_DIR_PATH, "builtin_models"))
 
-BOARD_MODEL_REPO_PATH = os.getenv(
-    "BOARD_MODEL_REPO_PATH", os.path.join(DEVICES_MODEL_REPO_PATH, "boards")
-)
+BOARD_MODEL_REPO_PATH = os.getenv("BOARD_MODEL_REPO_PATH", os.path.join(DEVICES_MODEL_REPO_PATH, "boards"))
 
 PERIPHERAL_MODEL_REPO_PATH = os.getenv(
     "PERIPHERAL_MODEL_REPO_PATH", os.path.join(DEVICES_MODEL_REPO_PATH, "peripherals")
 )
 
-POWER_SOURCE_MODEL_REPO_PATH = os.getenv(
-    "POWER_SOURCE_MODEL_REPO_PATH", os.path.join(DEVICES_MODEL_REPO_PATH, "power")
-)
+POWER_SOURCE_MODEL_REPO_PATH = os.getenv("POWER_SOURCE_MODEL_REPO_PATH", os.path.join(DEVICES_MODEL_REPO_PATH, "power"))

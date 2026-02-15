@@ -228,9 +228,7 @@ class ValidationReporter:
                 for i, warning in enumerate(result.warnings, 1):
                     # Display full warning message without truncation
                     # Use wrapping for better readability
-                    self.console.print(
-                        f"  {i}. {warning}", style="dim yellow", soft_wrap=True
-                    )
+                    self.console.print(f"  {i}. {warning}", style="dim yellow", soft_wrap=True)
 
         if failed_results:
             self.console.print("\n[bold red]✗ Failed Files:[/bold red]")
@@ -239,9 +237,7 @@ class ValidationReporter:
                 for i, error in enumerate(result.errors, 1):
                     # Display full error message without truncation
                     # Use wrapping for better readability
-                    self.console.print(
-                        f"  {i}. {error}", style="dim red", soft_wrap=True
-                    )
+                    self.console.print(f"  {i}. {error}", style="dim red", soft_wrap=True)
 
     def _print_detailed_issues_simple(self, results: List[ValidationResult]) -> None:
         """Fallback for printing detailed issues without rich"""
@@ -302,9 +298,7 @@ class ValidationReporter:
     def print_header(self, title: str) -> None:
         """Print a header"""
         if self.use_rich and self.console:
-            self.console.print(
-                Panel.fit(f"[bold cyan]{title}[/bold cyan]", border_style="cyan")
-            )
+            self.console.print(Panel.fit(f"[bold cyan]{title}[/bold cyan]", border_style="cyan"))
         else:
             print("\n" + "=" * 50)
             print(title)
@@ -385,9 +379,7 @@ def validate_model_file(file_path: str, metamodel) -> ValidationResult:
                 errors_list.append(str(e))
 
             # If skip_semantics is enabled and it's a semantic error, treat as warning
-            if getattr(metamodel, "skip_semantics", False) and isinstance(
-                e, (ValidationError, TextXSemanticError)
-            ):
+            if getattr(metamodel, "skip_semantics", False) and isinstance(e, (ValidationError, TextXSemanticError)):
                 status = ValidationStatus.WARN
             else:
                 status = ValidationStatus.FAIL
@@ -395,9 +387,7 @@ def validate_model_file(file_path: str, metamodel) -> ValidationResult:
             errors_list.append(f"Unexpected error: {str(e)}")
             status = ValidationStatus.FAIL
 
-    return ValidationResult(
-        file_path=file_path, status=status, warnings=warnings_list, errors=errors_list
-    )
+    return ValidationResult(file_path=file_path, status=status, warnings=warnings_list, errors=errors_list)
 
 
 def validate_models(
@@ -440,9 +430,7 @@ def validate_models(
 
             for file_path in file_paths:
                 rel_path = os.path.relpath(file_path, os.getcwd())
-                display_path = (
-                    rel_path if len(rel_path) < 40 else "..." + rel_path[-37:]
-                )
+                display_path = rel_path if len(rel_path) < 40 else "..." + rel_path[-37:]
                 progress.update(task, description=f"[cyan]Validating {display_path}")
 
                 result = validate_model_file(file_path, metamodel)

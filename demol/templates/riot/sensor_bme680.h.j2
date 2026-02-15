@@ -2,6 +2,15 @@
 #define {{ name|upper }}_{{ index }}_DRIVER_H
 
 #define {{ name|upper }}_{{ index }}_FREQ {{ freq }}
+{% if sampling %}
+#define {{ name|upper }}_{{ index }}_SAMPLING_MODE "{{ sampling.mode }}"
+{% if sampling.mode == "on_change" %}
+#define {{ name|upper }}_{{ index }}_THRESHOLD {{ sampling.threshold }}
+{% endif %}
+{% if sampling.mode == "batch" %}
+#define {{ name|upper }}_{{ index }}_BATCH_SIZE {{ sampling.buffer }}
+{% endif %}
+{% endif %}
 
 typedef void (*{{ name }}_{{ index }}_callback)(char *);
 
