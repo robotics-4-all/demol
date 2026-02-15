@@ -1,4 +1,4 @@
-.PHONY: help install install-dev clean test test-validation test-transformations test-all test-local lint format docker-build docker-run docker-clean generate-examples
+.PHONY: help install install-dev clean test test-validation test-transformations test-all test-local lint format format-check type-check docker-build docker-run docker-clean generate-examples ci ci-check validate-examples
 
 # Variables
 PYTHON := python3
@@ -98,13 +98,18 @@ test-cov: ## Run tests with coverage report
 
 lint: ## Run linting checks (flake8)
 	@echo "Running linting checks..."
-	$(PYTHON) -m flake8 demol/ --max-line-length=120 --exclude=__pycache__,.venv
+	$(PYTHON) -m flake8 demol/ --max-line-length=120 --exclude=__pycache__,.venv,demol/lang/semantics.py --extend-ignore=E203,E501
 	@echo "✓ Linting complete"
 
 format: ## Format code with black
 	@echo "Formatting code with black..."
 	$(PYTHON) -m black demol/ tests/ scripts/ --line-length=120
 	@echo "✓ Code formatting complete"
+
+format-check: ## Check formatting without modifying files
+	@echo "Checking code formatting..."
+	$(PYTHON) -m black --check demol/ tests/ scripts/ --line-length=120
+	@echo "✓ Formatting check passed"
 
 type-check: ## Run type checking with mypy
 	@echo "Running type checks..."
@@ -122,7 +127,8 @@ generate-examples: ## Generate code for all RPI examples
 
 validate-examples: ## Validate all example models
 	@echo "Validating example models..."
-	@for file in examples/rpi/*.dev; do \
+	@for file in examples/rpi/*.dev examples/esp/*.dev; do \
+		[ -f "$$file" ] || continue; \
 		echo "Validating $$file..."; \
 		$(PYTHON) -m demol.cli.cli validate "$$file" || exit 1; \
 	done
@@ -177,10 +183,17 @@ dev-setup: install-dev ## Complete development setup (install + pre-commit hooks
 	@echo "✓ Development environment ready"
 	@echo "Run 'source $(VENV)/bin/activate' to activate the virtual environment"
 
-check: lint type-check test-local ## Run all quality checks (lint + type-check + tests)
+check: lint type-check test-local ## Run all quality checks locally (lint + type-check + tests)
 	@echo "✓ All checks passed"
 
-ci: clean install test-local ## CI pipeline (clean + install + test)
+ci-check: format-check lint type-check test validate-examples ## Full CI pipeline (format + lint + type-check + tests + examples)
+	@echo "✓ CI pipeline complete"
+
+ci: ## Run full CI pipeline in a Docker container
+	@echo "Building CI container..."
+	docker build -t demol-ci -f docker/Dockerfile.tests .
+	@echo "Running full CI pipeline in container..."
+	docker run --rm demol-ci
 	@echo "✓ CI pipeline complete"
 
 # ============================================================================

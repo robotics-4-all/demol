@@ -1,0 +1,135 @@
+// Complete Feature Showcase — demonstrates ALL new DeMoL features
+//
+// Scenario: A smart agriculture system with multiple sensors, actuators,
+// dual brokers (local + cloud), diverse sampling modes, battery power,
+// user-defined constraints, and alert triggers. This example exercises
+// every new feature introduced in DeMoL v3.5.
+//
+// Features demonstrated:
+//   - SAMPLING (continuous, on_change, batch modes)
+//   - Multiple BROKER declarations with VIA routing
+//   - User-defined CONSTRAINT expressions
+//   - POWERSOURCE for battery runtime estimation
+//   - Manual CONNECT with VIA routing
+//   - ALERT triggers with conditions, PUBLISH, ACTIVATE, COOLDOWN
+
+DEVICE SmartFarm WITH
+    description="Smart agriculture node with all DeMoL v3.4 features",
+    author="DeMoL",
+    os=raspbian;
+
+USE RaspberryPi_4B_4GB;
+
+// Sensors
+USE BME680[SoilClimate],
+    HCSR04[WaterTank],
+    SRF04[CropHeight];
+
+// Actuators
+USE LedGeneric[IrrigationLed],
+    BuzzerGeneric[FrostAlarm];
+
+// Battery power source (5V USB power bank, 10000 mAh)
+USE usb_power_bank[FieldBattery];
+
+// ── Network & Brokers ────────────────────────────────────────────────
+
+NETWORK[WiFi] WITH ssid="FarmNet", password="agr1culture";
+
+// Local broker for real-time irrigation control
+BROKER[MQTT] Local WITH
+    host="192.168.10.1", port=1883,
+    auth.username="farm_local", auth.password="l0cal_pass";
+
+// Cloud broker for analytics and remote monitoring
+BROKER[MQTT] Cloud WITH
+    host="mqtt.smartfarm.io", port=8883,
+    ssl=True,
+    auth.username="farm_node_01", auth.password="s3cure_f4rm";
+
+// ── Connections ──────────────────────────────────────────────────────
+
+// Battery → Board
+CONNECT FieldBattery WITH
+    POWER vcc -- power_5v_a, gnd -- GND_1;
+
+// Soil climate sensor → Cloud (long-term analytics)
+CONNECT SoilClimate WITH
+    POWER gnd -- GND_2, vcc -- power_5v_b
+    DATA i2c[slave_address=0x76] sda sda -- GPIO2, scl scl -- GPIO3
+    @ "farm/field1/soil"
+    VIA Cloud;
+
+// Water tank level → Local (real-time irrigation decisions)
+CONNECT WaterTank WITH
+    POWER GND -- GND_3, VCC -- power_5v_a
+    DATA
+        gpio[mode="output"] trigger -- GPIO23,
+        gpio[mode="input"] echo -- GPIO24
+    @ "farm/field1/water_tank"
+    VIA Local;
+
+// Crop height → Cloud (growth tracking)
+CONNECT CropHeight WITH
+    POWER gnd -- GND_4, vcc -- power_5v_b
+    DATA
+        gpio[mode="output"] trigger -- GPIO17,
+        gpio[mode="input"] echo -- GPIO27
+    @ "farm/field1/crop_height"
+    VIA Cloud;
+
+// Irrigation indicator → Local (immediate feedback)
+CONNECT IrrigationLed WITH
+    POWER gnd -- GND_5, vcc -- power_3v3_a
+    DATA gpio[mode="output"] vin -- GPIO22
+    @ "farm/field1/irrigation"
+    VIA Local;
+
+// Frost alarm → Local (safety-critical, low latency)
+CONNECT FrostAlarm WITH
+    POWER gnd -- GND_6
+    DATA gpio[mode="output"] vin -- GPIO4
+    @ "farm/field1/frost_alarm"
+    VIA Local;
+
+// ── Sampling Configurations ──────────────────────────────────────────
+
+// Continuous soil monitoring at 1 reading per second
+SAMPLING SoilClimate WITH rate = 1 hz, mode = continuous;
+
+// Water tank: only report when level changes significantly
+SAMPLING WaterTank WITH rate = 5 hz, mode = on_change, threshold = 2.0;
+
+// Crop height: batch 10 readings for statistical analysis
+SAMPLING CropHeight WITH rate = 2 hz, mode = batch, buffer = 10;
+
+// ── User-Defined Constraints ─────────────────────────────────────────
+
+// Minimum sensor count for reliable monitoring
+CONSTRAINT min_sensors: count(SENSOR) >= 3
+    MESSAGE "Smart farm requires at least 3 sensors for coverage";
+
+// Power budget for battery longevity
+CONSTRAINT power_limit: sum_power(PERIPHERAL) < 500 mW
+    MESSAGE "Total peripheral power must stay under 500 mW for field battery";
+
+// Must have at least one actuator for automated response
+CONSTRAINT has_alarm: count(ACTUATOR) >= 1
+    MESSAGE "At least one actuator needed for automated alerts";
+
+// ── Alert Triggers ───────────────────────────────────────────────────
+
+// Frost warning: activate buzzer and notify cloud
+ALERT frost_warning ON SoilClimate WHEN
+    temperature < 2
+    THEN
+    PUBLISH "farm/alerts/frost" VIA Cloud
+    ACTIVATE FrostAlarm
+    COOLDOWN 300 hz;
+
+// Heat + dry conditions: notify cloud for irrigation decision
+ALERT heat_dry ON SoilClimate WHEN
+    temperature > 35 && humidity < 25
+    THEN
+    PUBLISH "farm/alerts/heat-dry" VIA Cloud
+    ACTIVATE IrrigationLed;

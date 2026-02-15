@@ -118,9 +118,9 @@ class RPiCodeGenerator(BaseCodeGenerator):
 
         # Build base context
         driver_class_name = f"{peripheral_ref.name}_{connection.peripheral.name}"
-        driver_module_name = (
-            f"{peripheral_ref.name.lower()}_{connection.peripheral.name.lower()}"
-        )
+        driver_module_name = f"{peripheral_ref.name.lower()}_{connection.peripheral.name.lower()}"
+
+        sampling = self.get_sampling_config(connection.peripheral.name)
 
         context = {
             "name": peripheral_ref.name,
@@ -137,9 +137,9 @@ class RPiCodeGenerator(BaseCodeGenerator):
             "attributes": attributes,
             "op": op_attributes,
             "max_frequency": op_attributes.get("freq_max", {}).get("value", 100.0),
+            "sampling": sampling,
         }
 
-        # Build structured connection info
         context["conn"] = self._build_conn_info(pins, board)
 
         return context
@@ -179,9 +179,7 @@ class RPiCodeGenerator(BaseCodeGenerator):
         elif peripheral_type == "Actuator":
             template_name = "actuator_node.py.j2"
         else:
-            logger.warning(
-                f"Unknown peripheral type: {peripheral_type}, skipping node generation"
-            )
+            logger.warning(f"Unknown peripheral type: {peripheral_type}, skipping node generation")
             return
 
         template = self.env.get_template(template_name)
@@ -204,9 +202,7 @@ class RPiCodeGenerator(BaseCodeGenerator):
         template_name = PeripheralTemplateMapper.get_template(peripheral_ref)
 
         if not template_name:
-            logger.warning(
-                f"Skipping peripheral {connection.peripheral.name}: no template available"
-            )
+            logger.warning(f"Skipping peripheral {connection.peripheral.name}: no template available")
             return
 
         template = self.env.get_template(template_name)
@@ -273,18 +269,10 @@ class RPiCodeGenerator(BaseCodeGenerator):
 
                                     if item.source and item.source == "apt":
                                         # APT uses single '=' for version pinning
-                                        pkg = (
-                                            f"{pkg}={version_str}"
-                                            if not has_operator
-                                            else f"{pkg}{version_str}"
-                                        )
+                                        pkg = f"{pkg}={version_str}" if not has_operator else f"{pkg}{version_str}"
                                     else:
                                         # pip uses '==' for exact version, or keeps operator if present
-                                        pkg = (
-                                            f"{pkg}=={version_str}"
-                                            if not has_operator
-                                            else f"{pkg}{version_str}"
-                                        )
+                                        pkg = f"{pkg}=={version_str}" if not has_operator else f"{pkg}{version_str}"
 
                                 if item.source and item.source == "apt":
                                     apt_deps.add(pkg)
@@ -320,9 +308,7 @@ class RPiCodeGenerator(BaseCodeGenerator):
         # Make script executable
         os.chmod(self.output_dir / "install_deps.sh", 0o755)
 
-    def _write_template(
-        self, template: jinja2.Template, context: Dict[str, Any], output_path: Path
-    ) -> None:
+    def _write_template(self, template: jinja2.Template, context: Dict[str, Any], output_path: Path) -> None:
         """Render template and write to file.
 
         Args:
@@ -354,9 +340,7 @@ def m2t_rpi(model, output_dir="."):
     generator.generate()
 
 
-def transform_device_model(
-    device_model_path: str, output_dir: str, skip_semantics: bool = False
-) -> None:
+def transform_device_model(device_model_path: str, output_dir: str, skip_semantics: bool = False) -> None:
     """Transform a DeMoL device model to Raspberry Pi code.
 
     Args:

@@ -42,8 +42,7 @@ class SmartConnectValidator(BaseValidator):
             if "Board" in target_class:
                 raise_validation_error(
                     sc,
-                    "SMARTCONNECT cannot target board "
-                    f"'{target_name}'. Only sensors and actuators are supported.",
+                    "SMARTCONNECT cannot target board " f"'{target_name}'. Only sensors and actuators are supported.",
                     "SmartConnect-Target",
                 )
                 continue

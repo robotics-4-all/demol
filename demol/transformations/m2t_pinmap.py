@@ -32,7 +32,7 @@ def _get_pin_number(board_pins_map: Dict[str, Any], pin_name: str) -> int:
     """Get the physical pin number for a board pin name."""
     pin = board_pins_map.get(pin_name)
     if pin and hasattr(pin, "number"):
-        return pin.number
+        return int(pin.number)
     return -1
 
 
@@ -83,20 +83,12 @@ def _build_connection_data(model) -> List[Dict[str, Any]]:
         if not peripheral_inst:
             continue
 
-        periph_name = (
-            peripheral_inst.name
-            if hasattr(peripheral_inst, "name")
-            else str(peripheral_inst)
-        )
-        periph_ref = (
-            peripheral_inst.ref if hasattr(peripheral_inst, "ref") else peripheral_inst
-        )
-        periph_type = (
-            periph_ref.name if hasattr(periph_ref, "name") else str(periph_ref)
-        )
+        periph_name = peripheral_inst.name if hasattr(peripheral_inst, "name") else str(peripheral_inst)
+        periph_ref = peripheral_inst.ref if hasattr(peripheral_inst, "ref") else peripheral_inst
+        periph_type = periph_ref.name if hasattr(periph_ref, "name") else str(periph_ref)
         topic = getattr(conn, "remote", None) or ""
 
-        entry = {
+        entry: Dict[str, Any] = {
             "peripheral": periph_name,
             "peripheral_type": periph_type,
             "source": "smartconnect" if is_smart else "manual",
@@ -165,9 +157,7 @@ def _generate_markdown(model, connections_data: List[Dict[str, Any]]) -> str:
 
     for entry in connections_data:
         source_badge = " 🔌 `SmartConnect`" if entry["source"] == "smartconnect" else ""
-        lines.append(
-            f"## {entry['peripheral']} ({entry['peripheral_type']}){source_badge}"
-        )
+        lines.append(f"## {entry['peripheral']} ({entry['peripheral_type']}){source_badge}")
         lines.append("")
         if entry["topic"]:
             lines.append(f"**Topic:** `{entry['topic']}`")
@@ -181,9 +171,7 @@ def _generate_markdown(model, connections_data: List[Dict[str, Any]]) -> str:
             lines.append("|----------------|-----------|-------|------|")
             for p in entry["power"]:
                 pin_num = p["board_pin_number"] if p["board_pin_number"] >= 0 else "?"
-                lines.append(
-                    f"| {p['peripheral_pin']} | {p['board_pin']} | {pin_num} | {p['type']} |"
-                )
+                lines.append(f"| {p['peripheral_pin']} | {p['board_pin']} | {pin_num} | {p['type']} |")
             lines.append("")
             total_power += len(entry["power"])
 
@@ -191,12 +179,8 @@ def _generate_markdown(model, connections_data: List[Dict[str, Any]]) -> str:
         if entry["data"]:
             lines.append("### Data")
             lines.append("")
-            lines.append(
-                "| Peripheral Pin | Board Pin | Pin # | Protocol | Function | Properties |"
-            )
-            lines.append(
-                "|----------------|-----------|-------|----------|----------|------------|"
-            )
+            lines.append("| Peripheral Pin | Board Pin | Pin # | Protocol | Function | Properties |")
+            lines.append("|----------------|-----------|-------|----------|----------|------------|")
             for d in entry["data"]:
                 pin_num = d["board_pin_number"] if d["board_pin_number"] >= 0 else "?"
                 proto = d["protocol"].upper()
@@ -214,14 +198,12 @@ def _generate_markdown(model, connections_data: List[Dict[str, Any]]) -> str:
     lines.append("")
     lines.append("## Summary")
     lines.append("")
-    lines.append(f"| Metric | Count |")
-    lines.append(f"|--------|-------|")
+    lines.append("| Metric | Count |")
+    lines.append("|--------|-------|")
     lines.append(f"| Peripherals | {len(connections_data)} |")
     lines.append(f"| Power connections | {total_power} |")
     lines.append(f"| Data connections | {total_data} |")
-    lines.append(
-        f"| Protocols | {', '.join(sorted(protocols_used)) if protocols_used else 'none'} |"
-    )
+    lines.append(f"| Protocols | {', '.join(sorted(protocols_used)) if protocols_used else 'none'} |")
 
     smart_count = sum(1 for e in connections_data if e["source"] == "smartconnect")
     manual_count = len(connections_data) - smart_count

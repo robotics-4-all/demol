@@ -6,13 +6,31 @@ from .{{ driver_module_name }} import {{ driver_class_name }}
 
 
 class {{ peripheral.name }}Node:
+{% if sampling %}
+    _FREQUENCY = {{ sampling.rate_hz }}
+    _SAMPLING_MODE = "{{ sampling.mode }}"
+{% if sampling.mode == "on_change" %}
+    _THRESHOLD = {{ sampling.threshold }}
+{% endif %}
+{% if sampling.mode == "batch" %}
+    _BATCH_SIZE = {{ sampling.buffer }}
+{% endif %}
+{% else %}
     _FREQUENCY = {{ attributes.get('frequency', 10.0) }}
+    _SAMPLING_MODE = "continuous"
+{% endif %}
     _MAX_FREQUENCY = {{ op.get('freq_max', {}).get('value', 100.0) }}
 
     def __init__(self):
         self.sensor = {{ driver_class_name }}()
         self.sensor.initialize()
         self.rate = Rate(self._FREQUENCY)
+{% if sampling and sampling.mode == "on_change" %}
+        self._last_data = None
+{% endif %}
+{% if sampling and sampling.mode == "batch" %}
+        self._batch = []
+{% endif %}
         conn_params = ConnectionParameters(
             host="{{ broker.host }}",
             port={{ broker.port }}{% if broker.ssl is defined %},
@@ -34,12 +52,39 @@ class {{ peripheral.name }}Node:
         msg.header.stamp = get_timestamp_ns()
         self.pub.send(msg)
 
+{% if sampling and sampling.mode == "batch" %}
+    def _send_batch(self):
+        for data in self._batch:
+            msg = {{class}}Message(**data)
+            msg.header.stamp = get_timestamp_ns()
+            self.pub.send(msg)
+        self._batch.clear()
+
+{% endif %}
     def _read(self):
         try:
             self.sensor.read()
         except Exception as e:
             print(f"Error reading sensor data: {e}")
 
+{% if sampling and sampling.mode == "on_change" %}
+    def _has_changed(self):
+        current = self.sensor.current_state.get('data', {})
+        if self._last_data is None:
+            self._last_data = current.copy()
+            return True
+        for key in current:
+            try:
+                if abs(float(current[key]) - float(self._last_data.get(key, 0))) > self._THRESHOLD:
+                    self._last_data = current.copy()
+                    return True
+            except (TypeError, ValueError):
+                if current[key] != self._last_data.get(key):
+                    self._last_data = current.copy()
+                    return True
+        return False
+
+{% endif %}
     def disconnect(self):
         self.sensor.disconnect()
 
@@ -48,7 +93,18 @@ class {{ peripheral.name }}Node:
             self._initialize()
             while True:
                 self._read()
+{% if sampling and sampling.mode == "on_change" %}
+                if self._has_changed():
+                    self._send()
+{% elif sampling and sampling.mode == "batch" %}
+                self._batch.append(self.sensor.current_state.get('data', {}).copy())
+                if len(self._batch) >= self._BATCH_SIZE:
+                    self._send_batch()
+{% elif sampling and sampling.mode == "on_demand" %}
+                pass  # on_demand: data is read but only published on external request
+{% else %}
                 self._send()
+{% endif %}
                 self.rate.sleep()
         except KeyboardInterrupt:
             self.disconnect()

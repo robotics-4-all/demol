@@ -171,3 +171,118 @@ def test_riot_transformation_hw006(tmp_path):
     hw_content = (output_dir / "sensor_hw006_0.c").read_text()
     # GPIO4 is physical 32
     assert "GPIO_PIN(0, 32)" in hw_content
+
+
+def test_riot_transformation_sampling_continuous(tmp_path):
+    """Test RiotOS code generation with SAMPLING continuous mode."""
+    demol_str = """
+    DEVICE RiotSamplingTest WITH
+        description="Riot Sampling Test",
+        author="Tester",
+        os=riotos;
+
+    USE ESP32Wroom32;
+    USE BME680 [EnvSensor];
+
+    NETWORK [WiFi] WITH ssid="ssid", password="pass";
+
+    BROKER [MQTT] MyBroker WITH
+        host="localhost",
+        port=1883,
+        auth.username="user",
+        auth.password="pass";
+
+    CONNECT EnvSensor WITH
+        POWER gnd -- GND_1, vcc -- VCC_5V
+        DATA i2c [slave_address=0x77] sda sda -- GPIO21, scl scl -- GPIO22;
+
+    SAMPLING EnvSensor WITH rate = 2 hz;
+    """
+    mm = get_device_mm()
+    model = mm.model_from_str(demol_str)
+
+    output_dir = tmp_path / "riot_sampling_continuous"
+    m2t_riot(model, output_dir=str(output_dir))
+
+    assert (output_dir / "sensor_bme680_0.h").exists()
+    h_content = (output_dir / "sensor_bme680_0.h").read_text()
+    assert "BME680_0_FREQ 500" in h_content
+
+    assert (output_dir / "sensor_bme680_0.c").exists()
+
+
+def test_riot_transformation_sampling_on_change(tmp_path):
+    """Test RiotOS code generation with SAMPLING on_change mode."""
+    demol_str = """
+    DEVICE RiotOnChangeTest WITH
+        description="Riot OnChange Test",
+        author="Tester",
+        os=riotos;
+
+    USE ESP32Wroom32;
+    USE SRF04 [Sonar];
+
+    NETWORK [WiFi] WITH ssid="ssid", password="pass";
+
+    BROKER [MQTT] MyBroker WITH
+        host="localhost",
+        port=1883;
+
+    CONNECT Sonar WITH
+        POWER gnd -- GND_1, vcc -- VCC_5V
+        DATA gpio trigger -- GPIO4, echo -- GPIO2;
+
+    SAMPLING Sonar WITH rate = 10 hz, mode = on_change, threshold = 5;
+    """
+    mm = get_device_mm()
+    model = mm.model_from_str(demol_str)
+
+    output_dir = tmp_path / "riot_sampling_on_change"
+    m2t_riot(model, output_dir=str(output_dir))
+
+    h_content = (output_dir / "sensor_srf04_0.h").read_text()
+    assert 'SRF04_0_SAMPLING_MODE "on_change"' in h_content
+    assert "SRF04_0_THRESHOLD 5" in h_content
+
+    c_content = (output_dir / "sensor_srf04_0.c").read_text()
+    assert "prev_dist" in c_content
+    assert "changed" in c_content
+
+
+def test_riot_transformation_sampling_batch(tmp_path):
+    """Test RiotOS code generation with SAMPLING batch mode."""
+    demol_str = """
+    DEVICE RiotBatchTest WITH
+        description="Riot Batch Test",
+        author="Tester",
+        os=riotos;
+
+    USE ESP32Wroom32;
+    USE BME680 [EnvSensor];
+
+    NETWORK [WiFi] WITH ssid="ssid", password="pass";
+
+    BROKER [MQTT] MyBroker WITH
+        host="localhost",
+        port=1883,
+        auth.username="user",
+        auth.password="pass";
+
+    CONNECT EnvSensor WITH
+        POWER gnd -- GND_1, vcc -- VCC_5V
+        DATA i2c [slave_address=0x77] sda sda -- GPIO21, scl scl -- GPIO22;
+
+    SAMPLING EnvSensor WITH rate = 50 hz, mode = batch, buffer = 20;
+    """
+    mm = get_device_mm()
+    model = mm.model_from_str(demol_str)
+
+    output_dir = tmp_path / "riot_sampling_batch"
+    m2t_riot(model, output_dir=str(output_dir))
+
+    h_content = (output_dir / "sensor_bme680_0.h").read_text()
+    assert 'BME680_0_SAMPLING_MODE "batch"' in h_content
+    assert "BME680_0_BATCH_SIZE 20" in h_content
+
+    c_content = (output_dir / "sensor_bme680_0.c").read_text()
+    assert "batch_count" in c_content

@@ -3,7 +3,6 @@
 import pytest
 from textx.exceptions import TextXSemanticError
 
-
 # ============================================================================
 # Helper: base model template
 # ============================================================================
@@ -28,9 +27,7 @@ def make_model(uses, body, name="TestDevice"):
 
 
 def test_smartconnect_basic_parse(device_mm):
-    model = device_mm.model_from_str(
-        make_model("USE HCSR04[Dist];", 'SMARTCONNECT Dist @ "sensors/dist";')
-    )
+    model = device_mm.model_from_str(make_model("USE HCSR04[Dist];", 'SMARTCONNECT Dist @ "sensors/dist";'))
     assert len(model.smartConnections) == 1
     assert model.smartConnections[0].target.name == "Dist"
     assert model.smartConnections[0].remote == "sensors/dist"
@@ -38,13 +35,9 @@ def test_smartconnect_basic_parse(device_mm):
 
 
 def test_smartconnect_no_topic(device_mm):
-    model = device_mm.model_from_str(
-        make_model("USE BME680[Env];", "SMARTCONNECT Env;")
-    )
+    model = device_mm.model_from_str(make_model("USE BME680[Env];", "SMARTCONNECT Env;"))
     assert len(model.smartConnections) == 1
-    conn = [c for c in model.connections if getattr(c, "_is_smart_connection", False)][
-        0
-    ]
+    conn = [c for c in model.connections if getattr(c, "_is_smart_connection", False)][0]
     assert conn.remote is not None and conn.remote != ""
 
 
@@ -65,9 +58,7 @@ def test_smartconnect_multiple(device_mm):
 
 
 def test_smartconnect_gpio_sensor(device_mm):
-    model = device_mm.model_from_str(
-        make_model("USE HCSR04[Dist];", 'SMARTCONNECT Dist @ "sensors/dist";')
-    )
+    model = device_mm.model_from_str(make_model("USE HCSR04[Dist];", 'SMARTCONNECT Dist @ "sensors/dist";'))
     conn = model.connections[0]
     assert getattr(conn, "_is_smart_connection", False)
 
@@ -86,17 +77,13 @@ def test_smartconnect_gpio_sensor(device_mm):
 
     # Per-pin modes from gpio_modes attribute: echo=input, trigger=output
     echo_mode = [p.value for p in gpio_by_pin["echo"].props if p.name == "mode"][0]
-    trigger_mode = [p.value for p in gpio_by_pin["trigger"].props if p.name == "mode"][
-        0
-    ]
+    trigger_mode = [p.value for p in gpio_by_pin["trigger"].props if p.name == "mode"][0]
     assert echo_mode == "input"
     assert trigger_mode == "output"
 
 
 def test_smartconnect_gpio_actuator(device_mm):
-    model = device_mm.model_from_str(
-        make_model("USE BuzzerGeneric[Buzz];", 'SMARTCONNECT Buzz @ "actuators/buzz";')
-    )
+    model = device_mm.model_from_str(make_model("USE BuzzerGeneric[Buzz];", 'SMARTCONNECT Buzz @ "actuators/buzz";'))
     conn = model.connections[0]
     gpio_conns = [dc for dc in conn.dataConns if dc.type == "gpio"]
     assert len(gpio_conns) >= 1
@@ -109,9 +96,7 @@ def test_smartconnect_gpio_actuator(device_mm):
 
 def test_smartconnect_ws2812_as_gpio(device_mm):
     """WS2812 DIN pin resolves as GPIO (not SPI) with mode=output."""
-    model = device_mm.model_from_str(
-        make_model("USE WS2812[Led];", 'SMARTCONNECT Led @ "actuators/led";')
-    )
+    model = device_mm.model_from_str(make_model("USE WS2812[Led];", 'SMARTCONNECT Led @ "actuators/led";'))
     conn = model.connections[0]
     gpio_conns = [dc for dc in conn.dataConns if dc.type == "gpio"]
     assert len(gpio_conns) == 1
@@ -130,9 +115,7 @@ def test_smartconnect_ws2812_as_gpio(device_mm):
 
 
 def test_smartconnect_i2c_sensor(device_mm):
-    model = device_mm.model_from_str(
-        make_model("USE BME680[Env];", 'SMARTCONNECT Env @ "sensors/env";')
-    )
+    model = device_mm.model_from_str(make_model("USE BME680[Env];", 'SMARTCONNECT Env @ "sensors/env";'))
     conn = model.connections[0]
 
     # BME680: 2 power (vcc 5V, gnd GND), 2 I2C data (sda, scl)
@@ -223,12 +206,8 @@ def test_smartconnect_mixed_manual_and_smart(device_mm):
 
     assert len(model.connections) == 2
 
-    manual_conns = [
-        c for c in model.connections if not getattr(c, "_is_smart_connection", False)
-    ]
-    smart_conns = [
-        c for c in model.connections if getattr(c, "_is_smart_connection", False)
-    ]
+    manual_conns = [c for c in model.connections if not getattr(c, "_is_smart_connection", False)]
+    smart_conns = [c for c in model.connections if getattr(c, "_is_smart_connection", False)]
 
     assert len(manual_conns) == 1
     assert len(smart_conns) == 1
@@ -264,9 +243,7 @@ def test_smartconnect_avoids_manual_pins(device_mm):
         )
     )
 
-    smart = [c for c in model.connections if getattr(c, "_is_smart_connection", False)][
-        0
-    ]
+    smart = [c for c in model.connections if getattr(c, "_is_smart_connection", False)][0]
     smart_board_pins = set()
     for dc in smart.dataConns:
         for pm in dc.pins:
@@ -342,9 +319,7 @@ def test_smartconnect_conflict_with_manual(device_mm):
 
 def test_smartconnect_enrichment_board(device_mm):
     """SmartConnect connections get board/peripheral attributes set by enrichment."""
-    model = device_mm.model_from_str(
-        make_model("USE BME680[Env];", 'SMARTCONNECT Env @ "sensors/env";')
-    )
+    model = device_mm.model_from_str(make_model("USE BME680[Env];", 'SMARTCONNECT Env @ "sensors/env";'))
     conn = model.connections[0]
 
     assert hasattr(conn, "board") and conn.board is not None
@@ -356,9 +331,7 @@ def test_smartconnect_enrichment_board(device_mm):
 
 def test_smartconnect_enrichment_refs(device_mm):
     """SmartConnect connections get _from_ref/_to_ref set."""
-    model = device_mm.model_from_str(
-        make_model("USE BME680[Env];", 'SMARTCONNECT Env @ "sensors/env";')
-    )
+    model = device_mm.model_from_str(make_model("USE BME680[Env];", 'SMARTCONNECT Env @ "sensors/env";'))
     conn = model.connections[0]
 
     assert hasattr(conn, "_from_ref")
@@ -367,12 +340,8 @@ def test_smartconnect_enrichment_refs(device_mm):
 
 def test_smartconnect_topic_auto_generated(device_mm):
     """Topic is auto-generated when @ is omitted."""
-    model = device_mm.model_from_str(
-        make_model("USE BME680[Env];", "SMARTCONNECT Env;")
-    )
-    conn = [c for c in model.connections if getattr(c, "_is_smart_connection", False)][
-        0
-    ]
+    model = device_mm.model_from_str(make_model("USE BME680[Env];", "SMARTCONNECT Env;"))
+    conn = [c for c in model.connections if getattr(c, "_is_smart_connection", False)][0]
     assert conn.remote is not None
     assert len(conn.remote) > 0
 
@@ -409,12 +378,8 @@ def test_smartconnect_deterministic_allocation(device_mm):
 
 def test_smartconnect_only_model(device_mm):
     """Model with only SMARTCONNECT (no manual CONNECT) works."""
-    model = device_mm.model_from_str(
-        make_model("USE BME680[Env];", 'SMARTCONNECT Env @ "sensors/env";')
-    )
-    manual = [
-        c for c in model.connections if not getattr(c, "_is_smart_connection", False)
-    ]
+    model = device_mm.model_from_str(make_model("USE BME680[Env];", 'SMARTCONNECT Env @ "sensors/env";'))
+    manual = [c for c in model.connections if not getattr(c, "_is_smart_connection", False)]
     smart = [c for c in model.connections if getattr(c, "_is_smart_connection", False)]
 
     assert len(manual) == 0

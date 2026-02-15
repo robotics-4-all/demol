@@ -39,9 +39,7 @@ class DeviceModelExtractor:
         broker = self.device_model.broker
 
         if type(broker).__name__ != "MQTTBroker":
-            raise TypeError(
-                "This transformation does not support other Broker types than MQTTBroker."
-            )
+            raise TypeError("This transformation does not support other Broker types than MQTTBroker.")
 
         self.broker_config = {
             "host": broker.host,
@@ -59,8 +57,7 @@ class DeviceModelExtractor:
             self.broker_config["password"] = getattr(broker.auth, "password", "")
         elif auth_type in ("AuthCert", "AuthApiKey"):
             raise TypeError(
-                "This transformation uses commlib-py library and only supports "
-                "plain authentication for MQTTBroker."
+                "This transformation uses commlib-py library and only supports " "plain authentication for MQTTBroker."
             )
         else:
             # Warn about missing authentication for remote brokers

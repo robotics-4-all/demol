@@ -26,17 +26,15 @@ class BrokerRequirementsValidator(BaseValidator):
 
     @staticmethod
     def validate(model):
-        """
-        Validate Inv-Broker-Connection.
-
-        Broker is now mandatory for all models.
-        """
-        if not hasattr(model, "broker") or model.broker is None:
-            raise_validation_error(
-                model,
-                "[WF-Broker-Requirements] Broker configuration required: A broker must be defined in the model.",
-                "MissingBrokerError",
-            )
+        brokers = getattr(model, "brokers", [])
+        if not brokers:
+            if not hasattr(model, "broker") or model.broker is None:
+                raise_validation_error(
+                    model,
+                    "[WF-Broker-Requirements] Broker configuration required: "
+                    "At least one broker must be defined in the model.",
+                    "MissingBrokerError",
+                )
 
 
 class NetworkRequirementsValidator(BaseValidator):
@@ -80,36 +78,31 @@ class BrokerSecurityValidator(BaseValidator):
 
     @staticmethod
     def validate(model):
-        """
-        Validate Safety-Broker-Security property.
+        brokers = getattr(model, "brokers", [])
+        if not brokers:
+            broker = getattr(model, "broker", None)
+            brokers = [broker] if broker else []
 
-        From SEMANTICS.md Section 8.1 (implied safety):
-            Remote brokers must have authentication configured to prevent unauthorized access.
-        """
-        if not hasattr(model, "broker") or model.broker is None:
-            return
+        for broker in brokers:
+            host = getattr(broker, "host", "localhost")
 
-        broker = model.broker
-        host = getattr(broker, "host", "localhost")
+            has_auth = False
+            if hasattr(broker, "auth") and broker.auth:
+                username = getattr(broker.auth, "username", "")
+                password = getattr(broker.auth, "password", "")
+                key = getattr(broker.auth, "key", "")
 
-        # Check if authentication is provided
-        has_auth = False
-        if hasattr(broker, "auth") and broker.auth:
-            # Check for username/password or API key
-            username = getattr(broker.auth, "username", "")
-            password = getattr(broker.auth, "password", "")
-            key = getattr(broker.auth, "key", "")
+                if (username and password) or key:
+                    has_auth = True
 
-            if (username and password) or key:
-                has_auth = True
-
-        if host != "localhost" and not has_auth:
-            raise_validation_error(
-                broker,
-                f"Remote broker '{broker.name}' ({host}) is used without authentication. "
-                "This is not secure. Please add 'auth.username' and 'auth.password' (or 'auth.key') to your broker configuration.",
-                "SecurityError",
-            )
+            if host != "localhost" and not has_auth:
+                raise_validation_error(
+                    broker,
+                    f"Remote broker '{broker.name}' ({host}) is used without authentication. "
+                    "This is not secure. Please add 'auth.username' and 'auth.password' "
+                    "(or 'auth.key') to your broker configuration.",
+                    "SecurityError",
+                )
 
 
 class TopicFormatValidator(BaseValidator):
@@ -260,51 +253,44 @@ class TopicFormatValidator(BaseValidator):
         return True, None
 
     @staticmethod
-    def validate(model):
-        """
-        Validate that all connection topics match the broker type.
-
-        Checks:
-        - MQTT broker: topics use forward slashes
-        - AMQP broker: topics use dots (routing keys)
-        - Redis broker: flexible channel names
-        """
-        if not hasattr(model, "broker") or not model.broker:
-            # No broker defined, skip topic validation
-            return
-
-        broker = model.broker
-        broker_type = broker.__class__.__name__  # AMQPBroker, MQTTBroker, or RedisBroker
-
-        # Extract the actual type from the class name
+    def _get_broker_validator(broker):
+        broker_type = broker.__class__.__name__
         if "MQTT" in broker_type.upper():
-            validator = TopicFormatValidator.validate_mqtt_topic
-            broker_name = "MQTT"
+            return TopicFormatValidator.validate_mqtt_topic, "MQTT"
         elif "AMQP" in broker_type.upper():
-            validator = TopicFormatValidator.validate_amqp_topic
-            broker_name = "AMQP"
+            return TopicFormatValidator.validate_amqp_topic, "AMQP"
         elif "REDIS" in broker_type.upper():
-            validator = TopicFormatValidator.validate_redis_topic
-            broker_name = "Redis"
-        else:
-            # Unknown broker type, skip validation
+            return TopicFormatValidator.validate_redis_topic, "Redis"
+        return None, None
+
+    @staticmethod
+    def validate(model):
+        default_broker = getattr(model, "broker", None)
+        broker_map = getattr(model, "_broker_map", {})
+
+        if not default_broker and not broker_map:
             return
 
-        # Validate each connection's topic
         for connection in model.connections:
             if not hasattr(connection, "remote") or not connection.remote:
                 continue
 
-            topic = connection.remote.strip('"').strip("'")
+            resolved = getattr(connection, "_resolved_broker", default_broker)
+            if not resolved:
+                continue
 
+            validator, broker_name = TopicFormatValidator._get_broker_validator(resolved)
+            if not validator:
+                continue
+
+            topic = connection.remote.strip('"').strip("'")
             is_valid, error_msg = validator(topic)
 
             if not is_valid:
-                # Try to get location info if available
                 try:
-                    from demol.lang.semantics.core import get_location
+                    from demol.lang.semantics.core import get_location as get_loc
 
-                    location = get_location(connection)
+                    location = get_loc(connection)
                     location_str = f"{location.get('filename', 'unknown')}:{location.get('line', '?')}"
                 except Exception:
                     location_str = "unknown location"

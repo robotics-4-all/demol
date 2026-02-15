@@ -116,16 +116,12 @@ class ConnectionsOrchestratorValidator(BaseValidator):
 
                 # Check if fromPin exists on from_comp
                 if pconn.fromPin not in from_pin_names:
-                    raise_validation_error(
-                        pconn, f"Pin '{pconn.fromPin}' not found on '{from_name}'."
-                    )
+                    raise_validation_error(pconn, f"Pin '{pconn.fromPin}' not found on '{from_name}'.")
                     continue
 
                 # Check if toPin exists on to_comp
                 if pconn.toPin not in to_pin_names:
-                    raise_validation_error(
-                        pconn, f"Pin '{pconn.toPin}' not found on '{to_name}'."
-                    )
+                    raise_validation_error(pconn, f"Pin '{pconn.toPin}' not found on '{to_name}'.")
                     continue
 
                 from_pin_obj = from_pins_map[pconn.fromPin]

@@ -14,10 +14,15 @@
    - 3.1 [Voltage Domain](#31-voltage-domain)
    - 3.2 [Pin Domain](#32-pin-domain)
    - 3.3 [Component Domain](#33-component-domain)
-   - 3.4 [Connection Domain](#34-connection-domain)
-     - 3.4.1 [SmartConnect Domain](#341-smartconnect-domain)
-   - 3.5 [Protocol Domain](#35-protocol-domain)
-   - 3.6 [Device Model Domain](#36-device-model-domain)
+    - 3.4 [Power Budget Domain](#34-power-budget-domain)
+    - 3.4.1 [Constraint Expression Domain](#341-constraint-expression-domain)
+     - 3.4.2 [Sampling Domain](#342-sampling-domain)
+     - 3.4.3 [Multi-Broker Domain](#343-multi-broker-domain)
+     - 3.4.4 [Alert Trigger Domain](#344-alert-trigger-domain)
+     - 3.5 [Connection Domain](#35-connection-domain)
+     - 3.5.1 [SmartConnect Domain](#351-smartconnect-domain)
+   - 3.6 [Protocol Domain](#36-protocol-domain)
+   - 3.7 [Device Model Domain](#37-device-model-domain)
 4. [Abstract Syntax](#4-abstract-syntax)
    - 4.1 [Syntax Categories](#41-syntax-categories)
    - 4.2 [Syntactic Well-Formedness](#42-syntactic-well-formedness)
@@ -35,10 +40,15 @@
    - 7.1 [Structural Well-Formedness](#71-structural-well-formedness)
    - 7.2 [Referential Integrity](#72-referential-integrity)
 8. [Safety Properties](#8-safety-properties)
-   - 8.1 [Electrical Safety](#81-electrical-safety)
-   - 8.2 [Protocol Safety](#82-protocol-safety)
-   - 8.3 [Resource Safety](#83-resource-safety)
-   - 8.4 [SmartConnect Safety](#84-smartconnect-safety)
+    - 8.1 [Electrical Safety](#81-electrical-safety)
+    - 8.2 [Protocol Safety](#82-protocol-safety)
+    - 8.3 [Resource Safety](#83-resource-safety)
+    - 8.4 [SmartConnect Safety](#84-smartconnect-safety)
+    - 8.5 [Power Budget Safety](#85-power-budget-safety)
+    - 8.6 [Pin Function Safety](#86-pin-function-safety)
+    - 8.7 [User-Defined Constraint Safety](#87-user-defined-constraint-safety)
+     - 8.8 [Sampling Safety](#88-sampling-safety)
+     - 8.9 [Multi-Broker Safety](#89-multi-broker-safety)
 9. [Validation Algorithm](#9-validation-algorithm)
 10. [Formal Proofs](#10-formal-proofs)
 
@@ -190,7 +200,168 @@ where:
 - $v_{io}$ is the I/O logic level voltage
 - $attrs$ are component-specific attributes
 
-### 3.4 Connection Domain
+### 3.4 Power Budget Domain
+
+#### Power Consumption
+$$\mathit{PowerConsumption} = \mathbb{R}^+ \times \mathit{PowerUnit}$$
+
+where $\mathit{PowerUnit} = \{\mathsf{W}, \mathsf{mW}, \mathsf{uW}\}$.
+
+#### Normalization to milliwatts
+$$\mathit{toMW} : \mathit{PowerConsumption} \to \mathbb{R}^+$$
+
+$$\mathit{toMW}(v, u) = \begin{cases}
+v \times 1000 & \text{if } u = \mathsf{W} \\
+v & \text{if } u = \mathsf{mW} \\
+v / 1000 & \text{if } u = \mathsf{uW}
+\end{cases}$$
+
+#### Component Power Profile
+Each component declares a power profile:
+$$\mathit{PowerProfile} = \mathit{PowerConsumption}^? \times \mathit{PowerConsumption}^? \times \mathit{PowerConsumption}^?$$
+
+Components: $(P_{min}, P_{max}, P_{avg})$
+
+#### Battery Capacity
+$$\mathit{Capacity} = \mathbb{R}^+ \times \mathit{CapacityUnit}$$
+
+where $\mathit{CapacityUnit} = \{\mathsf{mAh}, \mathsf{Ah}, \mathsf{Wh}\}$.
+
+#### Peripheral Supply Budget
+The board's available power for peripherals:
+$$\mathit{budget}(board) = V_{cc}(board) \times I_{max}(V_{cc}) - P_{avg}(board)$$
+
+where $I_{max}$ is the maximum current for the voltage rail (a platform-specific constant).
+
+#### Protocol Priority for Pin Functions
+$$\mathsf{priority} : \mathit{PinFunction} \to \mathbb{N}$$
+
+$$\mathsf{priority}(f) = \begin{cases}
+4 & \text{if } f \in \mathit{I2CFunction} \\
+3 & \text{if } f \in \mathit{SPIFunction} \\
+2 & \text{if } f \in \mathit{UARTFunction} \\
+1 & \text{if } f = \mathsf{PWM} \\
+0 & \text{if } f \in \{\mathsf{GPIO}, \mathsf{ADC}, \mathsf{DAC}\}
+\end{cases}$$
+
+#### 3.4.1 Constraint Expression Domain
+
+User-defined constraints allow model authors to express domain-specific invariants that are checked during semantic validation.
+
+#### Constraint Structure
+$$\mathit{UserConstraint} = \mathit{Identifier} \times \mathit{ConstraintExpr} \times \mathit{String}^?$$
+
+Components: $(name, expr, message)$
+
+#### Constraint Expression Grammar
+$$\mathit{ConstraintExpr} = \mathit{AdditiveExpr} \times \mathit{CompOp} \times \mathit{AdditiveExpr}$$
+
+$$\mathit{CompOp} = \{<, >, \leq, \geq, =, \neq\}$$
+
+$$\mathit{AdditiveExpr} = \mathit{MultExpr} \times (\mathit{AddOp} \times \mathit{MultExpr})^*$$
+
+$$\mathit{MultExpr} = \mathit{AtomExpr} \times (\mathit{MulOp} \times \mathit{AtomExpr})^*$$
+
+$$\mathit{AtomExpr} = \mathit{FuncCall} \mid \mathit{PropAccess} \mid \mathit{NumLit} \mid \mathit{StrLit} \mid \mathit{BoolLit}$$
+
+#### Built-in Functions
+$$\mathit{BuiltinFunc} = \{\mathsf{count}, \mathsf{sum\_power}, \mathsf{avg\_power}, \mathsf{max\_power}\}$$
+
+$$\mathit{FuncArg} = \{\mathsf{SENSOR}, \mathsf{ACTUATOR}, \mathsf{PERIPHERAL}, \mathsf{CONNECTION}\}$$
+
+#### Evaluation Semantics
+$$\mathcal{E} : \mathit{AtomExpr} \times \mathit{Device} \to \mathit{Value}$$
+
+$$\mathcal{E}(\mathsf{count}(k), D) = |\{p \in \mathit{peripherals}(D) : \mathit{kind}(p) \in k\}|$$
+
+$$\mathcal{E}(\mathsf{sum\_power}(k), D) = \sum_{p \in \mathit{peripherals}_k(D)} \mathit{toMW}(P_{max}(p))$$
+
+$$\mathcal{E}(c.a, D) = \begin{cases}
+\mathit{userAttr}(c, a) & \text{if defined in WITH clause} \\
+\mathit{opAttr}(c, a) & \text{if defined in operational block} \\
+\bot & \text{otherwise (evaluation error)}
+\end{cases}$$
+
+#### Unit Normalization
+Numeric literals with units are normalized to base units before comparison:
+$$\mathit{normalize}(v, u) = v \times \mathit{factor}(u)$$
+
+where $\mathit{factor}$ maps power units to mW, capacity units to mAh, current units to mA, and frequency units to Hz.
+
+#### 3.4.2 Sampling Domain
+
+A sampling configuration defines the data acquisition parameters for a peripheral:
+$$\mathit{SamplingConfig} = \mathit{ComponentRef} \times \mathbb{R}^+ \times \mathit{FreqUnit} \times \mathit{SamplingMode}^? \times \mathbb{N}^? \times \mathbb{R}^?$$
+
+Components: $(target, rate, rate\_unit, mode, buffer, threshold)$
+
+$$\mathit{SamplingMode} = \{\mathsf{continuous}, \mathsf{on\_change}, \mathsf{on\_demand}, \mathsf{batch}\}$$
+
+#### Mode Semantics
+- $\mathsf{continuous}$: sample at the specified rate, publish every reading
+- $\mathsf{on\_change}$: sample at the specified rate, publish only when $|\Delta| > threshold$
+- $\mathsf{on\_demand}$: sample only when explicitly requested (rate defines max frequency)
+- $\mathsf{batch}$: accumulate $buffer$ samples, publish as a batch
+
+#### 3.4.3 Multi-Broker Domain
+
+A device model may declare multiple message brokers:
+
+$$\mathit{Brokers} = \mathit{MessageBroker}^*$$
+
+Each broker has a unique name within the model:
+
+$$\forall b_1, b_2 \in \mathit{Brokers} : b_1.\mathit{name} = b_2.\mathit{name} \Rightarrow b_1 = b_2$$
+
+#### VIA Routing
+
+Connections may specify a target broker via the `VIA` clause:
+
+$$\mathit{via} : \mathit{Connection} \rightharpoonup \mathit{BrokerName}$$
+
+The resolved broker for a connection is:
+
+$$\mathit{resolvedBroker}(c) = \begin{cases} \mathit{brokerMap}(c.\mathit{via}) & \text{if } c.\mathit{via} \neq \bot \\ \mathit{brokers}[0] & \text{otherwise (default)} \end{cases}$$
+
+Topic format validation is performed against the resolved broker's type (MQTT, AMQP, Redis).
+
+#### 3.4.4 Alert Trigger Domain
+
+An alert trigger defines a threshold-based condition on a sensor that fires actions:
+
+$$\mathit{AlertTrigger} = \mathit{Name} \times \mathit{Source} \times \mathit{Condition} \times \mathit{Actions}^+ \times \mathit{Cooldown}?$$
+
+where:
+- $\mathit{Source} \in \mathit{Sensors}(D)$ — must be a sensor, not an actuator or board
+- $\mathit{Condition} = \mathit{AlertConditionExpr}$ — recursive boolean expression tree
+- $\mathit{Actions} = \mathit{AlertPublish} \mid \mathit{AlertActivate}$
+
+#### Alert Condition
+
+$$\mathit{AlertConditionExpr} = \mathit{AlertComparison} \times (\mathit{LogicOp} \times \mathit{AlertConditionExpr})?$$
+
+$$\mathit{AlertComparison} = \mathit{Property} \times \mathit{CompOp} \times \mathit{Value} \times \mathit{Unit}?$$
+
+$$\mathit{LogicOp} = \texttt{\&\&} \mid \texttt{||}$$
+
+#### Alert Actions
+
+$$\mathit{AlertPublish} = \mathit{Topic} \times \mathit{VIA}?$$
+$$\mathit{AlertActivate} = \mathit{Target} \quad \text{where } \mathit{Target} \in \mathit{Actuators}(D)$$
+
+#### Alert Syntax
+
+```
+ALERT <name> ON <sensor> WHEN
+    <property> <op> <value> [&& | || <property> <op> <value>]*
+    THEN
+    (PUBLISH <topic> [VIA <broker>])*
+    (ACTIVATE <actuator>)*
+    [COOLDOWN <number> <freq-unit>]
+;
+```
+
+### 3.5 Connection Domain
 
 #### Power Connection
 $$\mathit{PowerConn} = \mathit{Pin} \times \mathit{Pin}$$
@@ -213,7 +384,7 @@ $$\mathit{Connection} = \mathit{Component} \times \mathit{Component} \times \mat
 
 Components: $(comp_1, comp_2, power\_conns, data\_conns)$
 
-#### 3.4.1 SmartConnect Domain
+#### 3.5.1 SmartConnect Domain
 
 A SmartConnect declaration requests automatic pin resolution:
 $$\mathit{SmartConnDecl} = \mathit{ComponentRef} \times \mathit{Topic}?$$
@@ -236,7 +407,7 @@ $$\mathsf{shareable}(u) \Leftrightarrow u \in \{\mathsf{POWER}, \mathsf{I2C\text
 
 $$\mathsf{available}(pin, u, \mathit{pool}) \Leftrightarrow pin \notin \mathsf{dom}(\mathit{pool}) \lor (\mathsf{shareable}(u) \land \forall (id, u') \in \mathit{pool}(pin) : u' = u)$$
 
-### 3.5 Protocol Domain
+### 3.6 Protocol Domain
 
 #### Protocol Types
 $$\mathit{Protocol} = \{\mathsf{GPIO}, \mathsf{I2C}, \mathsf{SPI}, \mathsf{UART}, \mathsf{PWM}\}$$
@@ -253,7 +424,7 @@ $$\mathit{ProtocolProps}(\pi) = \begin{cases}
 \{\text{frequency}, \text{duty\_cycle}, \text{channel}\} & \text{if } \pi = \mathsf{PWM}
 \end{cases}$$
 
-### 3.6 Device Model Domain
+### 3.7 Device Model Domain
 
 #### Device Model Structure
 $$\begin{align*}
@@ -732,6 +903,152 @@ $$\mathsf{Safety}_{\text{sc-conflicts}}(D) \Leftrightarrow \mathsf{Safety}_{\tex
 
 After resolution, all connections (manual and synthesized) collectively satisfy pin conflict freedom. This is guaranteed by the shareability predicate in the PinPool.
 
+### 8.5 Power Budget Safety
+
+#### Safety-10: Peripheral Power Budget
+
+The total peak power consumption of all peripherals must not exceed the board's available supply budget:
+
+$$\mathsf{Safety}_{\text{power-budget}}(D) \Leftrightarrow \sum_{p \in peripherals} \mathit{toMW}(P_{max}(p)) \leq \mathit{budget}(board)$$
+
+where:
+
+$$\mathit{budget}(board) = V_{cc}(board) \times I_{max}(V_{cc}) - \mathit{toMW}(P_{avg}(board))$$
+
+This is a **warning** (not an error) because power consumption values are theoretical datasheet maximums. The warning includes a per-peripheral breakdown.
+
+#### Safety-11: Battery Runtime Estimation
+
+When a $\mathit{PowerSource}$ with known capacity is declared, estimate the runtime:
+
+$$\mathit{runtime}(ps) = \frac{\mathit{capacity}(ps)}{\sum_{p \in peripherals} \mathit{toMW}(P_{avg}(p)) \;/\; V_{nominal}(ps)}$$
+
+This is an **informational warning** emitted as `[Info-Battery-Runtime]`.
+
+### 8.6 Pin Function Safety
+
+#### Safety-12: Pin Function Oversubscription
+
+When a multi-function board pin is used at a lower-priority protocol than its highest-priority capability, warn that the higher-priority bus becomes unavailable:
+
+$$\mathsf{Safety}_{\text{pin-oversub}}(D) \Leftrightarrow \forall c \in connections, \forall bp \in \mathit{usedBoardPins}(c) :$$
+
+$$\nexists f_{high} \in \pi_{func}(bp) : \mathsf{priority}(f_{high}) > \mathsf{priority}(\mathsf{usedAs}(bp, c))$$
+
+If the condition is violated, emit a warning identifying the pin, its used-as protocol, and the lost higher-priority functions.
+
+**Example:** If $bp = \text{GPIO2}$ with $\pi_{func} = \{\mathsf{GPIO}, (\mathsf{SDA}, 0)\}$ and $\mathsf{usedAs}(bp, c) = \mathsf{GPIO}$, then $\mathsf{priority}(\mathsf{SDA}) = 4 > 0 = \mathsf{priority}(\mathsf{GPIO})$ triggers a warning that I2C bus 0 SDA is disabled.
+
+### 8.7 User-Defined Constraint Safety
+
+#### Safety-13: Constraint Satisfaction
+
+All user-defined CONSTRAINT expressions must evaluate to true:
+
+$$\mathsf{Safety}_{\text{constraint}}(D) \Leftrightarrow \forall c \in \mathit{constraints}(D) : \mathcal{E}(c.\mathit{expr}, D) = \mathsf{true}$$
+
+If a constraint evaluates to false, a semantic error is raised with the user-provided MESSAGE (or a generated default message showing the evaluated operands).
+
+#### Safety-14: Constraint Evaluability
+
+All constraint expressions must be evaluable against the model:
+
+$$\mathsf{Safety}_{\text{eval}}(D) \Leftrightarrow \forall c \in \mathit{constraints}(D) : \mathcal{E}(c.\mathit{expr}, D) \neq \bot$$
+
+If a constraint references a non-existent peripheral or attribute, a warning is emitted (not an error) since the constraint itself may be conditionally applicable.
+
+**Example:** `CONSTRAINT min_sensors: count(SENSOR) >= 2 MESSAGE "Need redundancy";` raises a semantic error if fewer than 2 sensors are declared.
+
+### 8.8 Sampling Safety
+
+#### Safety-15: Positive Sampling Rate
+
+All SAMPLING configurations must specify a strictly positive rate:
+
+$$\mathsf{Safety}_{\text{rate}}(D) \Leftrightarrow \forall s \in \mathit{samplings}(D) : \mathit{toHz}(s.\mathit{rate}, s.\mathit{rate\_unit}) > 0$$
+
+where $\mathit{toHz}$ normalizes the rate to Hertz using the frequency unit multiplier.
+
+#### Safety-16: Sampling Uniqueness
+
+Each peripheral may have at most one SAMPLING configuration:
+
+$$\mathsf{Safety}_{\text{sample-unique}}(D) \Leftrightarrow \forall s_1, s_2 \in \mathit{samplings}(D) : s_1.\mathit{target} = s_2.\mathit{target} \Rightarrow s_1 = s_2$$
+
+Duplicate SAMPLING blocks for the same peripheral are a semantic error.
+
+#### Safety-17: On-Change Threshold Requirement
+
+SAMPLING configurations with `on_change` mode must specify a positive threshold:
+
+$$\mathsf{Safety}_{\text{threshold}}(D) \Leftrightarrow \forall s \in \mathit{samplings}(D) : s.\mathit{mode} = \mathsf{on\_change} \Rightarrow s.\mathit{threshold} > 0$$
+
+Without a threshold, the on_change mode cannot determine when a value has changed significantly enough to publish.
+
+#### Safety-18: Batch Buffer Requirement
+
+SAMPLING configurations with `batch` mode must specify a positive buffer size:
+
+$$\mathsf{Safety}_{\text{buffer}}(D) \Leftrightarrow \forall s \in \mathit{samplings}(D) : s.\mathit{mode} = \mathsf{batch} \Rightarrow s.\mathit{buffer} > 0$$
+
+The buffer size determines how many samples to accumulate before publishing as a batch.
+
+**Example:** `SAMPLING EnvSensor WITH rate = 10 hz, mode = on_change, threshold = 0.5;` is valid. Omitting `threshold` with `on_change` mode raises a semantic error.
+
+### 8.9 Multi-Broker Safety
+
+#### Safety-19: Broker Name Uniqueness
+
+All declared brokers must have unique names:
+
+$$\mathsf{Safety}_{\text{broker-unique}}(D) \Leftrightarrow \forall b_1, b_2 \in \mathit{brokers}(D) : b_1.\mathit{name} = b_2.\mathit{name} \Rightarrow b_1 = b_2$$
+
+Duplicate broker names are a semantic error.
+
+#### Safety-20: VIA Reference Resolution
+
+All `VIA` references in connections must resolve to a declared broker:
+
+$$\mathsf{Safety}_{\text{via-resolve}}(D) \Leftrightarrow \forall c \in \mathit{connections}(D) \cup \mathit{smartConnections}(D) : c.\mathit{via} \neq \bot \Rightarrow c.\mathit{via} \in \mathit{brokerNames}(D)$$
+
+where $\mathit{brokerNames}(D) = \{b.\mathit{name} \mid b \in \mathit{brokers}(D)\}$.
+
+**Example:** `CONNECT Sensor WITH ... VIA CloudBroker;` routes the connection's topic to the broker named `CloudBroker`. If no broker with that name exists, a semantic error is raised.
+
+### 8.10 Alert Trigger Safety
+
+#### Safety-21: Alert Name Uniqueness
+
+$$\mathsf{Safety}_{\text{alert-unique}}(D) \Leftrightarrow \forall a_1, a_2 \in \mathit{alerts}(D) : a_1.\mathit{name} = a_2.\mathit{name} \Rightarrow a_1 = a_2$$
+
+#### Safety-22: Alert Source Must Be Sensor
+
+$$\mathsf{Safety}_{\text{alert-source}}(D) \Leftrightarrow \forall a \in \mathit{alerts}(D) : a.\mathit{source} \in \mathit{sensors}(D)$$
+
+#### Safety-23: Alert ACTIVATE Target Must Be Actuator
+
+$$\mathsf{Safety}_{\text{alert-target}}(D) \Leftrightarrow \forall a \in \mathit{alerts}(D), \forall act \in \mathit{activateActions}(a) : act.\mathit{target} \in \mathit{actuators}(D)$$
+
+#### Safety-24: Alert VIA Resolution
+
+$$\mathsf{Safety}_{\text{alert-via}}(D) \Leftrightarrow \forall a \in \mathit{alerts}(D), \forall pub \in \mathit{publishActions}(a) : pub.\mathit{via} \neq \bot \Rightarrow pub.\mathit{via} \in \mathit{brokerNames}(D)$$
+
+#### Safety-25: Alert No Self-Activate
+
+$$\mathsf{Safety}_{\text{alert-no-self}}(D) \Leftrightarrow \forall a \in \mathit{alerts}(D), \forall act \in \mathit{activateActions}(a) : act.\mathit{target} \neq a.\mathit{source}$$
+
+### 8.11 Protocol Frequency Safety
+
+#### Safety-26: I2C Bus Speed
+
+$$\mathsf{Safety}_{\text{i2c-speed}}(D) \Leftrightarrow \forall c \in \mathit{connections}(D), \forall dc \in \mathit{dataConns}(c) : dc.\mathit{type} = \text{i2c} \wedge dc.\mathit{bus\_speed} \neq \bot \Rightarrow dc.\mathit{bus\_speed} \leq 3{,}400{,}000$$
+
+Standard I2C modes: Standard (100 kHz), Fast (400 kHz), Fast Mode Plus (1 MHz), High Speed (3.4 MHz). Speeds above 400 kHz emit a warning; speeds above 3.4 MHz are errors.
+
+#### Safety-27: SPI Bus Speed
+
+$$\mathsf{Safety}_{\text{spi-speed}}(D) \Leftrightarrow \forall c \in \mathit{connections}(D), \forall dc \in \mathit{dataConns}(c) : dc.\mathit{type} = \text{spi} \wedge dc.\mathit{bus\_speed} \neq \bot \Rightarrow dc.\mathit{bus\_speed} \leq 80{,}000{,}000$$
+
 ---
 
 ## 9. Validation Algorithm
@@ -796,7 +1113,81 @@ Output: (valid, errors)
 26. if ¬Safety_power-path(D) then
 27.    errors ← errors ∪ {NO_POWER_SOURCE}
 
-28. return (errors = ∅, errors)
+28. // Power budget analysis (warnings)
+29. if ¬Safety_power-budget(D) then
+30.    warnings ← warnings ∪ {POWER_BUDGET_EXCEEDED}
+31. for each ps ∈ power_sources do
+32.    warnings ← warnings ∪ {BATTERY_RUNTIME(ps, D)}
+
+33. // Pin function oversubscription (warnings)
+34. for each c ∈ connections do
+35.    for each bp ∈ usedBoardPins(c) do
+36.       if ∃ f ∈ funcs(bp) : priority(f) > priority(usedAs(bp, c)) then
+37.          warnings ← warnings ∪ {PIN_OVERSUBSCRIPTION(bp, c)}
+
+ 38. // User-defined constraint evaluation
+ 39. for each uc ∈ constraints do
+ 40.    result ← EVAL(uc.expr, D)
+ 41.    if result = ⊥ then
+ 42.       warnings ← warnings ∪ {CONSTRAINT_EVAL_ERROR(uc)}
+ 43.    else if result = false then
+ 44.       errors ← errors ∪ {CONSTRAINT_VIOLATED(uc)}
+
+ 45. // Multi-broker validation
+ 46. seen_broker_names ← ∅
+ 47. for each b ∈ brokers do
+ 48.    if b.name ∈ seen_broker_names then
+ 49.       errors ← errors ∪ {BROKER_DUPLICATE(b)}
+ 50.    seen_broker_names ← seen_broker_names ∪ {b.name}
+ 51. for each c ∈ connections ∪ smartConnections do
+ 52.    if c.via ≠ ⊥ ∧ c.via ∉ seen_broker_names then
+ 53.       errors ← errors ∪ {VIA_RESOLVE_ERROR(c)}
+
+ 54. // Sampling configuration validation
+ 46. seen_targets ← ∅
+ 47. for each s ∈ samplings do
+ 48.    if s.target ∈ seen_targets then
+ 49.       errors ← errors ∪ {SAMPLING_DUPLICATE(s)}
+ 50.    seen_targets ← seen_targets ∪ {s.target}
+ 51.    if s.target ∈ boards then
+ 52.       errors ← errors ∪ {SAMPLING_BOARD_TARGET(s)}
+ 53.    if toHz(s.rate, s.rate_unit) ≤ 0 then
+ 54.       errors ← errors ∪ {SAMPLING_RATE_ERROR(s)}
+ 55.    if s.mode = on_change ∧ (s.threshold = ⊥ ∨ s.threshold ≤ 0) then
+ 56.       errors ← errors ∪ {SAMPLING_THRESHOLD_ERROR(s)}
+ 57.    if s.mode = batch ∧ (s.buffer = ⊥ ∨ s.buffer ≤ 0) then
+ 58.       errors ← errors ∪ {SAMPLING_BUFFER_ERROR(s)}
+ 59.    if s.rate_hz > freq_max(s.target) then
+ 60.       warnings ← warnings ∪ {SAMPLING_RATE_WARNING(s)}
+
+ 61. // Protocol frequency validation
+ 62. for each c ∈ connections do
+ 63.    for each dc ∈ dataConns(c) do
+ 64.       if dc.type = i2c ∧ dc.bus_speed > 3,400,000 then
+ 65.          errors ← errors ∪ {I2C_SPEED_ERROR(dc)}
+ 66.       if dc.type = i2c ∧ dc.bus_speed > 400,000 then
+ 67.          warnings ← warnings ∪ {I2C_SPEED_WARNING(dc)}
+ 68.       if dc.type = spi ∧ dc.bus_speed > 80,000,000 then
+ 69.          errors ← errors ∪ {SPI_SPEED_ERROR(dc)}
+
+ 70. // Alert trigger validation
+ 71. seen_alert_names ← ∅
+ 72. for each a ∈ alerts do
+ 73.    if a.name ∈ seen_alert_names then
+ 74.       errors ← errors ∪ {ALERT_DUPLICATE(a)}
+ 75.    seen_alert_names ← seen_alert_names ∪ {a.name}
+ 76.    if a.source ∉ sensors then
+ 77.       errors ← errors ∪ {ALERT_SOURCE_ERROR(a)}
+ 78.    for each act ∈ activateActions(a) do
+ 79.       if act.target ∉ actuators then
+ 80.          errors ← errors ∪ {ALERT_TARGET_ERROR(act)}
+ 81.       if act.target = a.source then
+ 82.          errors ← errors ∪ {ALERT_SELF_ACTIVATE(a)}
+ 83.    for each pub ∈ publishActions(a) do
+ 84.       if pub.via ≠ ⊥ ∧ pub.via ∉ brokerNames then
+ 85.          errors ← errors ∪ {ALERT_VIA_ERROR(pub)}
+
+ 86. return (errors = ∅, errors)
 ```
 
 ### 9.3 Complexity Analysis
@@ -808,7 +1199,10 @@ Output: (valid, errors)
 - I2C uniqueness: $O(m^2)$
 - Power path: $O(n \cdot m)$ (graph traversal)
 - SmartConnect resolution: $O(|SC| \cdot p)$
-- **Total:** $O(m^2 \cdot p + n \cdot m + |SC| \cdot p)$
+- Sampling validation: $O(|S|)$ where $S$ = sampling configurations
+- Alert validation: $O(|A| \cdot |actions|)$ where $A$ = alert triggers
+- Protocol frequency: $O(m \cdot d)$ where $d$ = data connections per connection
+- **Total:** $O(m^2 \cdot p + n \cdot m + |SC| \cdot p + |S| + |A|)$
 
 **Space Complexity:** $O(n \cdot p + m)$
 
@@ -828,7 +1222,14 @@ Output: (valid, errors)
 5. By Safety-7, all components powered
 6. By §6.4 determinism, SmartConnect resolution is unique and produces valid connections
 7. By Safety-8/9, resolved connections satisfy pin conflict freedom
-8. Therefore, $D$ is safe ∎
+8. By Safety-10, peripheral power demand does not exceed board supply (warning)
+9. By Safety-12, multi-function pin usage is explicitly acknowledged (warning)
+10. By Safety-13, all user-defined constraints are satisfied
+11. By Safety-15/16/17/18, all sampling configurations are well-formed (positive rate, unique targets, mode-specific requirements)
+12. By Safety-19/20, all broker names are unique and VIA references resolve
+13. By Safety-21/22/23/24/25, all alert triggers are well-formed (unique names, sensor sources, actuator targets, VIA resolution, no self-activate)
+14. By Safety-26/27, all I2C/SPI bus speeds are within standard limits
+15. Therefore, $D$ is safe ∎
 
 ### 10.2 Decidability Theorem
 
@@ -853,6 +1254,24 @@ Output: (valid, errors)
 - SmartConnect duplicate → WF-7
 - SmartConnect-Connect conflict → WF-8
 - SmartConnect pin allocation failure → Safety-8
+- Power budget exceeded → Safety-10
+- Battery runtime estimation → Safety-11
+- Pin function oversubscription → Safety-12
+- User-defined constraint violation → Safety-13
+- Constraint evaluation failure → Safety-14
+- Invalid sampling rate → Safety-15
+- Duplicate sampling target → Safety-16
+- Missing on_change threshold → Safety-17
+- Missing batch buffer → Safety-18
+- Duplicate broker name → Safety-19
+- Unresolved VIA reference → Safety-20
+- Duplicate alert name → Safety-21
+- Alert source not a sensor → Safety-22
+- Alert ACTIVATE target not an actuator → Safety-23
+- Alert VIA unresolved → Safety-24
+- Alert self-activate → Safety-25
+- I2C bus speed exceeded → Safety-26
+- SPI bus speed exceeded → Safety-27
 ∎
 
 ---
@@ -860,7 +1279,7 @@ Output: (valid, errors)
 ## Appendix A: Formal Grammar (BNF)
 
 ```bnf
-<device> ::= "DEVICE" <id> "WITH" <metadata> <uses> <connections> <broker> <network>
+<device> ::= "DEVICE" <id> "WITH" <metadata> <uses> <connections> <broker>* <network> <sampling>* <constraint>* <alert>*
 
 <uses> ::= ( "USE" <component-ref> ";" )*
 
@@ -870,9 +1289,38 @@ Output: (valid, errors)
 
 <connect> ::= "CONNECT" <conn-spec> ";"
 
-<conn-spec> ::= (<id> ":")? <id> "WITH" <power-block>? <data-block>?
+<conn-spec> ::= (<id> ":")? <id> "WITH" <power-block>? <data-block>? ( "@" <string> )? <via>?
 
-<smart-connect> ::= "SMARTCONNECT" <id> ( "@" <string> )? ";"
+<via> ::= "VIA" <id>
+
+<smart-connect> ::= "SMARTCONNECT" <id> ( "@" <string> )? <via>? ";"
+
+<sampling> ::= "SAMPLING" <id> "WITH" <sampling-props> ";"
+
+<sampling-props> ::= "rate" "=" <number> <freq-unit> ( "," "mode" "=" <sampling-mode> )?
+                     ( "," "buffer" "=" <integer> )? ( "," "threshold" "=" <number> )?
+
+<sampling-mode> ::= "continuous" | "on_change" | "on_demand" | "batch"
+
+<freq-unit> ::= "ghz" | "mhz" | "khz" | "hz"
+
+<constraint> ::= "CONSTRAINT" <id> ":" <constraint-expr> ( "MESSAGE" <string> )? ";"
+
+<constraint-expr> ::= <additive-expr> <comp-op> <additive-expr>
+
+<comp-op> ::= "<" | ">" | "<=" | ">=" | "==" | "!="
+
+<additive-expr> ::= <mult-expr> ( ( "+" | "-" ) <mult-expr> )*
+
+<mult-expr> ::= <atom-expr> ( ( "*" | "/" ) <atom-expr> )*
+
+<atom-expr> ::= <func-call> | <prop-access> | <number> ( <unit> )? | <string> | <bool>
+
+<func-call> ::= ( "count" | "sum_power" | "avg_power" | "max_power" ) "(" <func-arg> ")"
+
+<func-arg> ::= "SENSOR" | "ACTUATOR" | "PERIPHERAL" | "CONNECTION"
+
+<prop-access> ::= <id> ( "." <id> )+
 
 <power-block> ::= "POWER" ( <pin-mapping> ( "," <pin-mapping> )* )
 
@@ -883,6 +1331,20 @@ Output: (valid, errors)
 <pin-mapping> ::= <id> "--" <id>
 
 <pwm-conn> ::= "pwm" ( "[" <properties> "]" )? <pin-mappings>
+
+<alert> ::= "ALERT" <id> "ON" <id> "WHEN" <alert-condition> "THEN" <alert-action>+ ( "COOLDOWN" <number> <freq-unit> )? ";"
+
+<alert-condition> ::= <alert-comparison> ( <logic-op> <alert-condition> )?
+
+<alert-comparison> ::= <id> <comp-op> <number> ( <unit> )?
+
+<logic-op> ::= "&&" | "||"
+
+<alert-action> ::= <alert-publish> | <alert-activate>
+
+<alert-publish> ::= "PUBLISH" <string> ( "VIA" <id> )?
+
+<alert-activate> ::= "ACTIVATE" <id>
 ```
 
 ---
@@ -904,6 +1366,62 @@ usedPins :: Connection → Set Pin
 sameBus :: Connection → Connection → Bool
 reachable :: Component → Set Component → Set Connection → Bool
 buildEnvironment :: Device → Environment
+```
+
+### Power Budget Functions
+```haskell
+toMW :: PowerConsumption → Float
+peripheralSupplyBudget :: Board → Float
+totalPeripheralPower :: Device → (Float, Float)  -- (max_mw, avg_mw)
+batteryRuntime :: PowerSource → Float → Float     -- capacity, avg_power → hours
+pinPriority :: PinFunction → Int
+higherPriorityFunctions :: Pin → PinFunction → [PinFunction]
+```
+
+### Constraint Functions
+```haskell
+evalConstraint :: UserConstraint → Device → (Bool, Value, Value, Maybe Error)
+evalAtom :: AtomExpr → Device → Value
+evalBuiltinFunc :: String → String → Device → Float
+getPeripheralsByKind :: Device → String → [ComponentInstance]
+getAttributeValue :: ComponentInstance → String → Maybe Value
+normalizeUnit :: Float → Maybe Unit → Float
+```
+
+### Sampling Functions
+```haskell
+toHz :: Float → FreqUnit → Float
+validateSampling :: Device → [SamplingError]
+checkDuplicateTargets :: [SamplingConfig] → Maybe SamplingError
+checkSamplingRate :: SamplingConfig → Maybe SamplingError
+checkOnChangeThreshold :: SamplingConfig → Maybe SamplingError
+checkBatchBuffer :: SamplingConfig → Maybe SamplingError
+```
+
+### Multi-Broker Functions
+```haskell
+resolveBroker :: Connection → BrokerMap → Maybe Broker
+buildBrokerMap :: [Broker] → Map String Broker
+validateBrokerUniqueness :: [Broker] → Maybe BrokerError
+validateVIAReferences :: [Connection] → Set String → [VIAError]
+```
+
+### Alert Functions
+```haskell
+validateAlerts :: Device → [AlertError]
+checkAlertUniqueNames :: [AlertTrigger] → Maybe AlertError
+checkAlertSource :: AlertTrigger → Set Sensor → Maybe AlertError
+checkAlertTargets :: AlertTrigger → Set Actuator → Maybe AlertError
+checkAlertVIA :: AlertTrigger → Set BrokerName → Maybe AlertError
+walkCondition :: AlertConditionExpr → Maybe AlertError
+```
+
+### Protocol Frequency Functions
+```haskell
+classifyI2CSpeed :: Int → (String, Int)
+validateI2CBusSpeed :: DataConnection → Maybe FrequencyError
+validateSPIBusSpeed :: DataConnection → Maybe FrequencyError
+validateProtocolFrequency :: Device → [FrequencyError]
 ```
 
 ### SmartConnect Functions
@@ -930,6 +1448,6 @@ findGPIOPin :: PinPool → Maybe Pin
 
 ---
 
-**Document Version:** 3.0  
+**Document Version:** 3.5  
 **Last Updated:** 2026-02-14  
 **Status:** Formal Specification
