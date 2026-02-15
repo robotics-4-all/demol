@@ -51,6 +51,10 @@
      - 8.9 [Multi-Broker Safety](#89-multi-broker-safety)
 9. [Validation Algorithm](#9-validation-algorithm)
 10. [Formal Proofs](#10-formal-proofs)
+11. [Error Recovery and Reporting](#11-error-recovery-and-reporting)
+    - 11.1 [Syntax Error Translation](#111-syntax-error-translation)
+    - 11.2 [Parser Robustness Properties](#112-parser-robustness-properties)
+    - 11.3 [Performance Bounds](#113-performance-bounds)
 
 ---
 
@@ -297,11 +301,144 @@ Components: $(target, rate, rate\_unit, mode, buffer, threshold)$
 
 $$\mathit{SamplingMode} = \{\mathsf{continuous}, \mathsf{on\_change}, \mathsf{on\_demand}, \mathsf{batch}\}$$
 
-#### Mode Semantics
-- $\mathsf{continuous}$: sample at the specified rate, publish every reading
-- $\mathsf{on\_change}$: sample at the specified rate, publish only when $|\Delta| > threshold$
-- $\mathsf{on\_demand}$: sample only when explicitly requested (rate defines max frequency)
-- $\mathsf{batch}$: accumulate $buffer$ samples, publish as a batch
+#### Frequency Normalization
+
+$$\mathit{toHz} : \mathbb{R}^+ \times \mathit{FreqUnit} \to \mathbb{R}^+$$
+
+$$\mathit{toHz}(r, u) = r \times \begin{cases}
+10^9 & \text{if } u = \mathsf{ghz} \\
+10^6 & \text{if } u = \mathsf{mhz} \\
+10^3 & \text{if } u = \mathsf{khz} \\
+1 & \text{if } u = \mathsf{hz}
+\end{cases}$$
+
+#### Typing Judgments
+
+**Sampling Target Typing** — a SAMPLING block is well-typed only if its target is a peripheral (sensor or actuator), not a board:
+
+$$\frac{
+\Gamma \vdash s.\mathit{target} : \tau \quad \tau \in \{\mathsf{Sensor}, \mathsf{Actuator}\}
+}{
+\Gamma \vdash \mathsf{SAMPLING}\; s : \mathsf{Valid}
+} \; [\text{T-Sampling}]$$
+
+**Sampling Mode Typing** — each mode imposes requirements on optional fields:
+
+$$\frac{
+s.\mathit{mode} = \mathsf{on\_change} \quad s.\mathit{threshold} > 0
+}{
+\Gamma \vdash s : \mathsf{Well\text{-}typed}
+} \; [\text{T-Sampling-OnChange}]$$
+
+$$\frac{
+s.\mathit{mode} = \mathsf{batch} \quad s.\mathit{buffer} > 0
+}{
+\Gamma \vdash s : \mathsf{Well\text{-}typed}
+} \; [\text{T-Sampling-Batch}]$$
+
+$$\frac{
+s.\mathit{mode} \in \{\mathsf{continuous}, \mathsf{on\_demand}\}
+}{
+\Gamma \vdash s : \mathsf{Well\text{-}typed}
+} \; [\text{T-Sampling-Simple}]$$
+
+#### Operational Semantics (State Machine)
+
+Each sampling mode defines a distinct runtime behavior. We formalize this as a labeled transition system:
+
+$$\langle \mathit{State}, \mathit{Event}, \to \rangle$$
+
+**State space:**
+$$\mathit{SamplingState} = \{\mathsf{Idle}, \mathsf{Reading}, \mathsf{Publishing}, \mathsf{Buffering}, \mathsf{Waiting}\}$$
+
+**Continuous mode** — sample and publish every tick:
+
+$$\frac{
+\mathit{tick}(rate)
+}{
+\mathsf{Idle} \xrightarrow{\mathit{tick}} \mathsf{Reading} \xrightarrow{\mathit{read}} \mathsf{Publishing} \xrightarrow{\mathit{send}} \mathsf{Idle}
+} \; [\text{Op-Continuous}]$$
+
+**On-change mode** — sample every tick, publish only when data changes beyond threshold:
+
+$$\frac{
+\mathit{tick}(rate) \quad |\mathit{current} - \mathit{previous}| > threshold
+}{
+\mathsf{Idle} \xrightarrow{\mathit{tick}} \mathsf{Reading} \xrightarrow{\Delta > \tau} \mathsf{Publishing} \xrightarrow{\mathit{send}} \mathsf{Idle}
+} \; [\text{Op-OnChange-Publish}]$$
+
+$$\frac{
+\mathit{tick}(rate) \quad |\mathit{current} - \mathit{previous}| \leq threshold
+}{
+\mathsf{Idle} \xrightarrow{\mathit{tick}} \mathsf{Reading} \xrightarrow{\Delta \leq \tau} \mathsf{Idle}
+} \; [\text{Op-OnChange-Skip}]$$
+
+**Batch mode** — accumulate $n$ samples, then publish all at once:
+
+$$\frac{
+\mathit{tick}(rate) \quad |\mathit{batch}| < buffer
+}{
+\mathsf{Idle} \xrightarrow{\mathit{tick}} \mathsf{Reading} \xrightarrow{\mathit{read}} \mathsf{Buffering}[\mathit{batch} \cup \{\mathit{sample}\}] \xrightarrow{} \mathsf{Idle}
+} \; [\text{Op-Batch-Accumulate}]$$
+
+$$\frac{
+|\mathit{batch}| \geq buffer
+}{
+\mathsf{Buffering} \xrightarrow{\mathit{flush}} \mathsf{Publishing} \xrightarrow{\mathit{send\_all}} \mathsf{Idle}[\mathit{batch} := \emptyset]
+} \; [\text{Op-Batch-Flush}]$$
+
+**On-demand mode** — read only when externally triggered:
+
+$$\frac{
+\mathit{request}
+}{
+\mathsf{Waiting} \xrightarrow{\mathit{request}} \mathsf{Reading} \xrightarrow{\mathit{read}} \mathsf{Publishing} \xrightarrow{\mathit{send}} \mathsf{Waiting}
+} \; [\text{Op-OnDemand}]$$
+
+#### Denotational Semantics
+
+The denotation of a sampling configuration is a function from sensor state streams to message streams:
+
+$$\lbrack\!\lbrack \cdot \rbrack\!\rbrack_{S} : \mathit{SamplingConfig} \to (\mathit{SensorState}^\omega \to \mathit{Message}^\omega)$$
+
+$$\lbrack\!\lbrack s \rbrack\!\rbrack_{S} = \begin{cases}
+\lambda \sigma. \mathit{every}(\mathit{rate}, \sigma) & \text{if } s.\mathit{mode} = \mathsf{continuous} \\
+\lambda \sigma. \mathit{filter}(\Delta > \tau, \mathit{every}(\mathit{rate}, \sigma)) & \text{if } s.\mathit{mode} = \mathsf{on\_change} \\
+\lambda \sigma. \mathit{batch}(n, \mathit{every}(\mathit{rate}, \sigma)) & \text{if } s.\mathit{mode} = \mathsf{batch} \\
+\lambda \sigma. \mathit{onRequest}(\sigma) & \text{if } s.\mathit{mode} = \mathsf{on\_demand}
+\end{cases}$$
+
+where:
+- $\mathit{every}(r, \sigma)$ samples stream $\sigma$ at rate $r$ Hz
+- $\mathit{filter}(p, \sigma)$ passes only elements satisfying predicate $p$
+- $\mathit{batch}(n, \sigma)$ groups $n$ consecutive elements
+- $\mathit{onRequest}(\sigma)$ returns the latest element on external trigger
+
+#### Code Generation Semantics
+
+The code generator maps sampling configurations to platform-specific runtime artifacts:
+
+$$\mathcal{G}_S : \mathit{SamplingConfig} \times \mathit{Platform} \to \mathit{Code}$$
+
+**RPi Python generation:**
+
+$$\mathcal{G}_S(s, \mathsf{RPi}) = \begin{cases}
+\texttt{Rate}(\mathit{rate\_hz}) + \texttt{loop\{read; send; sleep\}} & \text{if continuous} \\
+\texttt{Rate}(\mathit{rate\_hz}) + \texttt{loop\{read; if\_changed(}\tau\texttt{); send; sleep\}} & \text{if on\_change} \\
+\texttt{Rate}(\mathit{rate\_hz}) + \texttt{loop\{read; append; if\_full(}n\texttt{); flush; sleep\}} & \text{if batch} \\
+\texttt{Rate}(\mathit{rate\_hz}) + \texttt{loop\{read; sleep\}} & \text{if on\_demand}
+\end{cases}$$
+
+**RiotOS C generation:**
+
+$$\mathcal{G}_S(s, \mathsf{RiotOS}) = \begin{cases}
+\texttt{\#define SAMPLING\_INTERVAL\_MS } \lfloor 1000/\mathit{rate\_hz} \rfloor & \\
+\texttt{\#define SAMPLING\_MODE } m & \\
+\texttt{\#define BATCH\_SIZE } n & \text{(if batch)} \\
+\texttt{\#define CHANGE\_THRESHOLD } \tau & \text{(if on\_change)}
+\end{cases}$$
+
+The generated code structure preserves the operational semantics defined above: each mode maps to a distinct control flow pattern in the generated `run()` / `read_loop()` function.
 
 #### 3.4.3 Multi-Broker Domain
 
@@ -348,6 +485,142 @@ $$\mathit{LogicOp} = \texttt{\&\&} \mid \texttt{||}$$
 
 $$\mathit{AlertPublish} = \mathit{Topic} \times \mathit{VIA}?$$
 $$\mathit{AlertActivate} = \mathit{Target} \quad \text{where } \mathit{Target} \in \mathit{Actuators}(D)$$
+
+#### Typing Judgments
+
+**Alert Source Typing** — the source must be a sensor:
+
+$$\frac{
+\Gamma \vdash a.\mathit{source} : \mathsf{Sensor}
+}{
+\Gamma \vdash \mathsf{ALERT}\; a : \mathsf{Source\text{-}Valid}
+} \; [\text{T-Alert-Source}]$$
+
+**Alert ACTIVATE Target Typing** — targets must be actuators and distinct from source:
+
+$$\frac{
+\Gamma \vdash act.\mathit{target} : \mathsf{Actuator} \quad act.\mathit{target} \neq a.\mathit{source}
+}{
+\Gamma \vdash \mathsf{ACTIVATE}\; act \text{ in } a : \mathsf{Valid}
+} \; [\text{T-Alert-Activate}]$$
+
+**Alert VIA Typing** — VIA references must resolve to declared brokers:
+
+$$\frac{
+pub.\mathit{via} = \bot \lor pub.\mathit{via} \in \mathit{brokerNames}(D)
+}{
+\Gamma \vdash \mathsf{PUBLISH}\; pub \text{ in } a : \mathsf{Valid}
+} \; [\text{T-Alert-Publish}]$$
+
+**Alert Typing (composite):**
+
+$$\frac{
+\Gamma \vdash a : \mathsf{Source\text{-}Valid} \quad
+\forall act \in a.\mathit{actions} : \Gamma \vdash act \text{ in } a : \mathsf{Valid} \quad
+\mathcal{E}_A(a.\mathit{condition}) \neq \bot
+}{
+\Gamma \vdash \mathsf{ALERT}\; a : \mathsf{Well\text{-}typed}
+} \; [\text{T-Alert}]$$
+
+#### Condition Evaluation Semantics
+
+The alert condition is a recursive boolean expression tree. We define evaluation as:
+
+$$\mathcal{E}_A : \mathit{AlertConditionExpr} \times \mathit{SensorReading} \to \mathbb{B}$$
+
+**Comparison evaluation:**
+$$\mathcal{E}_A(\mathit{prop} \; \mathit{op} \; v, \; r) = \mathit{op}(\pi_{prop}(r), \; \mathit{normalize}(v, u))$$
+
+where $\pi_{prop}(r)$ extracts the named property from sensor reading $r$ and $\mathit{normalize}$ converts units.
+
+**Logical composition (right-recursive):**
+$$\mathcal{E}_A(l \;\texttt{\&\&}\; r, \; s) = \mathcal{E}_A(l, s) \land \mathcal{E}_A(r, s)$$
+
+$$\mathcal{E}_A(l \;\texttt{||}\; r, \; s) = \mathcal{E}_A(l, s) \lor \mathcal{E}_A(r, s)$$
+
+**Precedence:** `&&` and `||` are right-associative with equal precedence (no short-circuit optimization in the DSL; both branches are always evaluated at the model level).
+
+#### Operational Semantics (Reactive Model)
+
+An alert trigger operates as a reactive monitor over the sensor's data stream. We formalize this as a Mealy machine:
+
+$$\langle \mathit{AlertState}, \mathit{SensorReading}, \mathit{ActionSet}, \delta, \omega \rangle$$
+
+**State space:**
+$$\mathit{AlertState} = \{\mathsf{Armed}, \mathsf{Firing}, \mathsf{Cooldown}(t_{remaining})\}$$
+
+**Transition function:**
+
+$$\delta(\mathsf{Armed}, r) = \begin{cases}
+\mathsf{Firing} & \text{if } \mathcal{E}_A(\mathit{condition}, r) = \mathsf{true} \\
+\mathsf{Armed} & \text{otherwise}
+\end{cases}$$
+
+$$\delta(\mathsf{Firing}, r) = \begin{cases}
+\mathsf{Cooldown}(T_{cd}) & \text{if } \mathit{cooldown} \neq \bot \\
+\mathsf{Armed} & \text{otherwise}
+\end{cases}$$
+
+$$\delta(\mathsf{Cooldown}(t), r) = \begin{cases}
+\mathsf{Armed} & \text{if } t \leq 0 \\
+\mathsf{Cooldown}(t - \Delta t) & \text{otherwise}
+\end{cases}$$
+
+where $T_{cd} = 1 / \mathit{toHz}(\mathit{cooldown}, \mathit{cooldown\_unit})$ seconds.
+
+**Output function** — actions are emitted only on the $\mathsf{Armed} \to \mathsf{Firing}$ transition:
+
+$$\omega(\mathsf{Armed} \to \mathsf{Firing}) = \mathit{actions}(a)$$
+$$\omega(\mathit{otherwise}) = \emptyset$$
+
+**Action execution** is non-blocking and ordered:
+
+$$\mathit{exec}(\mathit{actions}) = \mathit{seq}(\mathit{map}(\lambda act. \begin{cases}
+\mathit{publish}(act.\mathit{topic}, \mathit{resolvedBroker}(act)) & \text{if } act : \mathit{AlertPublish} \\
+\mathit{activate}(act.\mathit{target}) & \text{if } act : \mathit{AlertActivate}
+\end{cases}, \mathit{actions}))$$
+
+#### Denotational Semantics
+
+The denotation of an alert is a function from sensor reading streams to action event streams:
+
+$$\lbrack\!\lbrack \cdot \rbrack\!\rbrack_{A} : \mathit{AlertTrigger} \to (\mathit{SensorReading}^\omega \to \mathit{ActionEvent}^\omega)$$
+
+$$\lbrack\!\lbrack a \rbrack\!\rbrack_{A} = \lambda \sigma. \mathit{throttle}(T_{cd}, \mathit{filter}(\lambda r. \mathcal{E}_A(a.\mathit{condition}, r), \sigma) \gg\!\!= \lambda r. a.\mathit{actions})$$
+
+where:
+- $\mathit{filter}$ selects readings where the condition is true
+- $\gg\!\!=$ (bind) maps each matching reading to the action set
+- $\mathit{throttle}(T_{cd}, \cdot)$ suppresses events within $T_{cd}$ seconds of the previous firing
+
+Without cooldown ($T_{cd} = 0$), the alert fires on every reading that satisfies the condition.
+
+#### Code Generation Semantics
+
+$$\mathcal{G}_A : \mathit{AlertTrigger} \times \mathit{Platform} \to \mathit{Code}$$
+
+Alert code generation produces a condition-check block embedded in the sampling loop:
+
+$$\mathcal{G}_A(a, \mathsf{RPi}) = \texttt{if } \mathcal{G}_{cond}(a.\mathit{condition}) \texttt{ and not cooling\_down:} \; \mathit{action\_code}$$
+
+where:
+$$\mathcal{G}_{cond}(l \;\texttt{\&\&}\; r) = \mathcal{G}_{cond}(l) \texttt{ and } \mathcal{G}_{cond}(r)$$
+$$\mathcal{G}_{cond}(l \;\texttt{||}\; r) = \mathcal{G}_{cond}(l) \texttt{ or } \mathcal{G}_{cond}(r)$$
+$$\mathcal{G}_{cond}(\mathit{prop} \; \mathit{op} \; v) = \texttt{data["}\mathit{prop}\texttt{"] } \mathit{op} \texttt{ } v$$
+
+#### Interaction: SAMPLING × ALERT
+
+When both SAMPLING and ALERT are declared for the same sensor, the alert condition is evaluated at the sampling rate:
+
+$$\mathit{alertRate}(a) = \begin{cases}
+\mathit{toHz}(s.\mathit{rate}, s.\mathit{unit}) & \text{if } \exists s \in \mathit{samplings} : s.\mathit{target} = a.\mathit{source} \\
+f_{default} & \text{otherwise}
+\end{cases}$$
+
+The alert evaluation frequency is bounded by: $\mathit{alertRate}(a) \leq \mathit{toHz}(s.\mathit{rate}, s.\mathit{unit})$. The alert cannot fire faster than the sensor is sampled.
+
+**Effective cooldown constraint:**
+$$T_{cd} \geq 1 / \mathit{alertRate}(a) \quad \text{(trivially satisfied; cooldown is always } \geq 1 \text{ tick)}$$
 
 #### Alert Syntax
 
@@ -1438,6 +1711,81 @@ findGPIOPin :: PinPool → Maybe Pin
 
 ---
 
+## 11. Error Recovery and Reporting
+
+### 11.1 Syntax Error Translation
+
+The parser produces raw `TextXSyntaxError` exceptions that expose internal parser state (token names, arpeggio positions). The CLI translates these into domain-specific messages using pattern-matched hints:
+
+$$\mathit{translate} : \mathit{SyntaxError} \to \mathit{DomainError}$$
+
+| Raw Pattern | Domain Hint |
+|-------------|-------------|
+| `Expected ';'` | Missing semicolon at end of statement |
+| `Expected 'WITH'` | Missing `WITH` keyword after declaration |
+| `Expected 'DEVICE'` | Model must start with a `DEVICE` declaration |
+| `Expected '--'` | Pin connections require `--` separator |
+| `Expected ']'` | Unclosed bracket |
+| `Expected 'THEN'` or `'WHEN'` | `ALERT` requires `WHEN ... THEN ...` syntax |
+| `Expected 'description'` | `DEVICE` requires `description` and `author` attributes |
+
+Each translated error includes:
+- **Source location**: filename, line, column
+- **Expected tokens**: in domain terms, not parser internals
+- **Contextual hint**: actionable suggestion for the user
+
+### 11.2 Parser Robustness Properties
+
+The parser is verified against 57 robustness tests covering 15 categories of malformed input. The following properties are tested:
+
+#### Property R-1: Graceful Rejection of Empty Input
+$$\forall s \in \{\epsilon, \text{whitespace}, \text{comments-only}\} : \mathsf{parse}(s) = \mathit{SyntaxError}$$
+
+The parser rejects empty, whitespace-only, and comment-only input with a syntax error rather than crashing.
+
+#### Property R-2: Graceful Rejection of Truncated Input
+$$\forall s \in \mathit{Prefix}(\mathit{ValidModel}) : |s| < |\mathit{ValidModel}| \Rightarrow \mathsf{parse}(s) \in \{\mathit{SyntaxError}, \mathit{Model}\}$$
+
+Truncated input at any point (after `DEVICE`, after name, mid-block) produces a syntax error, not a crash or hang.
+
+#### Property R-3: Boundary Value Tolerance
+$$\forall n \in \{50\text{-char identifiers}, \text{long topics}, \text{empty strings}, \text{unicode}\} : \mathsf{parse}(\mathit{model}(n)) \neq \mathit{crash}$$
+
+The parser handles boundary-length identifiers, very long MQTT topic strings, empty string attributes, and Unicode characters in string values.
+
+#### Property R-4: Keyword Order Flexibility
+The unordered group (`#` operator) in the grammar allows `SAMPLING`, `CONSTRAINT`, and `ALERT` blocks to appear in any order relative to `CONNECT` blocks within the device body.
+
+#### Property R-5: Comment Immunity
+$$\forall m \in \mathit{ValidModel}, c \in \mathit{Comments} : \mathsf{parse}(m \oplus c) = \mathsf{parse}(m)$$
+
+Inline comments (`//`) and block comments (`/* */`) interspersed at any valid position do not affect parse results.
+
+#### Known Limitation: `esp-idf-rtos` Grammar Ambiguity
+
+The `OperatingSystem` rule declares `'esp-idf-rtos'` as a valid keyword, but the PEG parser greedily matches `'esp-idf'` first (the longer prefix match), leaving `-rtos` unparseable. This OS value is currently unreachable. Workaround: use `esp-idf` instead. This is tracked as a known grammar issue.
+
+### 11.3 Performance Bounds
+
+The parser and validation pipeline are benchmarked with regression thresholds to prevent performance degradation:
+
+| Metric | Model Size | Threshold | Measured |
+|--------|-----------|-----------|----------|
+| Parse + skip-semantics | 1 peripheral | < 500 ms | ~200 ms |
+| Parse + skip-semantics | 5 peripherals (SmartConnect) | < 1 s | ~400 ms |
+| Parse + skip-semantics | 10 peripherals (mixed types) | < 3 s | ~1.5 s |
+| Full validation pipeline | 1 peripheral | < 300 ms | ~200 ms |
+| Metamodel construction | N/A (grammar loading) | < 1 s | ~300 ms |
+
+These thresholds are enforced in the test suite (`test_performance.py`). CI failures indicate a performance regression.
+
+The validation algorithm complexity from §9.3 is:
+$$O(m^2 \cdot p + n \cdot m + |SC| \cdot p + |S| + |A|)$$
+
+In practice, IoT device models have $n \leq 20$ peripherals and $m \leq 20$ connections, keeping validation well under 1 second.
+
+---
+
 ## References
 
 1. Pierce, B. C. (2002). *Types and Programming Languages*. MIT Press.
@@ -1448,6 +1796,6 @@ findGPIOPin :: PinPool → Maybe Pin
 
 ---
 
-**Document Version:** 3.5  
-**Last Updated:** 2026-02-14  
+**Document Version:** 3.6  
+**Last Updated:** 2026-02-15  
 **Status:** Formal Specification

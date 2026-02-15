@@ -137,6 +137,62 @@ The `examples/rpi/` directory contains ready-to-use device models demonstrating 
 | [`rpi_smart_home.dev`](examples/rpi/rpi_smart_home.dev) | Multi-peripheral smart home (I2C, GPIO, TTS) |
 | [`multi_periph.dev`](examples/rpi/multi_periph.dev) | Complex system with 5 peripherals |
 
+## Development
+
+### Make Targets
+
+```sh
+make ci                  # Run full CI pipeline in a Docker container
+make ci-check            # Run full CI pipeline locally (no Docker)
+make test                # Run pytest tests only
+make test-local          # Run pytest + validation scripts + transformation scripts
+make test-cov            # Run tests with HTML coverage report
+make lint                # Run flake8 linting
+make format              # Format code with black
+make format-check        # Check formatting without modifying files
+make type-check          # Run mypy type checking
+make validate-examples   # Validate all example .dev models
+make check               # Run lint + type-check + test-local
+```
+
+### CI/CD
+
+The project uses **GitHub Actions** for continuous integration. Every push and pull request to `main`, `master`, or `devel` triggers:
+
+| Job | Description |
+|-----|-------------|
+| **Lint & Format** | `black --check` and `flake8` on Python 3.11 |
+| **Type Check** | `mypy` with `--ignore-missing-imports` |
+| **Test** | `pytest` across Python 3.9, 3.10, 3.11, 3.12, 3.13 |
+| **Validate Examples** | `demol validate` on all `.dev` files in `examples/` |
+
+Run the same pipeline locally in a container with `make ci`, or directly with `make ci-check`.
+
+### Test Suite
+
+The test suite covers 315+ tests across:
+
+| Category | Tests | Coverage |
+|----------|-------|----------|
+| Semantic validators | 140+ | All 21 validation rules (power, pins, protocols, constraints, alerts, sampling, brokers) |
+| Parser robustness | 57 | Empty input, malformed syntax, boundary values, truncated models, encoding, edge cases |
+| Code generation | 30+ | RPi Python, RiotOS C, SAMPLING integration, JSON serialization |
+| CLI commands | 26+ | Auto-fix, model diff, power analysis |
+| LSP server | 16 | Diagnostics, completion, hover, go-to-definition |
+| Performance | 5 | Parse/validate timing with regression thresholds |
+| SmartConnect | 25+ | Automatic pin resolution, protocol classification |
+
+### Error Messages
+
+The CLI translates parser internals into domain-friendly messages with actionable hints:
+
+```
+[!] Syntax Error
+  Location: model.dev:5:42
+  Expected ';' => 'USE BME680*[Sensor1]'
+  Hint: Missing semicolon at end of statement.
+```
+
 ## Documentation
 
 | Document | Description |
