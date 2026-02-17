@@ -286,3 +286,201 @@ def test_riot_transformation_sampling_batch(tmp_path):
 
     c_content = (output_dir / "sensor_bme680_0.c").read_text()
     assert "batch_count" in c_content
+
+
+def test_riot_smartconnect_i2c_sensor(tmp_path):
+    """Test Riot transformation with SmartConnect I2C sensor (BME680)."""
+    demol_str = """
+    DEVICE SCTest WITH
+        description="SmartConnect I2C Test",
+        author="Tester",
+        os=riotos;
+
+    USE ESP32Wroom32;
+    USE BME680 [EnvSensor];
+
+    NETWORK [WiFi] WITH ssid="ssid", password="pass";
+
+    BROKER [MQTT] MyBroker WITH
+        host="localhost",
+        port=1883,
+        auth.username="user",
+        auth.password="pass";
+
+    SMARTCONNECT EnvSensor @ "sensors/env";
+    """
+
+    mm = get_device_mm()
+    model = mm.model_from_str(demol_str)
+
+    output_dir = tmp_path / "riot_sc_i2c"
+    m2t_riot(model, output_dir=str(output_dir))
+
+    assert (output_dir / "main.c").exists()
+    assert (output_dir / "Makefile").exists()
+    assert (output_dir / "sensor_bme680_0.c").exists()
+    assert (output_dir / "sensor_bme680_0.h").exists()
+
+    bme_content = (output_dir / "sensor_bme680_0.c").read_text()
+    assert "params.intf.i2c.dev = I2C_DEV(0);" in bme_content
+    assert "params.intf.i2c.addr = 0x76;" in bme_content
+
+
+def test_riot_smartconnect_gpio_sensor(tmp_path):
+    """Test Riot transformation with SmartConnect GPIO sensor (SRF04)."""
+    demol_str = """
+    DEVICE SCTest WITH
+        description="SmartConnect GPIO Sensor Test",
+        author="Tester",
+        os=riotos;
+
+    USE ESP32Wroom32;
+    USE SRF04 [Sonar];
+
+    NETWORK [WiFi] WITH ssid="ssid", password="pass";
+
+    BROKER [MQTT] MyBroker WITH
+        host="localhost",
+        port=1883;
+
+    SMARTCONNECT Sonar @ "sensors/distance";
+    """
+
+    mm = get_device_mm()
+    model = mm.model_from_str(demol_str)
+
+    output_dir = tmp_path / "riot_sc_gpio_sensor"
+    m2t_riot(model, output_dir=str(output_dir))
+
+    assert (output_dir / "sensor_srf04_0.c").exists()
+    assert (output_dir / "sensor_srf04_0.h").exists()
+
+    srf_content = (output_dir / "sensor_srf04_0.c").read_text()
+    assert "params.trigger = GPIO_PIN(0, 2);" in srf_content
+    assert "params.echo = GPIO_PIN(0, 3);" in srf_content
+
+
+def test_riot_smartconnect_gpio_actuator(tmp_path):
+    """Test Riot transformation with SmartConnect GPIO/PWM actuator (LedGeneric)."""
+    demol_str = """
+    DEVICE SCTest WITH
+        description="SmartConnect Actuator Test",
+        author="Tester",
+        os=riotos;
+
+    USE ESP32Wroom32;
+    USE LedGeneric [StatusLed];
+
+    NETWORK [WiFi] WITH ssid="ssid", password="pass";
+
+    BROKER [MQTT] MyBroker WITH
+        host="localhost",
+        port=1883;
+
+    SMARTCONNECT StatusLed @ "actuators/led";
+    """
+
+    mm = get_device_mm()
+    model = mm.model_from_str(demol_str)
+
+    output_dir = tmp_path / "riot_sc_actuator"
+    m2t_riot(model, output_dir=str(output_dir))
+
+    assert (output_dir / "actuator_led_0.c").exists()
+    assert (output_dir / "actuator_led_0.h").exists()
+
+    led_content = (output_dir / "actuator_led_0.c").read_text()
+    assert "GPIO_PIN(0, 30)" in led_content
+
+
+def test_riot_smartconnect_mixed(tmp_path):
+    """Test Riot transformation with manual CONNECT + SmartConnect in same model."""
+    demol_str = """
+    DEVICE SCMixedTest WITH
+        description="Mixed CONNECT + SmartConnect",
+        author="Tester",
+        os=riotos;
+
+    USE ESP32Wroom32;
+    USE BME680 [EnvSensor], LedGeneric [StatusLed];
+
+    NETWORK [WiFi] WITH ssid="ssid", password="pass";
+
+    BROKER [MQTT] MyBroker WITH
+        host="localhost",
+        port=1883,
+        auth.username="user",
+        auth.password="pass";
+
+    CONNECT EnvSensor WITH
+        POWER gnd -- GND_1, vcc -- VCC_5V
+        DATA i2c [slave_address=0x77] sda sda -- GPIO21, scl scl -- GPIO22;
+
+    SMARTCONNECT StatusLed @ "actuators/led";
+    """
+
+    mm = get_device_mm()
+    model = mm.model_from_str(demol_str)
+
+    output_dir = tmp_path / "riot_sc_mixed"
+    m2t_riot(model, output_dir=str(output_dir))
+
+    assert (output_dir / "sensor_bme680_0.c").exists()
+    bme_content = (output_dir / "sensor_bme680_0.c").read_text()
+    assert "params.intf.i2c.dev = I2C_DEV(0);" in bme_content
+    assert "params.intf.i2c.addr = 0x77;" in bme_content
+
+    assert (output_dir / "actuator_led_1.c").exists()
+    led_content = (output_dir / "actuator_led_1.c").read_text()
+    assert "GPIO_PIN(0, 30)" in led_content
+
+
+def test_riot_smartconnect_multi_peripheral(tmp_path):
+    """Test Riot transformation with all-SmartConnect multi-peripheral model."""
+    demol_str = """
+    DEVICE SCMultiTest WITH
+        description="All SmartConnect Multi-Peripheral",
+        author="Tester",
+        os=riotos;
+
+    USE ESP32Wroom32;
+    USE BME680 [EnvSensor], SRF04 [Sonar], LedGeneric [StatusLed];
+
+    NETWORK [WiFi] WITH ssid="ssid", password="pass";
+
+    BROKER [MQTT] MyBroker WITH
+        host="localhost",
+        port=1883,
+        auth.username="user",
+        auth.password="pass";
+
+    SMARTCONNECT EnvSensor @ "sensors/env";
+    SMARTCONNECT Sonar @ "sensors/distance";
+    SMARTCONNECT StatusLed @ "actuators/led";
+    """
+
+    mm = get_device_mm()
+    model = mm.model_from_str(demol_str)
+
+    output_dir = tmp_path / "riot_sc_multi"
+    m2t_riot(model, output_dir=str(output_dir))
+
+    assert (output_dir / "sensor_bme680_0.c").exists()
+    assert (output_dir / "sensor_bme680_0.h").exists()
+    assert (output_dir / "sensor_srf04_1.c").exists()
+    assert (output_dir / "sensor_srf04_1.h").exists()
+    assert (output_dir / "actuator_led_2.c").exists()
+    assert (output_dir / "actuator_led_2.h").exists()
+    assert (output_dir / "main.c").exists()
+    assert (output_dir / "Makefile").exists()
+
+    bme_content = (output_dir / "sensor_bme680_0.c").read_text()
+    assert "params.intf.i2c.dev = I2C_DEV(0);" in bme_content
+    assert "params.intf.i2c.addr = 0x76;" in bme_content
+
+    srf_content = (output_dir / "sensor_srf04_1.c").read_text()
+    assert "params.trigger = GPIO_PIN(0, 2);" in srf_content
+    assert "params.echo = GPIO_PIN(0, 3);" in srf_content
+
+    led_content = (output_dir / "actuator_led_2.c").read_text()
+    assert "GPIO_PIN(0, 30)" in led_content

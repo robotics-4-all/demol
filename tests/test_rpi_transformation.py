@@ -135,7 +135,9 @@ def test_rpi_transformation_dependencies(tmp_path):
 
     req_content = (output_dir / "requirements.txt").read_text()
     assert "bme680" in req_content
-    assert "commlib-py" in req_content  # Should be there if template includes it or if it's a common dep
+    assert (
+        "commlib-py" in req_content
+    )  # Should be there if template includes it or if it's a common dep
 
 
 def test_rpi_transformation_proximity(tmp_path):
@@ -367,3 +369,233 @@ def test_rpi_transformation_no_sampling_uses_default(tmp_path):
     assert '_SAMPLING_MODE = "continuous"' in node_content
     assert "_THRESHOLD" not in node_content
     assert "_BATCH_SIZE" not in node_content
+
+
+def test_rpi_smartconnect_i2c_sensor(tmp_path):
+    """Test RPi transformation with SmartConnect I2C sensor (BME680)."""
+    demol_str = """
+    DEVICE SCTest WITH
+        description="SmartConnect I2C Test",
+        author="Tester",
+        os=raspbian;
+
+    USE RaspberryPi_5_8GB;
+    USE BME680 [EnvSensor];
+
+    NETWORK [WiFi] WITH ssid="ssid", password="pass";
+
+    BROKER [MQTT] MyBroker WITH
+        host="localhost",
+        port=1883,
+        auth.username="user",
+        auth.password="pass";
+
+    SMARTCONNECT EnvSensor @ "sensors/env";
+    """
+
+    mm = get_device_mm()
+    model = mm.model_from_str(demol_str)
+
+    output_dir = tmp_path / "rpi_sc_i2c"
+    m2t_rpi(model, output_dir=str(output_dir))
+
+    # Check generated files
+    assert (output_dir / "bme680_envsensor.py").exists()
+    assert (output_dir / "envsensor_node.py").exists()
+    assert (output_dir / "Dockerfile").exists()
+    assert (output_dir / "docker-compose.yml").exists()
+
+    # Check driver content — SmartConnect resolves I2C to GPIO2/GPIO3
+    driver_content = (output_dir / "bme680_envsensor.py").read_text()
+    assert "class BME680_EnvSensor" in driver_content
+    assert "import bme680" in driver_content
+    assert "_PRIMARY_ADDRESS = 118" in driver_content  # 0x76 = 118
+
+    # Check node content
+    node_content = (output_dir / "envsensor_node.py").read_text()
+    assert "from .bme680_envsensor import BME680_EnvSensor" in node_content
+    assert 'topic="sensors/env"' in node_content
+
+
+def test_rpi_smartconnect_gpio_sensor(tmp_path):
+    """Test RPi transformation with SmartConnect GPIO sensor (HCSR04)."""
+    demol_str = """
+    DEVICE SCTest WITH
+        description="SmartConnect GPIO Sensor Test",
+        author="Tester",
+        os=raspbian;
+
+    USE RaspberryPi_5_8GB;
+    USE HCSR04 [DistSensor];
+
+    NETWORK [WiFi] WITH ssid="ssid", password="pass";
+
+    BROKER [MQTT] MyBroker WITH
+        host="localhost",
+        port=1883,
+        auth.username="user",
+        auth.password="pass";
+
+    SMARTCONNECT DistSensor @ "sensors/distance";
+    """
+
+    mm = get_device_mm()
+    model = mm.model_from_str(demol_str)
+
+    output_dir = tmp_path / "rpi_sc_gpio_sensor"
+    m2t_rpi(model, output_dir=str(output_dir))
+
+    assert (output_dir / "hcsr04_distsensor.py").exists()
+    assert (output_dir / "distsensor_node.py").exists()
+
+    # SmartConnect assigns GPIO2 (echo) and GPIO3 (trigger) deterministically
+    driver_content = (output_dir / "hcsr04_distsensor.py").read_text()
+    assert "class HCSR04_DistSensor" in driver_content
+    assert '_TRIGGER_PIN = "GPIO3"' in driver_content
+    assert '_ECHO_PIN = "GPIO2"' in driver_content
+
+
+def test_rpi_smartconnect_gpio_actuator(tmp_path):
+    """Test RPi transformation with SmartConnect GPIO/PWM actuator (LedGeneric)."""
+    demol_str = """
+    DEVICE SCTest WITH
+        description="SmartConnect Actuator Test",
+        author="Tester",
+        os=raspbian;
+
+    USE RaspberryPi_5_8GB;
+    USE LedGeneric [StatusLed];
+
+    NETWORK [WiFi] WITH ssid="ssid", password="pass";
+
+    BROKER [MQTT] MyBroker WITH
+        host="localhost",
+        port=1883,
+        auth.username="user",
+        auth.password="pass";
+
+    SMARTCONNECT StatusLed @ "actuators/led";
+    """
+
+    mm = get_device_mm()
+    model = mm.model_from_str(demol_str)
+
+    output_dir = tmp_path / "rpi_sc_actuator"
+    m2t_rpi(model, output_dir=str(output_dir))
+
+    assert (output_dir / "ledgeneric_statusled.py").exists()
+    assert (output_dir / "statusled_node.py").exists()
+
+    # SmartConnect assigns GPIO18 (first PWM pin) deterministically
+    driver_content = (output_dir / "ledgeneric_statusled.py").read_text()
+    assert "class LedGeneric_StatusLed" in driver_content
+    assert "PWMLED" in driver_content
+    assert '_PIN = "GPIO18"' in driver_content
+
+
+def test_rpi_smartconnect_mixed(tmp_path):
+    """Test RPi transformation with manual CONNECT + SmartConnect in same model."""
+    demol_str = """
+    DEVICE SCMixedTest WITH
+        description="Mixed CONNECT + SmartConnect",
+        author="Tester",
+        os=raspbian;
+
+    USE RaspberryPi_5_8GB;
+    USE BME680 [EnvSensor], HCSR04 [DistSensor];
+
+    NETWORK [WiFi] WITH ssid="ssid", password="pass";
+
+    BROKER [MQTT] MyBroker WITH
+        host="localhost",
+        port=1883,
+        auth.username="user",
+        auth.password="pass";
+
+    CONNECT EnvSensor WITH
+        POWER gnd -- GND_1, vcc -- power_5v_a
+        DATA i2c [slave_address=0x76] sda sda -- GPIO2, scl scl -- GPIO3
+        @ "sensors/env";
+
+    SMARTCONNECT DistSensor @ "sensors/distance";
+    """
+
+    mm = get_device_mm()
+    model = mm.model_from_str(demol_str)
+
+    output_dir = tmp_path / "rpi_sc_mixed"
+    m2t_rpi(model, output_dir=str(output_dir))
+
+    # Manual CONNECT peripheral
+    assert (output_dir / "bme680_envsensor.py").exists()
+    driver_bme = (output_dir / "bme680_envsensor.py").read_text()
+    assert "_PRIMARY_ADDRESS = 118" in driver_bme
+
+    # SmartConnect peripheral — avoids GPIO2/GPIO3 (used by manual CONNECT)
+    assert (output_dir / "hcsr04_distsensor.py").exists()
+    driver_hcsr = (output_dir / "hcsr04_distsensor.py").read_text()
+    assert '_ECHO_PIN = "GPIO4"' in driver_hcsr
+    assert '_TRIGGER_PIN = "GPIO14"' in driver_hcsr
+
+    # Both node files exist with correct topics
+    node_env = (output_dir / "envsensor_node.py").read_text()
+    assert 'topic="sensors/env"' in node_env
+    node_dist = (output_dir / "distsensor_node.py").read_text()
+    assert 'topic="sensors/distance"' in node_dist
+
+
+def test_rpi_smartconnect_multi_peripheral(tmp_path):
+    """Test RPi transformation with all-SmartConnect multi-peripheral model."""
+    demol_str = """
+    DEVICE SCMultiTest WITH
+        description="All SmartConnect Multi-Peripheral",
+        author="Tester",
+        os=raspbian;
+
+    USE RaspberryPi_5_8GB;
+    USE BME680 [EnvSensor], HCSR04 [DistSensor], LedGeneric [StatusLed];
+
+    NETWORK [WiFi] WITH ssid="ssid", password="pass";
+
+    BROKER [MQTT] MyBroker WITH
+        host="localhost",
+        port=1883,
+        auth.username="user",
+        auth.password="pass";
+
+    SMARTCONNECT EnvSensor @ "sensors/env";
+    SMARTCONNECT DistSensor @ "sensors/distance";
+    SMARTCONNECT StatusLed @ "actuators/led";
+    """
+
+    mm = get_device_mm()
+    model = mm.model_from_str(demol_str)
+
+    output_dir = tmp_path / "rpi_sc_multi"
+    m2t_rpi(model, output_dir=str(output_dir))
+
+    # All 6 peripheral files exist (3 drivers + 3 nodes)
+    assert (output_dir / "bme680_envsensor.py").exists()
+    assert (output_dir / "envsensor_node.py").exists()
+    assert (output_dir / "hcsr04_distsensor.py").exists()
+    assert (output_dir / "distsensor_node.py").exists()
+    assert (output_dir / "ledgeneric_statusled.py").exists()
+    assert (output_dir / "statusled_node.py").exists()
+
+    # Infrastructure files
+    assert (output_dir / "Dockerfile").exists()
+    assert (output_dir / "docker-compose.yml").exists()
+    assert (output_dir / "requirements.txt").exists()
+
+    # BME680 — I2C, GPIO2/GPIO3, slave_address=0x76
+    driver_bme = (output_dir / "bme680_envsensor.py").read_text()
+    assert "_PRIMARY_ADDRESS = 118" in driver_bme
+
+    # HCSR04 — GPIO, avoids GPIO2/GPIO3 (I2C, not available for GPIO)
+    driver_hcsr = (output_dir / "hcsr04_distsensor.py").read_text()
+    assert '_ECHO_PIN = "GPIO4"' in driver_hcsr
+    assert '_TRIGGER_PIN = "GPIO14"' in driver_hcsr
+
+    # LedGeneric — PWM, GPIO18 (first PWM-capable pin)
+    driver_led = (output_dir / "ledgeneric_statusled.py").read_text()
+    assert '_PIN = "GPIO18"' in driver_led
