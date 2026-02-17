@@ -1,0 +1,36 @@
+BOARD[ESP] NodeMCU_ESP8266 WITH
+    OP
+        vcc=3V3,
+        ioVcc=3V3,
+        memory.flash=4 mb,
+        memory.ram=80 kb,
+        cpu.family=ESP8266,
+        cpu.freq=80 mhz,
+        wifi.name=ESP8266_WiFi,
+        wifi.version=4,
+        wifi.bands=[2.4GHz],
+        power.min=50 mW,
+        power.max=500 mW,
+        power.avg=170 mW
+    PORTS
+        spi=1,
+        i2c=1,
+        uart=1,
+        gpio=9
+    PINS
+        VCC_3V3[3V3] @ 1,
+        GND_1[GND] @ 2,
+        D0[gpio] @ 3,
+        D1[gpio,scl-0] @ 4,
+        D2[gpio,sda-0] @ 5,
+        D3[gpio] @ 6,
+        D4[gpio] @ 7,
+        D5[gpio,sck-0] @ 8,
+        D6[gpio,miso-0] @ 9,
+        D7[gpio,mosi-0] @ 10,
+        D8[gpio,cs-0] @ 11,
+        RX[rx-0] @ 12,
+        TX[tx-0] @ 13,
+        A0[adc-0] @ 14,
+        GND_2[GND] @ 15
+;

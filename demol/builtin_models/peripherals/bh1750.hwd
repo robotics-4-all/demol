@@ -1,0 +1,24 @@
+SENSOR[Light] BH1750 WITH
+    OP
+        vcc=3V3,
+        ioVcc=3V3,
+        power.min=0.01 mW,
+        power.max=4.5 mW,
+        power.avg=1 mW,
+        freq.max=10 hz
+    PINS
+        VCC[3V3] @ 1,
+        GND[GND] @ 2,
+        sda[sda-0] @ 3,
+        scl[scl-0] @ 4
+    TEMPLATES
+        raspbian="bh1750.py.j2"
+    DEPENDENCIES
+        raspbian=[
+            {package="adafruit-circuitpython-bh1750", source="pip"}
+        ]
+    ATTRIBUTES
+        i2c_address[int] = 35,
+        frequency[float] = 1.0,
+        mode[str] = "continuous_high_res"
+;

@@ -1,0 +1,33 @@
+from w1thermsensor import W1ThermSensor, Unit
+from .peripheral import Sensor
+from .msg import TemperatureMessage
+
+
+class {{ driver_class_name }}(Sensor):
+    _UNIT = "{{ attributes.get('unit', 'celsius') }}"
+    _FREQUENCY = {{ attributes.get('frequency', 1.0) }}
+
+    def __init__(self):
+        super().__init__(
+            name="{{ instance }}",
+            connections={{ conn }},
+            attributes={{ attributes }}
+        )
+        self.sensor = None
+
+    def initialize(self):
+        self.sensor = W1ThermSensor()
+
+    def read(self):
+        if self._UNIT == "fahrenheit":
+            temp = self.sensor.get_temperature(Unit.DEGREES_F)
+        elif self._UNIT == "kelvin":
+            temp = self.sensor.get_temperature(Unit.KELVIN)
+        else:
+            temp = self.sensor.get_temperature(Unit.DEGREES_C)
+        self.update_state_data({
+            "temperature": temp
+        })
+
+    def disconnect(self):
+        pass

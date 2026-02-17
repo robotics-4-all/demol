@@ -157,7 +157,7 @@ PCMType:
 
 
 CPUFamilyType:
-	("ESP32" | "ESP8266" | "PiArmCortex")
+	("ESP32" | "ESP8266" | "PiArmCortex" | "ATmega328P" | "ATmega2560")
 ;
 
 Bluetooth:

@@ -1,0 +1,23 @@
+SENSOR[Humidity] SoilMoisture WITH
+    OP
+        vcc=3V3,
+        ioVcc=3V3,
+        power.min=5 mW,
+        power.max=20 mW,
+        power.avg=10 mW,
+        freq.max=10 hz
+    PINS
+        VCC[3V3] @ 1,
+        GND[GND] @ 2,
+        DO[gpio] @ 3,
+        ?AO[adc] @ 4
+    TEMPLATES
+        raspbian="soil_moisture.py.j2"
+    DEPENDENCIES
+        raspbian=["gpiozero"]
+    ATTRIBUTES
+        gpio_modes[dict] = {DO = "input"},
+        frequency[float] = 0.5,
+        dry_threshold[float] = 500.0,
+        wet_threshold[float] = 200.0
+;

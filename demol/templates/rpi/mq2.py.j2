@@ -1,0 +1,34 @@
+from gpiozero import InputDevice
+from gpiozero.pins.pigpio import PiGPIOFactory
+from .peripheral import Sensor
+from .msg import GasMessage
+
+
+class {{ driver_class_name }}(Sensor):
+    _PIN = "{{ conn.gpio.pins.get('DO', {}).get('name', 'GPIO17') }}"
+    _THRESHOLD_PPM = {{ attributes.get('threshold_ppm', 300.0) }}
+    _FREQUENCY = {{ attributes.get('frequency', 1.0) }}
+
+    def __init__(self):
+        super().__init__(
+            name="{{ instance }}",
+            connections={{ conn }},
+            attributes={{ attributes }}
+        )
+        self.sensor = None
+
+    def initialize(self):
+        self.sensor = InputDevice(
+            self._PIN,
+            pin_factory=PiGPIOFactory()
+        )
+
+    def read(self):
+        self.update_state_data({
+            "gas_detected": not self.sensor.is_active,
+            "digital_value": self.sensor.value
+        })
+
+    def disconnect(self):
+        if self.sensor:
+            self.sensor.close()
