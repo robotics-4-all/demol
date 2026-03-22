@@ -2,24 +2,32 @@
 
 ## OVERVIEW
 
-Modular semantic validation framework. Migrating from `../semantics.py` monolith (1776 lines) into category-based validator classes.
+Modular semantic validation framework. Migrating from `../semantics.py` monolith (1727 lines) into category-based validator classes. Both are active — do not delete monolith until migration complete.
 
 ## STRUCTURE
 
 ```
 semantics/
-├── __init__.py      # Public API re-exports (backward compat with monolith)
-├── core.py          # Validation state: error/warning collection, ValidationError
-├── utils.py         # Helpers: parse_voltage(), get_pin_functions(), are_voltages_compatible()
+├── __init__.py      # Public API re-exports (backward compat with monolith, 265 lines)
+├── core.py          # Validation state: error/warning collection, ValidationError (81 lines)
+├── utils.py         # Helpers: parse_voltage(), get_pin_functions(), are_voltages_compatible() (123 lines)
 ├── README.md        # Detailed framework documentation
 └── validators/
-    ├── base.py          # BaseValidator abstract class
-    ├── power.py         # Power connections: voltage compat, GND rules, power path (412 lines)
-    ├── communication.py # GPIO, I2C, SPI, UART, PWM validation (637 lines)
-    ├── peripheral.py    # Peripheral connectivity, essential pins, unique names (182 lines)
-    ├── board.py         # Single board, pin conflicts, unique pin numbers, ports (317 lines)
-    ├── device.py        # Broker requirements, network, topic format, IO voltage (350 lines)
-    └── general.py       # Cross-cutting: dependency sources, well-formedness (329 lines)
+    ├── base.py              # BaseValidator abstract class (77 lines)
+    ├── power.py             # Power: voltage compat, GND rules, power path (421 lines)
+    ├── communication.py     # GPIO, I2C, SPI, UART, PWM validation (633 lines)
+    ├── peripheral.py        # Connectivity, essential pins, unique names (181 lines)
+    ├── board.py             # Single board, pin conflicts, pin numbers, ports (311 lines)
+    ├── device.py            # Broker, network, security, topic format (355 lines)
+    ├── general.py           # Dependency sources, cross-cutting (330 lines)
+    ├── power_budget.py      # Power budget & battery autonomy analysis (336 lines)
+    ├── user_constraints.py  # CONSTRAINT expressions: count(), sum_power(), arithmetic (422 lines)
+    ├── alert.py             # ALERT triggers: conditions, PUBLISH, COOLDOWN (209 lines)
+    ├── sampling.py          # SAMPLING blocks: rate, mode, buffering (125 lines)
+    ├── smart_connection.py  # SMARTCONNECT validation (78 lines)
+    ├── multi_broker.py      # Multi-broker VIA routing validation
+    ├── pin_oversubscription.py  # Pin function overuse warnings (139 lines)
+    └── protocol_frequency.py   # Protocol bus frequency constraints (171 lines)
 ```
 
 ## WHERE TO LOOK
@@ -31,6 +39,9 @@ semantics/
 | Add peripheral rule | `validators/peripheral.py` | Connectivity, essential pins |
 | Add board rule | `validators/board.py` | Pin conflicts, port counts |
 | Add device-level rule | `validators/device.py` | Broker, network, topic format |
+| Add CONSTRAINT rule | `validators/user_constraints.py` | count(), sum_power(), arithmetic |
+| Add ALERT rule | `validators/alert.py` | Threshold conditions, PUBLISH VIA, COOLDOWN |
+| Add SAMPLING rule | `validators/sampling.py` | rate, mode, on_change threshold |
 | Collect errors | `core.py` | `raise_validation_error(node, msg, rule_name)` |
 
 ## ADDING A VALIDATOR
@@ -60,9 +71,10 @@ Then register in `device.py`: `run_rule("My Rule", MyValidator.validate, model)`
 
 ## MIGRATION STATUS
 
-- `../semantics.py` (monolith) still exists and is imported
-- `__init__.py` re-exports monolith functions for backward compatibility
-- New validators go here; old validators being migrated incrementally
+- `../semantics.py` (monolith, 1727 lines) still exists and is imported
+- `__init__.py` (265 lines) re-exports monolith functions for backward compatibility
+- All new feature validators (power_budget, user_constraints, alert, sampling, smart_connection, multi_broker, pin_oversubscription, protocol_frequency) are in this framework
+- Protocol/power/board/peripheral validators are also migrated; monolith has legacy equivalents
 - Both are active — do not delete the monolith until migration complete
 
 ## ANTI-PATTERNS

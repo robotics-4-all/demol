@@ -2,7 +2,7 @@
 
 ## OVERVIEW
 
-pytest suite: 19 test files covering semantic validation (12 files) and code generation transformations (7 files).
+pytest suite: 33 test files covering semantic validation, code generation, LSP, CLI utilities, and advanced DSL features.
 
 ## STRUCTURE
 
@@ -12,6 +12,9 @@ tests/
 ├── models/
 │   ├── valid/                      # 4 valid .dev models for integration tests
 │   └── invalid/                    # 4 invalid .dev models for error detection tests
+├── output/                         # Generated test output (gitignored)
+│
+│ # Semantic Validation (12 files)
 ├── test_board_semantics.py         # Board: port counts, pin uniqueness
 ├── test_component_semantics.py     # Sensor/Actuator: attributes, templates
 ├── test_device_semantics.py        # Device-level: IO voltage, GND, topics
@@ -24,12 +27,33 @@ tests/
 ├── test_missing_pin_validation.py  # Essential pin requirements
 ├── test_network_semantics.py       # Network configuration
 ├── test_power_path_bug.py          # Regression: power path issues
+│
+│ # Code Generation (6 files)
 ├── test_rpi_transformation.py      # RPi Python code generation
 ├── test_riot_transformation.py     # RiotOS C code generation
 ├── test_smauto_transformation.py   # SmartAuto M2M transformation
 ├── test_docs_transformation.py     # Markdown docs generation
 ├── test_svg_transformation.py      # SVG diagram generation
-└── test_json_demol.py              # JSON serialization roundtrip
+├── test_json_demol.py              # JSON serialization roundtrip
+│
+│ # Advanced DSL Features (9 files)
+├── test_user_constraints.py        # CONSTRAINT expressions: count(), sum_power()
+├── test_alert.py                   # ALERT triggers with conditions, PUBLISH, COOLDOWN
+├── test_sampling.py                # SAMPLING blocks: rate, mode, on_change
+├── test_smart_connection.py        # SMARTCONNECT auto pin resolution
+├── test_multi_broker.py            # Multi-broker VIA routing
+├── test_power_budget.py            # Power budget analysis, battery runtime
+├── test_protocol_frequency.py     # Protocol bus frequency constraints
+├── test_pin_oversubscription.py    # Pin function overuse warnings
+├── test_performance.py             # Parse/validate timing regression thresholds
+│
+│ # CLI & Parser (3 files)
+├── test_autofix.py                 # Auto-fix common validation errors
+├── test_modeldiff.py               # Semantic model diff
+├── test_parser_robustness.py       # Malformed input, boundary values, encoding
+│
+│ # LSP (1 file)
+└── test_lsp.py                     # Diagnostics, completion, hover, go-to-def
 ```
 
 ## CONVENTIONS

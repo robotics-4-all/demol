@@ -9,11 +9,12 @@ Metamodel construction, model parsing, semantic validation, and validation repor
 ```
 lang/
 ├── __init__.py      # Public API: get_device_mm(), get_component_mm()
-├── device.py        # Device metamodel: model_proc(), enrich_model(), validation orchestration
+├── device.py        # Device metamodel: model_proc(), enrich_model(), validation orchestration (525 lines)
 ├── component.py     # Component metamodel for .hwd files (boards, sensors, actuators)
-├── validation.py    # ValidationReporter + ValidationResult — rich console output
-├── semantics.py     # LEGACY monolith (1776 lines) — DO NOT EXTEND
-└── semantics/       # NEW modular validator framework (migration in progress)
+├── validation.py    # ValidationReporter + ValidationResult — rich console output (457 lines)
+├── semantics.py     # LEGACY monolith (1727 lines) — DO NOT EXTEND
+├── smart_connection.py  # SMARTCONNECT auto-wiring resolution (703 lines)
+└── semantics/       # NEW modular validator framework (14 validator classes, migration in progress)
 ```
 
 ## WHERE TO LOOK
@@ -32,9 +33,10 @@ lang/
 | `get_device_mm()` | `__init__.py` | Builds textX metamodel for `.dev` files |
 | `get_component_mm()` | `__init__.py` | Builds textX metamodel for `.hwd` files |
 | `model_proc(model)` | `device.py` | Post-parse: enrich model → run all validators |
-| `enrich_model(model)` | `device.py` | Resolves component references, computes derived properties |
+| `enrich_model(model)` | `device.py` | Resolves refs, SmartConnect, VIA routing, auto-topics |
 | `ValidationReporter` | `validation.py` | Rich-formatted validation output (errors, warnings, passed rules) |
 | `ValidationResult` | `validation.py` | Dataclass: status, errors, warnings, passed_rules |
+| `SmartConnectionResolver` | `smart_connection.py` | Auto pin assignment for SMARTCONNECT declarations |
 
 ## ANTI-PATTERNS
 

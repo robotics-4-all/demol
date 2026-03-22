@@ -10,13 +10,14 @@ textX-based DSL engine: grammar → metamodel → parsing → validation → cod
 demol/
 ├── __init__.py          # textX language registration (@language decorators)
 ├── definitions.py       # Path constants, env-overridable model repo paths
-├── utils.py             # Shared utilities (246 lines)
+├── utils.py             # Shared utilities
 ├── grammar/             # 4 textX grammar files defining DSL syntax
 ├── lang/                # Language engine: metamodels, validation, semantics
-├── transformations/     # Code generators: RPi, RiotOS, SVG, docs, JSON, SmAuto
+├── transformations/     # Code generators: RPi, RiotOS, SVG, docs, pinmap, JSON, SmAuto
 ├── builtin_models/      # Hardware library: boards, peripherals, power sources
 ├── templates/           # Jinja2 templates per platform
-├── cli/                 # Click CLI (cli.py → `demol` command)
+├── cli/                 # Click CLI: cli.py, autofix.py, modeldiff.py
+├── lsp/                 # Language Server Protocol server (server.py)
 └── api/                 # Internal API helpers (not the top-level api/)
 ```
 
@@ -27,7 +28,10 @@ demol/
 | textX language registration | `__init__.py` | `component_language()` for `.hwd`, `device_language()` for `.dev` |
 | Path constants | `definitions.py` | `BOARD_MODEL_REPO_PATH`, `PERIPHERAL_MODEL_REPO_PATH` etc. — env-overridable |
 | Grammar syntax | `grammar/*.tx` | `device.tx` (main), `component.tx`, `communication.tx`, `common.tx` |
-| CLI commands | `cli/cli.py` | Click: `validate`, `generate` (rpi/riot/svg/docs/infrastructure) |
+| CLI commands | `cli/cli.py` | Click: `validate`, `generate`, `analyze`, `fix`, `diff`, `lsp` |
+| Auto-fix engine | `cli/autofix.py` | Detects and corrects common validation errors |
+| Semantic diff | `cli/modeldiff.py` | Compares two `.dev` models |
+| LSP server | `lsp/server.py` | textX LSP: diagnostics, completion, hover, go-to-def |
 
 ## CODE MAP
 
