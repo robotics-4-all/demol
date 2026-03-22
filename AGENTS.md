@@ -23,12 +23,12 @@ demol/                  # Core DSL package (grammar, semantics, codegen)
 ├── cli/                # Click CLI: validate, generate, analyze, fix, diff, lsp
 ├── lsp/                # Language Server Protocol server
 └── api/                # Internal API module (not the top-level api/)
-app/                    # React + Vite + React Flow visual designer (TypeScript)
+app/                    # Visual designer moved → demol-designer repo (separate)
 api/                    # FastAPI REST backend (validation + generation endpoints)
 tests/                  # pytest suite: 33 test files + models/valid/ + models/invalid/
 examples/               # Device models: rpi/ (22), esp/ (3), smauto/ (5)
 scripts/                # Automation: validation, generation, evaluation
-docker/                 # Dockerfiles (api, app, tests) + docker-compose.yml
+docker/                 # Dockerfiles (api, tests) + docker-compose.yml (API only)
 RIOT/                   # Full RIOT OS checkout — build target for riot codegen
 build/                  # Generated output (RIOT firmware projects)
 ```
@@ -44,7 +44,7 @@ build/                  # Generated output (RIOT firmware projects)
 | Modify grammar | `demol/grammar/*.tx` | 4 files: device, component, communication, common |
 | Add REST endpoint | `api/main.py` | FastAPI, secured with X-API-Key header |
 | Add CLI command | `demol/cli/cli.py` | Click framework |
-| Add frontend component | `app/src/components/` | React + TypeScript, nodes in `components/nodes/` |
+| Modify visual designer | `demol-designer` repo | Separate repo: React + TypeScript + React Flow |
 | Write tests | `tests/` | pytest; use `device_mm`/`component_mm` fixtures from `conftest.py` |
 | Add example model | `examples/rpi/` or `examples/esp/` | `.dev` files |
 | SmartConnect logic | `demol/lang/smart_connection.py` | Auto pin assignment resolution (703 lines) |
@@ -146,7 +146,7 @@ make format                         # black
 make type-check                     # mypy
 
 # Docker
-./start.sh                          # Full stack: API (8000) + Frontend (5173)
+./start.sh                          # API only (8000) — designer runs from demol-designer repo
 make docker-test                    # Tests in container
 ```
 
@@ -157,7 +157,7 @@ make docker-test                    # Tests in container
 - `venv/` and `.venv/` are virtual environments — exclude from searches
 - `demol/lang/semantics.py` and `demol/lang/semantics/` coexist — migration in progress (see `semantics/README.md`)
 - `setup.cfg` flake8 config (120 chars) matches Makefile lint target (120 chars)
-- Frontend (`app/`) proxies API calls to backend on port 8000 via `/api` prefix
+- Visual designer is in the separate `demol-designer` repo; it proxies `/api` → backend port 8000
 - API requires `X-API-Key` header for authentication
 - `demol/definitions.py` paths use `os.getenv()` for overridable model repos (BOARD_MODEL_REPO_PATH, etc.)
 - 33 test files covering 315+ test cases; CI runs across Python 3.9–3.13 matrix

@@ -9,12 +9,4 @@ services:
       - "8000:8000"
     restart: always
 
-  frontend:
-    build:
-      context: ..
-      dockerfile: docker/Dockerfile.app
-    ports:
-      - "5173:80"
-    depends_on:
-      - api
-    restart: always
+
