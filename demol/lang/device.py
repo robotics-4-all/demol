@@ -3,16 +3,11 @@ import os
 
 from textx import metamodel_from_file
 import textx.scoping.providers as scoping_providers
-from textx import get_location, TextXSemanticError
 from demol.definitions import METAMODEL_REPO_PATH, DEVICES_MODEL_REPO_PATH
 
 logger = logging.getLogger(__name__)
 
 GRAMMAR_BULTINS: dict = {}
-
-
-def raise_validation_error(obj, msg):
-    raise TextXSemanticError(f"{msg}", **get_location(obj))
 
 
 def model_proc(model, metamodel):
@@ -325,7 +320,9 @@ def model_proc(model, metamodel):
     if not errors:
         logger.info("All validation checks passed!")
     else:
-        logger.warning("Model built with %d semantic error(s) (skip_semantics=True)", len(errors))
+        logger.warning(
+            "Model built with %d semantic error(s) (skip_semantics=True)", len(errors)
+        )
 
 
 def enrich_model(model):
@@ -394,7 +391,9 @@ def enrich_model(model):
                     peripherals.append(comp_inst)
 
     # Create a synthetic 'components' object for backward compatibility
-    model.components = SimpleNamespace(board=board, peripherals=peripherals, powerSources=power_sources)
+    model.components = SimpleNamespace(
+        board=board, peripherals=peripherals, powerSources=power_sources
+    )
 
     # ========================================================================
     # Resolve SmartConnect declarations into synthetic connections
@@ -466,16 +465,22 @@ def enrich_model(model):
         # ====================================================================
         # Auto-generate topic if not specified (if broker or network is present)
         # ====================================================================
-        has_net = (model.broker is not None) or (hasattr(model, "network") and model.network)
+        has_net = (model.broker is not None) or (
+            hasattr(model, "network") and model.network
+        )
         if has_net and not c.remote and target_ref and hasattr(target_ref, "type"):
             peripheral_type = type(target_ref).__name__
             peripheral_msg = target_ref.type
 
-            default_topic = f'"{device_name}.{peripheral_type}.{peripheral_msg}.{target_name}"'
+            default_topic = (
+                f'"{device_name}.{peripheral_type}.{peripheral_msg}.{target_name}"'
+            )
             c.remote = default_topic.lower().strip('""')
 
 
-def get_device_mm(debug: bool = False, global_repo: bool = False, skip_semantics: bool = False):
+def get_device_mm(
+    debug: bool = False, global_repo: bool = False, skip_semantics: bool = False
+):
     mm = metamodel_from_file(
         os.path.join(METAMODEL_REPO_PATH, "device.tx"),
         auto_init_attributes=True,
@@ -499,7 +504,9 @@ def get_device_mm(debug: bool = False, global_repo: bool = False, skip_semantics
     mm.register_scope_providers(
         {
             "*.*": scoping_providers.FQNImportURI(importAs=True),
-            "ComponentInstance.ref": scoping_providers.FQNGlobalRepo(os.path.join(DEVICES_MODEL_REPO_PATH, "*/*.hwd")),
+            "ComponentInstance.ref": scoping_providers.FQNGlobalRepo(
+                os.path.join(DEVICES_MODEL_REPO_PATH, "*/*.hwd")
+            ),
             "Connect.from_comp": "~uses.components",
             "Connect.to_comp": "~uses.components",
             "SmartConnect.target": "~uses.components",
