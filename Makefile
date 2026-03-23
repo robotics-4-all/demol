@@ -1,12 +1,19 @@
-.PHONY: help install install-dev clean test test-validation test-transformations test-all test-local lint format format-check type-check docker-build docker-run docker-clean generate-examples ci ci-check validate-examples
+.PHONY: help install install-dev clean test test-validation test-transformations test-all test-local lint format format-check type-check generate-examples ci ci-check validate-examples \
+        build rebuild up down restart logs shell docker-clean dist release docs info
 
-# Variables
+# ── Variables ─────────────────────────────────────────────────────────────────
+
 PYTHON := python3
 PIP := pip3
 VENV := .venv
-DOCKER_IMAGE := demol
-DOCKER_TAG := latest
-DOCKER_IMAGE_FULL := $(DOCKER_IMAGE):$(DOCKER_TAG)
+
+COMPOSE   = docker compose -f docker/docker-compose.yml
+API_PORT  ?= 8080
+LSP_PORT  ?= 2087
+API_KEY   ?=
+LOG_LEVEL ?= INFO
+
+export API_PORT LSP_PORT API_KEY LOG_LEVEL
 
 # Default target
 .DEFAULT_GOAL := help
@@ -135,44 +142,32 @@ validate-examples: ## Validate all example models
 	@echo "✓ All examples validated"
 
 # ============================================================================
-# Docker
+# Docker (tx-lsp — LSP :2087, REST API :8080)
 # ============================================================================
 
-docker-build: ## Build Docker image
-	@echo "Building Docker image $(DOCKER_IMAGE_FULL)..."
-	docker build -t $(DOCKER_IMAGE_FULL) .
-	@echo "✓ Docker image built: $(DOCKER_IMAGE_FULL)"
+build: ## Build Docker image
+	$(COMPOSE) build
 
-docker-run: ## Run Docker container
-	@echo "Running Docker container..."
-	docker run -it --rm \
-		-v $(PWD):/workspace \
-		-w /workspace \
-		$(DOCKER_IMAGE_FULL) \
-		/bin/bash
-	@echo "✓ Docker container stopped"
+rebuild: ## Build Docker image (no cache)
+	$(COMPOSE) build --no-cache
 
-docker-test: ## Run tests in Docker container
-	@echo "Running tests in Docker..."
-	docker run --rm \
-		-v $(PWD):/workspace \
-		-w /workspace \
-		$(DOCKER_IMAGE_FULL) \
-		make test-all
-	@echo "✓ Docker tests complete"
+up: ## Start services (detached)
+	$(COMPOSE) up -d
 
-docker-clean: ## Remove Docker images
-	@echo "Removing Docker images..."
-	docker rmi $(DOCKER_IMAGE_FULL) 2>/dev/null || true
-	@echo "✓ Docker cleanup complete"
+down: ## Stop services
+	$(COMPOSE) down
 
-docker-shell: ## Open shell in Docker container
-	@echo "Opening shell in Docker container..."
-	docker run -it --rm \
-		-v $(PWD):/workspace \
-		-w /workspace \
-		$(DOCKER_IMAGE_FULL) \
-		/bin/bash
+restart: ## Restart services
+	$(COMPOSE) restart
+
+logs: ## Tail service logs
+	$(COMPOSE) logs -f
+
+shell: ## Open a shell in the running container
+	$(COMPOSE) exec demol /bin/bash
+
+docker-clean: ## Stop services and remove images + volumes
+	$(COMPOSE) down --rmi all --volumes
 
 # ============================================================================
 # Development Utilities
@@ -207,12 +202,12 @@ docs: ## Generate documentation (placeholder)
 # Release
 # ============================================================================
 
-build: clean ## Build distribution packages
+dist: clean ## Build distribution packages (sdist + wheel)
 	@echo "Building distribution packages..."
 	$(PYTHON) setup.py sdist bdist_wheel
 	@echo "✓ Build complete - packages in dist/"
 
-release: build ## Build and prepare for release
+release: dist ## Build and prepare for release
 	@echo "Preparing release..."
 	@echo "Run 'twine upload dist/*' to upload to PyPI"
 
@@ -226,7 +221,8 @@ info: ## Show project information
 	@echo "Version:       0.0.1"
 	@echo "Python:        $$($(PYTHON) --version 2>&1)"
 	@echo "Venv:          $(VENV)"
-	@echo "Docker Image:  $(DOCKER_IMAGE_FULL)"
+	@echo "LSP Port:      $(LSP_PORT)"
+	@echo "API Port:      $(API_PORT)"
 	@echo ""
 	@echo "Project Structure:"
 	@echo "  demol/           - Core library"
