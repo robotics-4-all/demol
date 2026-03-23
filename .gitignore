@@ -124,3 +124,7 @@ app/tsconfig.tsbuildinfo
 
 tests/output/
 RIOT/
+
+# Tool-generated artifacts
+.matrix/
+output.svg
