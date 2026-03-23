@@ -47,6 +47,7 @@ class PowerConnectionValidator(BaseValidator):
                 f"Invalid board power pin type: {board_pin.ptype}",
                 "PowerTypeError",
             )
+            return
 
         if peripheral_voltage is None:
             raise_validation_error(
@@ -54,13 +55,19 @@ class PowerConnectionValidator(BaseValidator):
                 f"Invalid peripheral power pin type: {peripheral_pin.ptype}",
                 "PowerTypeError",
             )
+            return
 
         # Rule [T-PowerConn-GND]: Both GND
         if board_voltage == 0.0 and peripheral_voltage == 0.0:
             return  # Valid GND connection
 
         # Rule [T-PowerConn-VCC]: Non-GND voltages must be compatible
-        if board_voltage != 0.0 and peripheral_voltage != 0.0:
+        if (
+            board_voltage is not None
+            and peripheral_voltage is not None
+            and board_voltage != 0.0
+            and peripheral_voltage != 0.0
+        ):
             if not are_voltages_compatible(board_voltage, peripheral_voltage):
                 raise_validation_error(
                     connection,
@@ -301,7 +308,7 @@ class PowerPathValidator(BaseValidator):
         # 2. Build a power graph
         # Nodes: Component names (Board, Peripherals, PowerSources)
         # Edges: Power connections (from_comp provides power to to_comp)
-        power_graph = {}  # target -> set of sources
+        power_graph: dict[str, set[str]] = {}
 
         for conn in model.connections:
             if not hasattr(conn, "powerConns") or not conn.powerConns:

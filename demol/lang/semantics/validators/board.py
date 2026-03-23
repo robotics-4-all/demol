@@ -7,7 +7,8 @@ This module contains validators for board-related semantic rules:
 - Board ports validation
 """
 
-from typing import Dict, List
+from __future__ import annotations
+
 from ..core import raise_validation_error
 from ..utils import get_connection_endpoints
 from .base import BaseValidator
@@ -77,8 +78,8 @@ class PinConflictsValidator(BaseValidator):
         - I2C pins (SDA, SCL) can be shared (bus architecture).
         - Power pins (GND, VCC) can be shared (physically common nets).
         """
-        # Map: pin_name -> List[Tuple[peripheral_name, usage_type]]
-        board_pin_usage: Dict[str, List[tuple]] = {}
+        # Map: pin_name -> list[Tuple[peripheral_name, usage_type]]
+        board_pin_usage: dict[str, list[tuple]] = {}
 
         board = model.components.board
 
@@ -96,7 +97,7 @@ class PinConflictsValidator(BaseValidator):
 
             # Collect all board pins used in this connection with their usage type
             # List of (pin_name, usage_type)
-            used_pins: List[tuple] = []
+            used_pins: list[tuple] = []
 
             # Power connections
             for pconn in connection.powerConns:
@@ -189,7 +190,7 @@ class UniquePinNumbersValidator(BaseValidator):
 
         Ensures that all pins defined in a component have unique pin numbers.
         """
-        pin_map: Dict[int, List[str]] = {}
+        pin_map: dict[int, list[str]] = {}
 
         for pin in component.pins:
             if pin.number in pin_map:
@@ -230,52 +231,44 @@ class BoardPortsValidator(BaseValidator):
         if not hasattr(board, "ports") or not board.ports:
             return
 
-        # Count available interfaces based on pin definitions
-        available_interfaces = {"spi": set(), "i2c": set(), "uart": set(), "gpio": 0}
+        gpio_count: int = 0
+        bus_interfaces: dict[str, set[object]] = {
+            "spi": set(),
+            "i2c": set(),
+            "uart": set(),
+        }
 
         for pin in board.pins:
             if hasattr(pin, "funcs"):
                 for func in pin.funcs:
-                    # Check for GPIO
                     if hasattr(func, "ptype") and func.ptype == "gpio":
-                        available_interfaces["gpio"] += 1
-
-                    # Check for SPI
-                    # SPI rule: ptype=SPIPinType "-" bus=INT
+                        gpio_count += 1
                     if func.__class__.__name__ == "SPI":
-                        available_interfaces["spi"].add(func.bus)
-
-                    # Check for I2C
+                        bus_interfaces["spi"].add(func.bus)
                     elif func.__class__.__name__ == "I2C":
-                        available_interfaces["i2c"].add(func.bus)
-
-                    # Check for UART
+                        bus_interfaces["i2c"].add(func.bus)
                     elif func.__class__.__name__ == "UART":
-                        available_interfaces["uart"].add(func.bus)
+                        bus_interfaces["uart"].add(func.bus)
 
-        # Validate declared ports against available interfaces
         for port in board.ports:
             port_name = port.name.lower()
             required_count = port.count
 
             if port_name == "gpio":
-                if available_interfaces["gpio"] < required_count:
+                if gpio_count < required_count:
                     raise_validation_error(
                         board,
-                        f"[WF-Board-Ports] Declared {required_count} GPIO pins, but only found {available_interfaces['gpio']} in PINS section.",
+                        f"[WF-Board-Ports] Declared {required_count} GPIO pins, but only found {gpio_count} in PINS section.",
                         "PortCountMismatch",
                     )
             elif port_name in ["spi", "i2c", "uart"]:
-                found_buses = len(available_interfaces[port_name])
+                found_buses = len(bus_interfaces[port_name])
                 if found_buses < required_count:
                     raise_validation_error(
                         board,
                         f"[WF-Board-Ports] Declared {required_count} {port_name.upper()} interfaces, but only found pins for {found_buses} buses in PINS section.",
                         "PortCountMismatch",
                     )
-            else:
-                # For other custom ports, we might not have specific validation logic yet
-                pass
 
 
 # Convenience function exports (for backward compatibility)

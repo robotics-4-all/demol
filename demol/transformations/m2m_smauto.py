@@ -24,18 +24,10 @@ def get_broker_info(device_model):
     broker_data["broker_port"] = device_model.broker.port
     broker_data["broker_name"] = device_model.broker.name
     # Set username and password
-    if (
-        hasattr(device_model.broker, "auth_username")
-        and device_model.broker.auth_username
-    ):
+    if hasattr(device_model.broker, "auth_username") and device_model.broker.auth_username:
         broker_data["broker_username"] = device_model.broker.auth_username
-        broker_data["broker_password"] = getattr(
-            device_model.broker, "auth_password", None
-        )
-    elif (
-        hasattr(device_model.broker, "auth")
-        and str(device_model.broker.auth.__class__.__name__) == "AuthPlain"
-    ):
+        broker_data["broker_password"] = getattr(device_model.broker, "auth_password", None)
+    elif hasattr(device_model.broker, "auth") and str(device_model.broker.auth.__class__.__name__) == "AuthPlain":
         # Fallback for backward compatibility if grammar changes back
         broker_data["broker_username"] = device_model.broker.auth.username
         broker_data["broker_password"] = device_model.broker.auth.password

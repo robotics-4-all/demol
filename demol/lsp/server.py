@@ -1,5 +1,7 @@
 """DeMoL Language Server — diagnostics, completion, hover, go-to-definition."""
 
+from __future__ import annotations
+
 import logging
 import os
 import re
@@ -60,7 +62,7 @@ OS_KEYWORDS = [
 
 def _scan_hwd_files(directory):
     """Scan a directory for .hwd files and extract component names."""
-    components = {}
+    components: dict[str, dict[str, str]] = {}
     if not os.path.isdir(directory):
         return components
     for fname in os.listdir(directory):

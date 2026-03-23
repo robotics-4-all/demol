@@ -15,8 +15,11 @@ The resolution algorithm:
    e. Append to model.connections for downstream processing
 """
 
+from __future__ import annotations
+
 import logging
 from types import SimpleNamespace
+from typing import Any
 
 from demol.lang.semantics.core import raise_validation_error
 
@@ -104,7 +107,13 @@ def classify_peripheral_io_pins(io_pins):
     Returns dict with keys 'i2c', 'spi', 'uart', 'pwm', 'gpio',
     each mapping to a list of (pin, primary_func, category) tuples.
     """
-    classified = {"i2c": [], "spi": [], "uart": [], "pwm": [], "gpio": []}
+    classified: dict[str, list[Any]] = {
+        "i2c": [],
+        "spi": [],
+        "uart": [],
+        "pwm": [],
+        "gpio": [],
+    }
 
     for pin in io_pins:
         func, category = get_primary_protocol(pin.funcs)
@@ -420,8 +429,8 @@ def _resolve_peripheral_pins(peripheral_ref, peripheral_inst, board, pool, sc):
     Returns:
         tuple: (power_conns, data_conns)
     """
-    power_conns = []
-    data_conns = []
+    power_conns: list[Any] = []
+    data_conns: list[Any] = []
 
     # Separate pins into power and IO
     power_pins = [p for p in peripheral_ref.pins if is_power_pin(p)]
@@ -479,7 +488,7 @@ def _resolve_i2c_pins(i2c_pins, peripheral_inst, peripheral_ref, pool, sc, data_
         return
 
     # Group pins by bus number
-    buses = {}
+    buses: dict[int, list[Any]] = {}
     for pin, func in i2c_pins:
         bus = getattr(func, "bus", 0)
         buses.setdefault(bus, []).append((pin, func))
@@ -527,7 +536,7 @@ def _resolve_i2c_pins(i2c_pins, peripheral_inst, peripheral_ref, pool, sc, data_
 def _resolve_spi_pins(spi_pins, peripheral_inst, pool, sc, data_conns):
     """Resolve SPI pins."""
     # Group pins by bus number
-    buses = {}
+    buses: dict[int, list[Any]] = {}
     for pin, func in spi_pins:
         bus = getattr(func, "bus", 0)
         buses.setdefault(bus, []).append((pin, func))
@@ -578,7 +587,7 @@ def _resolve_uart_pins(uart_pins, peripheral_inst, peripheral_ref, pool, sc, dat
         baudrate = 9600  # Default
 
     # Group pins by bus number
-    buses = {}
+    buses: dict[int, list[Any]] = {}
     for pin, func in uart_pins:
         bus = getattr(func, "bus", 0)
         buses.setdefault(bus, []).append((pin, func))

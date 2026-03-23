@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1160" height="265"
+    viewBox="0 0 1160 265" style="background-color: #FFFFFF;">
+    <!-- Title -->
+    <text x="580.0" y="30" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif"
+        font-size="24" font-weight="bold" fill="#333333" text-anchor="middle"
+        dominant-baseline="middle">Device Diagram: RpiTrackerSensor</text>
+
+    <!-- Board -->
+    <rect x="430" y="65.0" width="300" height="135"
+        fill="#0F172A" stroke="#1E293B" stroke-width="2" rx="8" ry="8" />
+    <text x="580.0" y="95.0"
+        font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="16"
+        font-weight="bold" fill="#F8FAFC" text-anchor="middle" dominant-baseline="middle">RaspberryPi_5_8GB</text>
+
+    <!-- Peripherals -->
+    
+    <!-- Peripheral: MyTracker -->
+    <rect x="930" y="50.0" width="180" height="135" fill="#F1F5F9"
+        stroke="#CBD5E1" stroke-width="2" rx="8" ry="8" />
+    <text x="1020.0" y="75.0" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif"
+        font-size="16" font-weight="bold" fill="#0F172A" text-anchor="middle"
+        dominant-baseline="middle">MyTracker</text>
+
+    
+    <!-- Connection -->
+    <path
+        d="M 730 107.5 C 830.0 107.5, 830.0 90.0, 930 90.0"
+        stroke="#3B82F6" stroke-width="2" fill="none" />
+    <circle cx="730" cy="107.5" r="4" fill="#3B82F6" />
+    <circle cx="930" cy="90.0" r="4" fill="#3B82F6" />
+
+    <!-- Pin Labels -->
+    <text x="720" y="107.5" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif"
+        font-size="12" fill="#F8FAFC" text-anchor="end"
+        dominant-baseline="middle">D0</text>
+    <text x="940" y="90.0" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif"
+        font-size="12" fill="#64748B" text-anchor="start"
+        dominant-baseline="middle">GPIO4</text>
+    
+    <!-- Connection -->
+    <path
+        d="M 730 132.5 C 830.0 132.5, 830.0 115.0, 930 115.0"
+        stroke="#1E293B" stroke-width="2" fill="none" />
+    <circle cx="730" cy="132.5" r="4" fill="#1E293B" />
+    <circle cx="930" cy="115.0" r="4" fill="#1E293B" />
+
+    <!-- Pin Labels -->
+    <text x="720" y="132.5" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif"
+        font-size="12" fill="#F8FAFC" text-anchor="end"
+        dominant-baseline="middle">GND_1</text>
+    <text x="940" y="115.0" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif"
+        font-size="12" fill="#64748B" text-anchor="start"
+        dominant-baseline="middle">GND</text>
+    
+    <!-- Connection -->
+    <path
+        d="M 730 157.5 C 830.0 157.5, 830.0 140.0, 930 140.0"
+        stroke="#EF4444" stroke-width="2" fill="none" />
+    <circle cx="730" cy="157.5" r="4" fill="#EF4444" />
+    <circle cx="930" cy="140.0" r="4" fill="#EF4444" />
+
+    <!-- Pin Labels -->
+    <text x="720" y="157.5" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif"
+        font-size="12" fill="#F8FAFC" text-anchor="end"
+        dominant-baseline="middle">power_5v_a</text>
+    <text x="940" y="140.0" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif"
+        font-size="12" fill="#64748B" text-anchor="start"
+        dominant-baseline="middle">VCC</text>
+    
+    
+</svg>

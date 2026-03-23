@@ -7,13 +7,17 @@ This module provides the core validation infrastructure including:
 - Validation result reporting
 """
 
+from __future__ import annotations
+
+from typing import Any
+
 from textx import get_location, TextXSemanticError
 import warnings
 
 # Global lists to collect validation results during a single model processing run
-_validation_errors = []
-_validation_warnings = []
-_passed_rules = []
+_validation_errors: list[dict[str, Any]] = []
+_validation_warnings: list[dict[str, Any]] = []
+_passed_rules: list[dict[str, str]] = []
 
 
 def clear_validation_results():

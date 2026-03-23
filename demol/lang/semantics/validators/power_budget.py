@@ -7,7 +7,11 @@ Rules:
 Emits warnings (not errors) because power values are theoretical datasheet maximums.
 """
 
+from __future__ import annotations
+
 import logging
+from typing import Any
+
 from ..core import raise_validation_warning
 from ..utils import parse_voltage
 from .base import BaseValidator
@@ -217,7 +221,7 @@ def analyze_power_budget(model):
         budget: {supply_mw, exceeded, headroom_mw}
         power_sources: [{name, type, voltage, capacity_mah, runtime_hours, avg_current_ma}]
     """
-    result = {
+    result: dict[str, Any] = {
         "board": None,
         "peripherals": [],
         "totals": {"max_mw": 0.0, "avg_mw": 0.0, "count": 0},

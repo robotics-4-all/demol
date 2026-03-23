@@ -135,9 +135,7 @@ def test_rpi_transformation_dependencies(tmp_path):
 
     req_content = (output_dir / "requirements.txt").read_text()
     assert "bme680" in req_content
-    assert (
-        "commlib-py" in req_content
-    )  # Should be there if template includes it or if it's a common dep
+    assert "commlib-py" in req_content  # Should be there if template includes it or if it's a common dep
 
 
 def test_rpi_transformation_proximity(tmp_path):

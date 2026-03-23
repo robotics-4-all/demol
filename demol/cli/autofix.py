@@ -104,7 +104,8 @@ def fix_missing_broker_auth(lines):
             old = lines[semi_line]
             stripped = old.rstrip()
             if stripped.endswith(";"):
-                indent = re.match(r"^(\s*)", old).group(1) or "    "
+                _m = re.match(r"^(\s*)", old)
+                indent = _m.group(1) if _m else "    "
                 lines[semi_line] = stripped[:-1].rstrip(",") + ",\n"
                 _insert_after(
                     lines,

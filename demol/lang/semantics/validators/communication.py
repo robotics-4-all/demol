@@ -9,7 +9,8 @@ This module contains validators for data connection protocols:
 - Connection orchestration
 """
 
-from typing import Dict
+from __future__ import annotations
+
 from ..core import raise_validation_error
 from ..utils import get_pin_functions
 from .base import BaseValidator
@@ -224,7 +225,7 @@ class I2CAddressUniquenessValidator(BaseValidator):
         # Track I2C addresses per bus
         # Key: (board_sda_pin, board_scl_pin) tuple representing the bus
         # Value: dict of {address: [peripheral_names]}
-        i2c_buses = {}
+        i2c_buses: dict[tuple[str, str], dict[int | str, list[str]]] = {}
 
         for connection in connections:
             if not hasattr(connection, "dataConns") or not connection.dataConns:
@@ -309,7 +310,7 @@ class SPIConnectionValidator(BaseValidator):
         return "Validates SPI pin functionality and bus configuration"
 
     @staticmethod
-    def validate(board_pins: Dict[str, object], peripheral_pins: Dict[str, object], connection):
+    def validate(board_pins: dict[str, object], peripheral_pins: dict[str, object], connection):
         """
         Validate SPI connection.
 
@@ -602,7 +603,7 @@ def validate_i2c_address_uniqueness(model):
     I2CAddressUniquenessValidator.validate(model)
 
 
-def validate_spi_connection(board_pins: Dict[str, object], peripheral_pins: Dict[str, object], connection):
+def validate_spi_connection(board_pins: dict[str, object], peripheral_pins: dict[str, object], connection):
     """Validate SPI connection."""
     SPIConnectionValidator.validate(board_pins, peripheral_pins, connection)
 
