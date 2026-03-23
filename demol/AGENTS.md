@@ -10,15 +10,14 @@ textX-based DSL engine: grammar → metamodel → parsing → validation → cod
 demol/
 ├── __init__.py          # textX language registration (@language decorators)
 ├── definitions.py       # Path constants, env-overridable model repo paths
-├── utils.py             # Shared utilities
+├── definitions.py       # Path constants, env-overridable model repo paths
 ├── grammar/             # 4 textX grammar files defining DSL syntax
 ├── lang/                # Language engine: metamodels, validation, semantics
 ├── transformations/     # Code generators: RPi, RiotOS, SVG, docs, pinmap, JSON, SmAuto
 ├── builtin_models/      # Hardware library: boards, peripherals, power sources
 ├── templates/           # Jinja2 templates per platform
 ├── cli/                 # Click CLI: cli.py, autofix.py, modeldiff.py
-├── lsp/                 # Language Server Protocol server (server.py)
-└── api/                 # Internal API helpers (not the top-level api/)
+└── lsp/                 # Language Server Protocol server (server.py)
 ```
 
 ## WHERE TO LOOK
@@ -53,5 +52,4 @@ demol/
 ## ANTI-PATTERNS
 
 - Do NOT hardcode model repository paths — use `definitions.py` constants
-- Do NOT import from `demol.api` (internal) — top-level `api/` is the REST service
 - Grammar changes require updating both device.tx and corresponding validators

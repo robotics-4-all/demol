@@ -6,7 +6,7 @@
 
 ## OVERVIEW
 
-DeMoL (Device Modeling Language) — a textX-based Python DSL for hardware-aware IoT device modeling with automated code generation (Raspberry Pi Python, RiotOS C), semantic validation (electrical safety, pin conflicts, protocol constraints), power budget analysis, SmartConnect auto-wiring, SAMPLING blocks, CONSTRAINT expressions, ALERT triggers, and a React visual designer with LSP for IDE integration.
+DeMoL (Device Modeling Language) — a textX-based Python DSL for hardware-aware IoT device modeling with automated code generation (Raspberry Pi Python, RiotOS C), semantic validation (electrical safety, pin conflicts, protocol constraints), power budget analysis, SmartConnect auto-wiring, SAMPLING blocks, CONSTRAINT expressions, ALERT triggers, and LSP for IDE integration.
 
 ## STRUCTURE
 
@@ -21,14 +21,11 @@ demol/                  # Core DSL package (grammar, semantics, codegen)
 ├── builtin_models/     # Hardware library: boards (.hwd), peripherals (.hwd), power
 ├── templates/          # Jinja2 templates per platform (rpi/, riot/, docs/, smauto/)
 ├── cli/                # Click CLI: validate, generate, analyze, fix, diff, lsp
-├── lsp/                # Language Server Protocol server
-└── api/                # Internal API module (not the top-level api/)
-app/                    # Visual designer moved → demol-designer repo (separate)
-api/                    # FastAPI REST backend (validation + generation endpoints)
+└── lsp/                # Language Server Protocol server
 tests/                  # pytest suite: 33 test files + models/valid/ + models/invalid/
 examples/               # Device models: rpi/ (22), esp/ (3), smauto/ (5)
 scripts/                # Automation: validation, generation, evaluation
-docker/                 # Dockerfiles (api, tests) + docker-compose.yml (API only)
+docker/                 # Dockerfile.tests + CI container
 RIOT/                   # Full RIOT OS checkout — build target for riot codegen
 build/                  # Generated output (RIOT firmware projects)
 ```
@@ -42,7 +39,6 @@ build/                  # Generated output (RIOT firmware projects)
 | Add validation rule | `demol/lang/semantics/validators/` | Inherit `BaseValidator`, see `semantics/README.md` |
 | Add code generator | `demol/transformations/` | Inherit `BaseCodeGenerator` from `base_generator.py` |
 | Modify grammar | `demol/grammar/*.tx` | 4 files: device, component, communication, common |
-| Add REST endpoint | `api/main.py` | FastAPI, secured with X-API-Key header |
 | Add CLI command | `demol/cli/cli.py` | Click framework |
 | Modify visual designer | `demol-designer` repo | Separate repo: React + TypeScript + React Flow |
 | Write tests | `tests/` | pytest; use `device_mm`/`component_mm` fixtures from `conftest.py` |
@@ -146,7 +142,6 @@ make format                         # black
 make type-check                     # mypy
 
 # Docker
-./start.sh                          # API only (8000) — designer runs from demol-designer repo
 make docker-test                    # Tests in container
 ```
 
@@ -157,8 +152,7 @@ make docker-test                    # Tests in container
 - `venv/` and `.venv/` are virtual environments — exclude from searches
 - `demol/lang/semantics.py` and `demol/lang/semantics/` coexist — migration in progress (see `semantics/README.md`)
 - `setup.cfg` flake8 config (120 chars) matches Makefile lint target (120 chars)
-- Visual designer is in the separate `demol-designer` repo; it proxies `/api` → backend port 8000
-- API requires `X-API-Key` header for authentication
+- Visual designer is in the separate `demol-designer` repo
 - `demol/definitions.py` paths use `os.getenv()` for overridable model repos (BOARD_MODEL_REPO_PATH, etc.)
 - 33 test files covering 315+ test cases; CI runs across Python 3.9–3.13 matrix
 - `demol/lang/smart_connection.py` (703 lines) handles SMARTCONNECT auto-wiring resolution

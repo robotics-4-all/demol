@@ -7,7 +7,6 @@
 [![CI](https://github.com/robotics-4-all/demol/actions/workflows/ci.yml/badge.svg)](https://github.com/robotics-4-all/demol/actions/workflows/ci.yml)
 <img src="https://img.shields.io/badge/Python-3776AB.svg?style=default&logo=Python&logoColor=white" alt="Python">
 <img src="https://img.shields.io/badge/textX-2496ED.svg?style=default&logo=textx&logoColor=white" alt="textX">
-<img src="https://img.shields.io/badge/FastAPI-2496ED.svg?style=default&logo=FastAPI&logoColor=white" alt="FastAPI">
 <img src="https://img.shields.io/badge/Docker-2496ED.svg?style=default&logo=Docker&logoColor=white" alt="Docker">
 
 </div>
@@ -43,14 +42,6 @@ git clone https://github.com/robotics-4-all/demol.git
 cd demol
 python -m venv venv && source ./venv/bin/activate
 pip install -e .
-```
-
-### Docker
-
-Start the full stack (API + Visual Designer):
-
-```sh
-./start.sh
 ```
 
 ## Example
@@ -200,7 +191,6 @@ The CLI translates parser internals into domain-friendly messages with actionabl
 | [Language Reference](docs/language-reference.md) | Grammar, syntax, hardware components, connections, brokers |
 | [Semantic Validation](docs/semantic-validation.md) | Validation rules, safety checks, error examples |
 | [Code Generation & CLI](docs/code-generation.md) | Generators, CLI usage, deployment artifacts, diagrams |
-| [REST API](docs/api.md) | Validation and generation endpoints |
 | [Formal Semantics](docs/semantics.md) | Mathematical specification of the language |
 | [Sensors & Actuators](docs/sensors-actuators.md) | 35 sensor types, 23 actuator types, message schemas |
 | [Testing](docs/testing.md) | Test suite structure and coverage |
