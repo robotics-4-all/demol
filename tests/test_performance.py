@@ -10,6 +10,8 @@ import warnings
 import pytest
 from demol.lang import get_device_mm
 
+pytestmark = pytest.mark.performance
+
 
 @pytest.fixture(scope="module")
 def mm():
@@ -57,7 +59,9 @@ def _build_large_model(num_peripherals):
         lines.append(f"USE {ptype}[{name}];")
 
     lines.append('NETWORK[WiFi] WITH ssid="net", password="pass";')
-    lines.append('BROKER[MQTT] B WITH host="localhost", port=1883, auth.username="u", auth.password="p";')
+    lines.append(
+        'BROKER[MQTT] B WITH host="localhost", port=1883, auth.username="u", auth.password="p";'
+    )
 
     for name in periph_names:
         lines.append(f'SMARTCONNECT {name} @ "sensors/{name.lower()}";')
@@ -85,7 +89,9 @@ def test_parse_medium_model_under_1s(mm):
             warnings.simplefilter("ignore")
             mm.model_from_str(model_str)
     elapsed = (time.perf_counter() - start) / iterations
-    assert elapsed < 1.0, f"Medium model (5 peripherals) took {elapsed:.3f}s (limit: 1.0s)"
+    assert elapsed < 1.0, (
+        f"Medium model (5 peripherals) took {elapsed:.3f}s (limit: 1.0s)"
+    )
 
 
 def test_parse_large_model_under_3s(mm):
@@ -95,7 +101,9 @@ def test_parse_large_model_under_3s(mm):
         warnings.simplefilter("ignore")
         mm.model_from_str(model_str)
     elapsed = time.perf_counter() - start
-    assert elapsed < 3.0, f"Large model (10 peripherals) took {elapsed:.3f}s (limit: 3.0s)"
+    assert elapsed < 3.0, (
+        f"Large model (10 peripherals) took {elapsed:.3f}s (limit: 3.0s)"
+    )
 
 
 def test_full_validation_small_model_under_300ms(mm_full):

@@ -94,9 +94,9 @@ test-all: ## Run all tests in a Docker container
 	@echo "Running tests in container..."
 	docker run --rm demol-tests
 
-test-cov: ## Run tests with coverage report
+test-cov: ## Run tests with coverage report (performance tests excluded)
 	@echo "Running tests with coverage..."
-	$(PYTHON) -m pytest tests/ --cov=demol --cov-report=html --cov-report=term
+	$(PYTHON) -m pytest tests/ -m "not performance" --cov=demol --cov-report=html --cov-report=term
 	@echo "✓ Coverage report generated in htmlcov/"
 
 # ============================================================================
