@@ -128,6 +128,74 @@ The `examples/rpi/` directory contains ready-to-use device models demonstrating 
 | [`rpi_smart_home.dev`](examples/rpi/rpi_smart_home.dev) | Multi-peripheral smart home (I2C, GPIO, TTS) |
 | [`multi_periph.dev`](examples/rpi/multi_periph.dev) | Complex system with 5 peripherals |
 
+## Hardware Library
+
+DeMoL ships with a built-in hardware library of boards and peripherals. Each entry is a validated `.hwd` component model that the DSL resolves at parse time.
+
+### Supported Boards
+
+| DSL Identifier | Family | VCC | I/O Voltage | RAM | CPU / MCU | Code Targets |
+|---|---|---|---|---|---|---|
+| `RaspberryPi_5_8GB` | Raspberry Pi | 5 V | 3.3 V | 8 GB | ARM Cortex-A76 | RPi Python |
+| `RaspberryPi_4B_8GB` | Raspberry Pi | 5 V | 3.3 V | 8 GB | ARM Cortex-A72 | RPi Python |
+| `RaspberryPi_4B_4GB` | Raspberry Pi | 5 V | 3.3 V | 4 GB | ARM Cortex-A72 | RPi Python |
+| `RaspberryPi_3B_Plus` | Raspberry Pi | 5 V | 3.3 V | 1 GB | ARM Cortex-A53 | RPi Python |
+| `RaspberryPi_3B` | Raspberry Pi | 5 V | 3.3 V | 1 GB | ARM Cortex-A53 | RPi Python |
+| `RaspberryPi_3A_Plus` | Raspberry Pi | 5 V | 3.3 V | 512 MB | ARM Cortex-A53 | RPi Python |
+| `RPiPico` | Raspberry Pi | 5 V | 3.3 V | 264 KB | RP2040 | RPi Python |
+| `ESP32Wroom32` | ESP | 5 V | 3.3 V | 520 KB | ESP32 | RIOT C |
+| `NodeMCU_ESP8266` | ESP | 3.3 V | 3.3 V | 80 KB | ESP8266 | RIOT C |
+| `WemosD1Mini` | ESP | 5 V | 3.3 V | 80 KB | ESP8266 | RIOT C |
+| `WemosD1R32` | ESP | 5 V | 3.3 V | 520 KB | ESP32 | RIOT C |
+| `ArduinoUno` | Arduino | 5 V | 5 V | 2 KB | ATmega328P | RIOT C |
+
+### Supported Peripherals
+
+#### Sensors
+
+| DSL Identifier | Category | Interface | Description | RPi Python | RIOT C |
+|---|---|---|---|---|---|
+| `BME680` | Environmental | I²C | Temperature, humidity, pressure, air quality | ✓ | ✓ |
+| `DHT22` | Environmental | GPIO | Temperature and humidity (1-wire) | ✓ | — |
+| `Mpl3115a2` | Environmental | I²C | Barometric pressure and altitude | ✓ | ✓ |
+| `MPU6050` | IMU | I²C | 6-axis accelerometer + gyroscope | ✓ | — |
+| `BH1750` | Light | I²C | Ambient light intensity (lux) | ✓ | — |
+| `DS18B20` | Temperature | GPIO | 1-wire digital temperature probe | ✓ | — |
+| `MQ2` | Gas | GPIO (ADC) | Smoke, LPG, CO gas detection | ✓ | — |
+| `ADCDifferentialPi` | ADC | I²C | 8-channel 18-bit differential ADC | ✓ | ✓ |
+| `HCSR04` | Distance | GPIO | Ultrasonic distance (2 cm – 4 m) | ✓ | ✓ |
+| `HCSR04P` | Distance | GPIO | Ultrasonic distance (low-power variant) | ✓ | ✓ |
+| `SRF04` | Distance | GPIO | Ultrasonic distance sensor | ✓ | ✓ |
+| `SRF05` | Distance | GPIO | Ultrasonic distance (extended range) | ✓ | ✓ |
+| `TFMini` | Distance | UART | LiDAR distance sensor (0.3 m – 12 m) | ✓ | ✓ |
+| `VL53L1X` | Distance | I²C | ToF laser ranging (up to 4 m) | ✓ | ✓ |
+| `PIR_HCSR501` | Proximity | GPIO | Passive infrared motion detector | ✓ | — |
+| `HW006` | Proximity | GPIO | IR proximity / obstacle detection | ✓ | ✓ |
+| `TCRT5000` | Proximity | GPIO | Reflective IR line sensor | ✓ | ✓ |
+| `TactileButton` | Input | GPIO | Momentary push button | ✓ | ✓ |
+| `SoilMoisture` | Humidity | GPIO (ADC) | Capacitive soil moisture sensor | ✓ | — |
+
+#### Actuators
+
+| DSL Identifier | Category | Interface | Description | RPi Python | RIOT C |
+|---|---|---|---|---|---|
+| `LedGeneric` | LED | GPIO | Single-colour digital LED | ✓ | ✓ |
+| `WS2812` | LED Array | GPIO (PWM) | Addressable RGB LED strip (NeoPixel) | ✓ | ✓ |
+| `WS281X` | LED Array | GPIO (PWM) | Addressable RGB LED strip (WS281x family) | ✓ | ✓ |
+| `ServoGeneric` | Servo | GPIO (PWM) | Generic RC servo motor | ✓ | ✓ |
+| `PCA9685` | Servo Controller | I²C | 16-channel 12-bit PWM driver | ✓ | ✓ |
+| `MotorGeneric` | DC Motor | GPIO (PWM) | Brushed DC motor via H-bridge | ✓ | ✓ |
+| `RelayModule` | Relay | GPIO | Optocoupler relay module | ✓ | — |
+| `BuzzerGeneric` | Buzzer | GPIO | Passive/active piezo buzzer | ✓ | ✓ |
+| `TTSSpeaker` | Audio | GPIO | Text-to-speech speaker (Piper TTS) | ✓ | — |
+
+### Power Sources
+
+| DSL Identifier | Type | Voltage | Capacity | Max Current |
+|---|---|---|---|---|
+| `li_ion_3v7` | Li-Ion Battery | 3.7 V | 2 500 mAh | 2 A |
+| `usb_power_bank` | USB Power Bank | 5 V | 10 000 mAh | 2.4 A |
+
 ## Development
 
 ### Make Targets
