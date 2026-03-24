@@ -1,0 +1,26 @@
+SENSOR[Light] APDS9960 WITH
+    OP
+        vcc=3V3,
+        ioVcc=3V3,
+        power.min=0.001 mW,
+        power.max=14.4 mW,
+        power.avg=0.9 mW
+    PINS
+        VCC[3V3] @ 1,
+        GND[GND] @ 2,
+        sda[sda-0] @ 3,
+        scl[scl-0] @ 4,
+        ? INT[gpio] @ 5
+    TEMPLATES
+        raspbian="apds9960.py.j2"
+    DEPENDENCIES
+        raspbian=[
+            {package="adafruit-circuitpython-apds9960", source="pip"}
+        ]
+    ATTRIBUTES
+        i2c_address[int] = 57,
+        poll_period[int] = 10,
+        enable_gesture[bool] = False,
+        enable_color[bool] = True,
+        enable_proximity[bool] = True
+;

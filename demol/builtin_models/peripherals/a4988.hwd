@@ -1,0 +1,29 @@
+ACTUATOR[StepperDriver] A4988 WITH
+    OP
+        vcc=3V3,
+        ioVcc=3V3,
+        power.min=0 mW,
+        power.max=2500 mW,
+        power.avg=500 mW
+    PINS
+        VDD[3V3] @ 1,
+        GND[GND] @ 2,
+        STEP[gpio] @ 3,
+        DIR[gpio] @ 4,
+        ? EN[gpio] @ 5,
+        ? MS1[gpio] @ 6,
+        ? MS2[gpio] @ 7,
+        ? MS3[gpio] @ 8,
+        ? RST[gpio] @ 9,
+        ? SLP[gpio] @ 10
+    TEMPLATES
+        raspbian="a4988.py.j2"
+    DEPENDENCIES
+        raspbian=[
+            {package="RPi.GPIO", source="pip"}
+        ]
+    ATTRIBUTES
+        steps_per_revolution[int] = 200,
+        step_delay[float] = 0.001,
+        microstep_mode[int] = 1
+;

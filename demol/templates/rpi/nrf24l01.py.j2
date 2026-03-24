@@ -1,0 +1,58 @@
+import board
+import busio
+from circuitpython_nrf24l01.rf24 import RF24
+from digitalio import DigitalInOut
+from .peripheral import Sensor
+
+
+class {{ driver_class_name }}(Sensor):
+    """
+    nRF24L01+ 2.4 GHz Wireless Transceiver (SPI)
+    Provides short-range wireless data transmission up to 100m.
+    """
+    _CHANNEL = {{ attributes.get('channel', 76) }}
+    _DATA_RATE = {{ attributes.get('data_rate', 1) }}
+    _PA_LEVEL = {{ attributes.get('pa_level', 0) }}
+    _ADDRESS = b"{{ attributes.get('address', '1Node') }}"
+
+    def __init__(self):
+        super().__init__(
+            name="{{ instance }}",
+            connections={{ conn }},
+            attributes={{ attributes }}
+        )
+        self.radio = None
+        self._received = None
+
+    def initialize(self):
+        """Initialize the nRF24L01 transceiver"""
+        spi = busio.SPI(board.SCK, board.MOSI, board.MISO)
+        csn = DigitalInOut(board.CE0)
+        ce = DigitalInOut(board.D17)
+        self.radio = RF24(spi, csn, ce)
+        self.radio.channel = self._CHANNEL
+        self.radio.data_rate = self._DATA_RATE
+        self.radio.pa_level = self._PA_LEVEL
+        self.radio.open_rx_pipe(1, self._ADDRESS)
+        self.radio.listen = True
+
+    def read(self):
+        """Check for incoming radio packets"""
+        if self.radio.available():
+            payload = self.radio.read()
+            self.update_state_data({
+                "received": payload,
+                "rssi": self.radio.rssi if hasattr(self.radio, 'rssi') else None
+            })
+
+    def send(self, payload: bytes):
+        """Transmit a payload to the configured address"""
+        self.radio.listen = False
+        self.radio.open_tx_pipe(self._ADDRESS)
+        self.radio.send(payload)
+        self.radio.listen = True
+
+    def disconnect(self):
+        """Power down the radio"""
+        if self.radio:
+            self.radio.power = False

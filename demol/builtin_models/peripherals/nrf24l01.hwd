@@ -1,0 +1,28 @@
+ACTUATOR[Wireless] NRF24L01 WITH
+    OP
+        vcc=3V3,
+        ioVcc=3V3,
+        power.min=8.9 mW,
+        power.max=39.6 mW,
+        power.avg=12 mW
+    PINS
+        VCC[3V3] @ 1,
+        GND[GND] @ 2,
+        mosi[mosi-0] @ 3,
+        miso[miso-0] @ 4,
+        sck[sck-0] @ 5,
+        CSN[cs-0] @ 6,
+        CE[gpio] @ 7,
+        ? IRQ[gpio] @ 8
+    TEMPLATES
+        raspbian="nrf24l01.py.j2"
+    DEPENDENCIES
+        raspbian=[
+            {package="circuitpython-nrf24l01", source="pip"}
+        ]
+    ATTRIBUTES
+        channel[int] = 76,
+        data_rate[int] = 1,
+        pa_level[int] = 0,
+        address[str] = "1Node"
+;

@@ -1,0 +1,30 @@
+SENSOR[ADC] ADS1115 WITH
+    OP
+        vcc=3V3,
+        ioVcc=3V3,
+        power.min=0.5 mW,
+        power.max=5.0 mW,
+        power.avg=1.0 mW
+    PINS
+        VCC[3V3] @ 1,
+        GND[GND] @ 2,
+        sda[sda-0] @ 3,
+        scl[scl-0] @ 4,
+        ? ADDR[gpio] @ 5,
+        ? ALRT[gpio] @ 6,
+        ? A0[adc] @ 7,
+        ? A1[adc] @ 8,
+        ? A2[adc] @ 9,
+        ? A3[adc] @ 10
+    TEMPLATES
+        raspbian="ads1115.py.j2"
+    DEPENDENCIES
+        raspbian=[
+            {package="adafruit-circuitpython-ads1x15", source="pip"}
+        ]
+    ATTRIBUTES
+        i2c_address[int] = 72,
+        gain[int] = 1,
+        data_rate[int] = 128,
+        poll_period[int] = 10
+;

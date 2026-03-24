@@ -1,0 +1,26 @@
+SENSOR[Bio] MAX30102 WITH
+    OP
+        vcc=3V3,
+        ioVcc=3V3,
+        power.min=0.7 mW,
+        power.max=50 mW,
+        power.avg=12 mW
+    PINS
+        VIN[3V3] @ 1,
+        GND[GND] @ 2,
+        sda[sda-0] @ 3,
+        scl[scl-0] @ 4,
+        ? INT[gpio] @ 5
+    TEMPLATES
+        raspbian="max30102.py.j2"
+    DEPENDENCIES
+        raspbian=[
+            {package="heartpy", source="pip"},
+            {package="smbus2", source="pip"}
+        ]
+    ATTRIBUTES
+        i2c_address[int] = 87,
+        sample_rate[int] = 100,
+        led_amplitude[int] = 60,
+        poll_period[int] = 1
+;

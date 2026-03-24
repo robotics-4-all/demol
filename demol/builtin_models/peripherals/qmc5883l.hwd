@@ -1,0 +1,26 @@
+SENSOR[IMU] QMC5883L WITH
+    OP
+        vcc=3V3,
+        ioVcc=3V3,
+        power.min=0.4 mW,
+        power.max=3.6 mW,
+        power.avg=2.0 mW
+    PINS
+        VCC[3V3] @ 1,
+        GND[GND] @ 2,
+        sda[sda-0] @ 3,
+        scl[scl-0] @ 4,
+        ? DRDY[gpio] @ 5
+    TEMPLATES
+        raspbian="qmc5883l.py.j2"
+    DEPENDENCIES
+        raspbian=[
+            {package="smbus2", source="pip"}
+        ]
+    ATTRIBUTES
+        i2c_address[int] = 13,
+        output_data_rate[int] = 10,
+        oversampling_rate[int] = 512,
+        full_scale[int] = 2,
+        poll_period[int] = 10
+;

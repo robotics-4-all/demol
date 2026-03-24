@@ -1,0 +1,47 @@
+import serial
+import pynmea2
+from .peripheral import Sensor
+
+
+class {{ driver_class_name }}(Sensor):
+    """
+    u-blox NEO-6M GPS Module (UART-based, NMEA sentences)
+    """
+    _PORT = "{{ attributes.get('serial_port', '/dev/ttyAMA0') }}"
+    _BAUDRATE = {{ attributes.get('uart_baudrate', 9600) }}
+    _FREQUENCY = {{ attributes.get('poll_period', 1) }}
+
+    def __init__(self):
+        super().__init__(
+            name="{{ instance }}",
+            connections={{ conn }},
+            attributes={{ attributes }}
+        )
+        self.uart = None
+
+    def initialize(self):
+        """Initialize UART connection to GPS module"""
+        self.uart = serial.Serial(self._PORT, baudrate=self._BAUDRATE, timeout=1)
+
+    def read(self):
+        """Read and parse NMEA sentences from GPS module"""
+        try:
+            line = self.uart.readline().decode('ascii', errors='replace').strip()
+            if line.startswith('$GPRMC') or line.startswith('$GNRMC'):
+                msg = pynmea2.parse(line)
+                if msg.status == 'A':
+                    self.update_state_data({
+                        "latitude": float(msg.latitude),
+                        "longitude": float(msg.longitude),
+                        "speed": float(msg.spd_over_grnd) if msg.spd_over_grnd else 0.0,
+                        "fix": True
+                    })
+                else:
+                    self.update_state_data({"fix": False})
+        except (pynmea2.ParseError, UnicodeDecodeError):
+            pass
+
+    def disconnect(self):
+        """Release hardware resources"""
+        if self.uart:
+            self.uart.close()

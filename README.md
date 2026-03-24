@@ -155,14 +155,21 @@ DeMoL ships with a built-in hardware library of boards and peripherals. Each ent
 
 | DSL Identifier | Category | Interface | Description | RPi Python | RIOT C |
 |---|---|---|---|---|---|
+| `BME280` | Environmental | I²C | Temperature, humidity, pressure | ✓ | — |
 | `BME680` | Environmental | I²C | Temperature, humidity, pressure, air quality | ✓ | ✓ |
 | `DHT22` | Environmental | GPIO | Temperature and humidity (1-wire) | ✓ | — |
 | `Mpl3115a2` | Environmental | I²C | Barometric pressure and altitude | ✓ | ✓ |
+| `SHTC3` | Environmental | I²C | High-precision temperature and humidity | ✓ | — |
 | `MPU6050` | IMU | I²C | 6-axis accelerometer + gyroscope | ✓ | — |
+| `QMC5883L` | IMU | I²C | 3-axis magnetometer / compass | ✓ | — |
 | `BH1750` | Light | I²C | Ambient light intensity (lux) | ✓ | — |
+| `APDS9960` | Light | I²C | Gesture, proximity, RGB color and ambient light | ✓ | — |
 | `DS18B20` | Temperature | GPIO | 1-wire digital temperature probe | ✓ | — |
+| `MLX90614` | Temperature | I²C | IR non-contact thermometer | ✓ | — |
 | `MQ2` | Gas | GPIO (ADC) | Smoke, LPG, CO gas detection | ✓ | — |
+| `CCS811` | Gas | I²C | Air quality sensor (eCO2 + TVOC) | ✓ | — |
 | `ADCDifferentialPi` | ADC | I²C | 8-channel 18-bit differential ADC | ✓ | ✓ |
+| `ADS1115` | ADC | I²C | 16-bit 4-channel ADC | ✓ | — |
 | `HCSR04` | Distance | GPIO | Ultrasonic distance (2 cm – 4 m) | ✓ | ✓ |
 | `HCSR04P` | Distance | GPIO | Ultrasonic distance (low-power variant) | ✓ | ✓ |
 | `SRF04` | Distance | GPIO | Ultrasonic distance sensor | ✓ | ✓ |
@@ -174,6 +181,12 @@ DeMoL ships with a built-in hardware library of boards and peripherals. Each ent
 | `TCRT5000` | Proximity | GPIO | Reflective IR line sensor | ✓ | ✓ |
 | `TactileButton` | Input | GPIO | Momentary push button | ✓ | ✓ |
 | `SoilMoisture` | Humidity | GPIO (ADC) | Capacitive soil moisture sensor | ✓ | — |
+| `INA219` | Power | I²C | Current and power monitor | ✓ | — |
+| `DS3231` | RTC | I²C | Real-time clock with temperature compensation | ✓ | — |
+| `NEOM6GPS` | GPS | UART | u-blox NEO-6M GPS module (NMEA) | ✓ | — |
+| `HX711` | Weight | GPIO | 24-bit load cell amplifier | ✓ | — |
+| `MFRC522` | RFID | SPI | 13.56 MHz RFID reader/writer | ✓ | — |
+| `MAX30102` | Bio | I²C | Pulse oximeter and heart rate monitor | ✓ | — |
 
 #### Actuators
 
@@ -185,8 +198,12 @@ DeMoL ships with a built-in hardware library of boards and peripherals. Each ent
 | `ServoGeneric` | Servo | GPIO (PWM) | Generic RC servo motor | ✓ | ✓ |
 | `PCA9685` | Servo Controller | I²C | 16-channel 12-bit PWM driver | ✓ | ✓ |
 | `MotorGeneric` | DC Motor | GPIO (PWM) | Brushed DC motor via H-bridge | ✓ | ✓ |
+| `L298N` | Motor Driver | GPIO (PWM) | Dual H-bridge DC motor driver | ✓ | — |
+| `A4988` | Stepper Driver | GPIO | Stepper motor driver (step/direction) | ✓ | — |
 | `RelayModule` | Relay | GPIO | Optocoupler relay module | ✓ | — |
 | `BuzzerGeneric` | Buzzer | GPIO | Passive/active piezo buzzer | ✓ | ✓ |
+| `SSD1306` | Display | I²C | 128×64 OLED display | ✓ | — |
+| `NRF24L01` | Wireless | SPI | 2.4 GHz wireless transceiver | ✓ | — |
 | `TTSSpeaker` | Audio | GPIO | Text-to-speech speaker (Piper TTS) | ✓ | — |
 
 ### Power Sources

@@ -1,0 +1,41 @@
+import board
+import busio
+import adafruit_ccs811
+from .peripheral import Sensor
+
+
+class {{ driver_class_name }}(Sensor):
+    """
+    CCS811 Air Quality Sensor: CO2 (eCO2) and TVOC (I2C)
+    Requires ~20 min burn-in for accurate readings.
+    """
+    _PRIMARY_ADDRESS = {{ conn.i2c.slave_address if conn.i2c is defined else 0x5A }}
+    _FREQUENCY = {{ attributes.get('poll_period', 1) }}
+
+    def __init__(self):
+        super().__init__(
+            name="{{ instance }}",
+            connections={{ conn }},
+            attributes={{ attributes }}
+        )
+        self.sensor = None
+
+    def initialize(self):
+        """Initialize the CCS811 air quality sensor"""
+        i2c = busio.I2C(board.SCL, board.SDA)
+        self.sensor = adafruit_ccs811.CCS811(i2c, addr=self._PRIMARY_ADDRESS)
+        # Wait for the sensor to be ready
+        while not self.sensor.data_ready:
+            pass
+
+    def read(self):
+        """Read eCO2 and TVOC if data is ready"""
+        if self.sensor.data_ready:
+            self.update_state_data({
+                "eco2_ppm": self.sensor.eco2,
+                "tvoc_ppb": self.sensor.tvoc
+            })
+
+    def disconnect(self):
+        """Release hardware resources"""
+        pass

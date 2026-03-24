@@ -1,0 +1,69 @@
+import smbus2
+import heartpy as hp
+import time
+from .peripheral import Sensor
+
+# MAX30102 register map
+_MAX30102_I2C_ADDR = {{ conn.i2c.slave_address if conn.i2c is defined else 0x57 }}
+_REG_INTR_STATUS_1 = 0x00
+_REG_MODE_CONFIG = 0x09
+_REG_SPO2_CONFIG = 0x0A
+_REG_LED1_PA = 0x0C
+_REG_LED2_PA = 0x0D
+_REG_FIFO_DATA = 0x07
+_REG_FIFO_WR_PTR = 0x04
+_REG_FIFO_RD_PTR = 0x06
+
+
+class {{ driver_class_name }}(Sensor):
+    """
+    MAX30102 Pulse Oximeter and Heart Rate Monitor (I2C)
+    Measures SpO2 and heart rate using photoplethysmography (PPG).
+    """
+    _SAMPLE_RATE = {{ attributes.get('sample_rate', 100) }}
+    _LED_AMPLITUDE = {{ attributes.get('led_amplitude', 60) }}
+    _FREQUENCY = {{ attributes.get('poll_period', 1) }}
+
+    def __init__(self):
+        super().__init__(
+            name="{{ instance }}",
+            connections={{ conn }},
+            attributes={{ attributes }}
+        )
+        self.bus = None
+        self._ir_buffer = []
+
+    def initialize(self):
+        """Initialize MAX30102 via SMBus"""
+        self.bus = smbus2.SMBus(1)
+        # Reset device
+        self.bus.write_byte_data(_MAX30102_I2C_ADDR, _REG_MODE_CONFIG, 0x40)
+        time.sleep(0.1)
+        # SpO2 mode, 100 samples/s, 18-bit ADC
+        self.bus.write_byte_data(_MAX30102_I2C_ADDR, _REG_MODE_CONFIG, 0x03)
+        self.bus.write_byte_data(_MAX30102_I2C_ADDR, _REG_SPO2_CONFIG, 0x27)
+        self.bus.write_byte_data(_MAX30102_I2C_ADDR, _REG_LED1_PA, self._LED_AMPLITUDE)
+        self.bus.write_byte_data(_MAX30102_I2C_ADDR, _REG_LED2_PA, self._LED_AMPLITUDE)
+
+    def read(self):
+        """Read heart rate and SpO2 from FIFO buffer"""
+        try:
+            raw = self.bus.read_i2c_block_data(_MAX30102_I2C_ADDR, _REG_FIFO_DATA, 6)
+            ir = (raw[3] << 16 | raw[4] << 8 | raw[5]) & 0x3FFFF
+            red = (raw[0] << 16 | raw[1] << 8 | raw[2]) & 0x3FFFF
+            self._ir_buffer.append(ir)
+            if len(self._ir_buffer) >= self._SAMPLE_RATE:
+                working_data, measures = hp.process(self._ir_buffer, self._SAMPLE_RATE)
+                self.update_state_data({
+                    "heart_rate_bpm": measures.get('bpm', 0.0),
+                    "ir_raw": ir,
+                    "red_raw": red
+                })
+                self._ir_buffer = []
+        except Exception:
+            pass
+
+    def disconnect(self):
+        """Release hardware resources"""
+        if self.bus:
+            self.bus.close()

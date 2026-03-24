@@ -197,7 +197,13 @@ MotionSensor:
 OtherSensor:
     "ADC"           |
     "Proximity"     |
-    "Button"
+    "Button"        |
+    "GPS"           |
+    "RTC"           |
+    "Weight"        |
+    "RFID"          |
+    "Bio"           |
+    "Power"
 ;
 
 ActuatorType:
@@ -223,13 +229,17 @@ SoundActuator:
 ;
 
 AdvancedActuator:
+    "StepperDriver"     |
+    "MotorDriver"       |
     "Stepper"           |
     "DCMotor"           |
     "Pump"              |
     "Valve"             |
     "Heater"            |
     "Cooler"            |
-    "Fan"
+    "Fan"               |
+    "Display"           |
+    "Wireless"
 ;
 
 

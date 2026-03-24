@@ -1,0 +1,59 @@
+import RPi.GPIO as GPIO
+import time
+from .peripheral import Sensor
+
+
+class {{ driver_class_name }}(Sensor):
+    """
+    A4988 Stepper Motor Driver (GPIO-based step/direction control)
+    """
+    _STEPS_PER_REVOLUTION = {{ attributes.get('steps_per_revolution', 200) }}
+    _STEP_DELAY = {{ attributes.get('step_delay', 0.001) }}
+    _MICROSTEP_MODE = {{ attributes.get('microstep_mode', 1) }}
+
+    def __init__(self):
+        super().__init__(
+            name="{{ instance }}",
+            connections={{ conn }},
+            attributes={{ attributes }}
+        )
+        self._step_pin = None
+        self._dir_pin = None
+        self._en_pin = None
+
+    def initialize(self):
+        """Initialize GPIO pins for A4988 driver"""
+        pins = {{ conn }}.get('gpio', {}).get('pins', {})
+        self._step_pin = pins.get('STEP', 20)
+        self._dir_pin = pins.get('DIR', 21)
+        self._en_pin = pins.get('EN', None)
+        GPIO.setmode(GPIO.BCM)
+        GPIO.setup(self._step_pin, GPIO.OUT)
+        GPIO.setup(self._dir_pin, GPIO.OUT)
+        if self._en_pin:
+            GPIO.setup(self._en_pin, GPIO.OUT)
+            GPIO.output(self._en_pin, GPIO.LOW)  # Enable driver
+
+    def read(self):
+        """No-op — stepper driver is an actuator"""
+        pass
+
+    def step(self, steps, direction=True):
+        """Move stepper motor a given number of steps"""
+        GPIO.output(self._dir_pin, GPIO.HIGH if direction else GPIO.LOW)
+        for _ in range(abs(steps) * self._MICROSTEP_MODE):
+            GPIO.output(self._step_pin, GPIO.HIGH)
+            time.sleep(self._STEP_DELAY)
+            GPIO.output(self._step_pin, GPIO.LOW)
+            time.sleep(self._STEP_DELAY)
+
+    def rotate(self, degrees, direction=True):
+        """Rotate by a given angle in degrees"""
+        steps = int((degrees / 360.0) * self._STEPS_PER_REVOLUTION)
+        self.step(steps, direction)
+
+    def disconnect(self):
+        """Release GPIO resources"""
+        if self._en_pin:
+            GPIO.output(self._en_pin, GPIO.HIGH)  # Disable driver
+        GPIO.cleanup([self._step_pin, self._dir_pin])

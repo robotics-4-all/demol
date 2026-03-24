@@ -1,0 +1,25 @@
+SENSOR[GPS] NEOM6GPS WITH
+    OP
+        vcc=3V3,
+        ioVcc=3V3,
+        power.min=11 mW,
+        power.max=67 mW,
+        power.avg=45 mW
+    PINS
+        VCC[3V3] @ 1,
+        GND[GND] @ 2,
+        RXD[rx-0] @ 3,
+        TXD[tx-0] @ 4,
+        ? PPS[gpio] @ 5
+    TEMPLATES
+        raspbian="neo6m.py.j2"
+    DEPENDENCIES
+        raspbian=[
+            {package="pyserial", source="pip"},
+            {package="pynmea2", source="pip"}
+        ]
+    ATTRIBUTES
+        uart_baudrate[int] = 9600,
+        serial_port[str] = "/dev/ttyAMA0",
+        poll_period[int] = 1
+;

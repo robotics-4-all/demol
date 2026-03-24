@@ -1,0 +1,22 @@
+SENSOR[Env] SHTC3 WITH
+    OP
+        vcc=3V3,
+        ioVcc=3V3,
+        power.min=0.001 mW,
+        power.max=4.0 mW,
+        power.avg=0.8 mW
+    PINS
+        VCC[3V3] @ 1,
+        GND[GND] @ 2,
+        sda[sda-0] @ 3,
+        scl[scl-0] @ 4
+    TEMPLATES
+        raspbian="shtc3.py.j2"
+    DEPENDENCIES
+        raspbian=[
+            {package="adafruit-circuitpython-shtc3", source="pip"}
+        ]
+    ATTRIBUTES
+        i2c_address[int] = 112,
+        poll_period[int] = 10
+;
