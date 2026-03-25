@@ -1,0 +1,57 @@
+// Environmental Sensing Station
+//
+// Scenario: An indoor environmental monitoring station that reads temperature,
+// humidity, and pressure from a BME280, samples four analog channels via an
+// ADS1115 16-bit ADC (e.g., CO sensor, light sensor, soil probes), and
+// displays live readings on an SSD1306 OLED display.
+//
+// Features demonstrated:
+//   - Multiple I2C devices sharing the same bus (BME280 + ADS1115 + SSD1306)
+//   - SAMPLING with continuous and on_change modes
+//   - CONSTRAINT for power budget enforcement
+
+DEVICE EnvStation WITH
+    description="Indoor environmental monitoring station",
+    author="DeMoL",
+    os=raspbian;
+
+USE RaspberryPi_5_8GB;
+
+USE BME280[EnvSensor],
+    ADS1115[AnalogExpander],
+    SSD1306[Display];
+
+NETWORK[WiFi] WITH ssid="HomeNet", password="h0me_p@ss";
+
+BROKER[MQTT] Broker WITH
+    host="localhost", port=1883,
+    auth.username="envstation", auth.password="s3cr3t";
+
+// All three devices share the I2C bus (GPIO2/GPIO3)
+// BME280 default I2C address: 0x76
+CONNECT EnvSensor WITH
+    POWER VCC -- power_3v3_a, GND -- GND_1
+    DATA i2c[slave_address=0x76] sda sda -- GPIO2, scl scl -- GPIO3
+    @ "station/environment";
+
+// ADS1115 I2C address: 0x48 (ADDR pin floating → GND)
+CONNECT AnalogExpander WITH
+    POWER VCC -- power_3v3_b, GND -- GND_2
+    DATA i2c[slave_address=0x48] sda sda -- GPIO2, scl scl -- GPIO3
+    @ "station/analog";
+
+// SSD1306 OLED I2C address: 0x3C
+CONNECT Display WITH
+    POWER VCC -- power_3v3_b, GND -- GND_3
+    DATA i2c[slave_address=0x3C] sda sda -- GPIO2, scl scl -- GPIO3
+    @ "station/display";
+
+// Environment — continuous at 2 Hz
+SAMPLING EnvSensor WITH rate = 2 hz, mode = continuous;
+
+// ADC channels — publish only when values change significantly
+SAMPLING AnalogExpander WITH rate = 5 hz, mode = on_change, threshold = 10.0;
+
+// Power budget — all peripherals together must stay under 200 mW
+CONSTRAINT power_budget: sum_power(PERIPHERAL) < 200 mW
+    MESSAGE "Peripheral power exceeds 200 mW budget";

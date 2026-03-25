@@ -127,6 +127,13 @@ The `examples/rpi/` directory contains ready-to-use device models demonstrating 
 | [`rpi_mixed_connect.dev`](examples/rpi/rpi_mixed_connect.dev) | Manual CONNECT + SmartConnect in the same model |
 | [`rpi_smart_home.dev`](examples/rpi/rpi_smart_home.dev) | Multi-peripheral smart home (I2C, GPIO, TTS) |
 | [`multi_periph.dev`](examples/rpi/multi_periph.dev) | Complex system with 5 peripherals |
+| [`rpi_env_station.dev`](examples/rpi/rpi_env_station.dev) | BME280 + ADS1115 + SSD1306 — 3× I2C bus sharing, power CONSTRAINT |
+| [`rpi_access_control.dev`](examples/rpi/rpi_access_control.dev) | MFRC522 RFID + SSD1306 OLED — SPI + I2C + GPIO, ALERT on card scan |
+| [`rpi_gps_compass.dev`](examples/rpi/rpi_gps_compass.dev) | NEO-6M GPS + QMC5883L compass + INA219 — UART + I2C, multi-rate SAMPLING |
+| [`rpi_motor_lab.dev`](examples/rpi/rpi_motor_lab.dev) | L298N DC motor + A4988 stepper — PWM + GPIO motor control |
+| [`rpi_health_monitor.dev`](examples/rpi/rpi_health_monitor.dev) | MAX30102 + MLX90614 + CCS811 — biometric + air quality ALERT triggers |
+| [`rpi_precision_scale.dev`](examples/rpi/rpi_precision_scale.dev) | HX711 load cell + DS3231 RTC + SSD1306 — SAMPLING batch mode |
+| [`rpi_wireless_sensor_node.dev`](examples/rpi/rpi_wireless_sensor_node.dev) | BME280 + SHTC3 + NRF24L01 — SPI wireless transceiver + POWERSOURCE |
 
 ## Hardware Library
 

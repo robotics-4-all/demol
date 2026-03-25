@@ -1,0 +1,64 @@
+// GPS Tracker with Compass and Power Monitoring
+//
+// Scenario: A mobile tracking unit that reports position from a u-blox NEO-6M
+// GPS, orientation from a QMC5883L magnetometer, and continuously monitors
+// its own power draw via an INA219 current sensor. All telemetry is published
+// to a remote MQTT broker for fleet management.
+//
+// Features demonstrated:
+//   - UART peripheral (NEOM6GPS) alongside multiple I2C (QMC5883L, INA219)
+//   - SAMPLING with different rates per sensor
+//   - Power monitoring peripheral (INA219)
+//   - Battery runtime analysis with POWERSOURCE
+
+DEVICE GPSTracker WITH
+    description="Mobile GPS tracker with compass and power monitoring",
+    author="DeMoL",
+    os=raspbian;
+
+USE RaspberryPi_4B_4GB;
+
+USE NEOM6GPS[GPSSensor],
+    QMC5883L[Compass],
+    INA219[PowerMonitor];
+
+NETWORK[WiFi] WITH ssid="FleetNet", password="fl33t_tr@ck";
+
+BROKER[MQTT] FleetBroker WITH
+    host="fleet.example.com", port=1883,
+    auth.username="tracker", auth.password="tr@ck_s3cr3t";
+
+// GPS via UART — 9600 baud (NEO-6M default)
+// TX of GPS → RX of RPi (GPIO15), RX of GPS → TX of RPi (GPIO14)
+CONNECT GPSSensor WITH
+    POWER VCC -- power_3v3_a, GND -- GND_1
+    DATA uart[baudrate=9600] rx TXD -- GPIO15, tx RXD -- GPIO14
+    @ "tracker/gps";
+
+// QMC5883L compass on I2C — address 0x0D
+CONNECT Compass WITH
+    POWER VCC -- power_3v3_b, GND -- GND_2
+    DATA i2c[slave_address=0x0D] sda sda -- GPIO2, scl scl -- GPIO3
+    @ "tracker/compass";
+
+// INA219 power monitor on I2C — address 0x40
+CONNECT PowerMonitor WITH
+    POWER VCC -- power_3v3_b, GND -- GND_3
+    DATA i2c[slave_address=0x40] sda sda -- GPIO2, scl scl -- GPIO3
+    @ "tracker/power";
+
+// GPS at 1 Hz (standard NMEA update rate)
+SAMPLING GPSSensor WITH rate = 1 hz, mode = continuous;
+
+// Compass at 10 Hz — only when heading changes > 2 degrees
+SAMPLING Compass WITH rate = 10 hz, mode = on_change, threshold = 2.0;
+
+// Power telemetry every 5 seconds
+SAMPLING PowerMonitor WITH rate = 200 mhz, mode = continuous;
+
+// Alert when current draw exceeds safe threshold (mA)
+ALERT high_current ON PowerMonitor WHEN
+    current > 1500
+    THEN
+    PUBLISH "tracker/alerts/overcurrent" VIA FleetBroker
+    COOLDOWN 30 hz;

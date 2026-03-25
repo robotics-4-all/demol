@@ -1,0 +1,79 @@
+// Wireless Sensor Node (Battery-Powered, No WiFi)
+//
+// Scenario: A battery-powered remote sensor node that transmits BME280
+// environmental readings over 2.4 GHz RF using an nRF24L01+ transceiver
+// instead of WiFi. An SHTC3 provides a second independent temperature
+// reference. The INA219 monitors battery current to enable adaptive sleep.
+//
+// Features demonstrated:
+//   - NRF24L01 SPI wireless transceiver (replaces WiFi broker)
+//   - BME280 + SHTC3 dual-sensor environmental redundancy
+//   - INA219 on-board power monitoring
+//   - Li-Ion battery power source with POWERSOURCE
+//   - Low-rate SAMPLING for battery conservation
+
+DEVICE WirelessSensorNode WITH
+    description="Battery-powered wireless sensor node using nRF24L01 RF",
+    author="DeMoL",
+    os=raspbian;
+
+USE RaspberryPi_4B_4GB;
+
+USE BME280[EnvSensor],
+    SHTC3[BackupEnvSensor],
+    INA219[BatteryMonitor],
+    NRF24L01[RadioTX];
+
+// USB power bank — 10000 mAh / 5V
+USE usb_power_bank[Battery];
+
+NETWORK[WiFi] WITH ssid="placeholder", password="not_used";
+
+BROKER[MQTT] LocalBroker WITH
+    host="localhost", port=1883;
+
+// Battery power connection
+CONNECT Battery WITH
+    POWER vcc -- power_5v_a, gnd -- GND_1;
+
+// BME280 on I2C — 0x76 (SDO low)
+CONNECT EnvSensor WITH
+    POWER VCC -- power_3v3_a, GND -- GND_2
+    DATA i2c[slave_address=0x76] sda sda -- GPIO2, scl scl -- GPIO3
+    @ "node/env/primary";
+
+// SHTC3 on I2C — 0x70 (fixed address)
+CONNECT BackupEnvSensor WITH
+    POWER VCC -- power_3v3_b, GND -- GND_3
+    DATA i2c[slave_address=0x70] sda sda -- GPIO2, scl scl -- GPIO3
+    @ "node/env/backup";
+
+// INA219 on I2C — 0x40 (A0=A1=GND)
+CONNECT BatteryMonitor WITH
+    POWER VCC -- power_3v3_b, GND -- GND_4
+    DATA i2c[slave_address=0x40] sda sda -- GPIO2, scl scl -- GPIO3
+    @ "node/power";
+
+// nRF24L01 via SPI — CE on GPIO25, CSN on GPIO8 (CE1)
+CONNECT RadioTX WITH
+    POWER VCC -- power_3v3_a, GND -- GND_5
+    DATA
+        spi[bus_speed=10000000] mosi mosi -- GPIO10, miso miso -- GPIO9, sck sck -- GPIO11, cs CSN -- GPIO8,
+        gpio[mode="output"] CE -- GPIO25
+    @ "node/radio";
+
+// Low-rate sampling to conserve battery — publish every 30 seconds
+SAMPLING EnvSensor WITH rate = 33 mhz, mode = continuous;
+SAMPLING BackupEnvSensor WITH rate = 33 mhz, mode = continuous;
+SAMPLING BatteryMonitor WITH rate = 100 mhz, mode = continuous;
+
+// Power budget: keep total draw under 150 mW for extended battery life
+CONSTRAINT battery_budget: sum_power(PERIPHERAL) < 150 mW
+    MESSAGE "Peripheral power too high for battery target runtime";
+
+// Low battery alert when current drops (indicating voltage sag)
+ALERT low_battery ON BatteryMonitor WHEN
+    bus_voltage < 3.5
+    THEN
+    PUBLISH "node/alerts/low_battery" VIA LocalBroker
+    COOLDOWN 300 hz;
