@@ -62,7 +62,16 @@ demol-device = "demol:device_language"
 include = ["demol*"]
 
 [tool.setuptools.package-data]
-demol = ["*.tx"]
+demol = [
+    "grammar/*.tx",
+    "builtin_models/boards/*.hwd",
+    "builtin_models/peripherals/*.hwd",
+    "builtin_models/power/*.hwd",
+    "templates/rpi/*.j2",
+    "templates/riot/*.j2",
+    "templates/docs/*.j2",
+    "templates/smauto/*.j2",
+]
 
 # ---------------------------------------------------------------------------
 # Tool configuration
