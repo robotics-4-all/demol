@@ -49,6 +49,9 @@ dev = [
     "mypy",
     "wheel",
     "twine",
+    "tox",
+    "coverage",
+    "coveralls",
 ]
 
 [project.scripts]
@@ -81,8 +84,7 @@ demol = [
 line-length = 120
 target-version = ["py39"]
 
-[tool.flake8]  # NOTE: flake8 does not natively read pyproject.toml;
-               # use setup.cfg or Flake8-pyproject for now.
+[tool.flake8]
 
 [tool.mypy]
 ignore_missing_imports = true
