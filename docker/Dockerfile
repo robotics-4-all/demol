@@ -2,21 +2,18 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install git + openssh-client (needed to clone tx-lsp via SSH)
+# Install git (needed to install tx-lsp from GitHub)
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends git openssh-client && \
+    apt-get install -y --no-install-recommends git && \
     rm -rf /var/lib/apt/lists/*
 
 # Install DeMoL DSL (makes it discoverable by textX)
 COPY . /app/demol
 RUN pip install --no-cache-dir /app/demol
 
-# Install tx-lsp with REST API support from GitHub (private repo)
-# Uses SSH agent forwarding via BuildKit: --ssh default
-RUN mkdir -p -m 0700 ~/.ssh && \
-    ssh-keyscan github.com >> ~/.ssh/known_hosts
-RUN --mount=type=ssh pip install --no-cache-dir \
-    "tx-lsp[api] @ git+ssh://git@github.com/robotics-4-all/tx-lsp.git"
+# Install tx-lsp with REST API support from GitHub (public repo)
+RUN pip install --no-cache-dir \
+    "tx-lsp[api] @ git+https://github.com/robotics-4-all/tx-lsp.git"
 
 # Entrypoint script runs both LSP (TCP) and REST API
 COPY docker/entrypoint.sh /app/entrypoint.sh
