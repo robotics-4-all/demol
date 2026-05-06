@@ -8,8 +8,8 @@ Pre-defined hardware models in `.hwd` format: boards, sensors, actuators, and po
 
 ```
 builtin_models/
-├── boards/          # 10 board definitions (RPi 3/4/5, Pico, ESP32, Wemos)
-├── peripherals/     # 20 sensor/actuator definitions (BME680, SRF04, WS2812, etc.)
+├── boards/          # 13 board definitions (RPi 3/4/5, Pico, ESP32, Wemos, etc.)
+├── peripherals/     # 48 sensor/actuator definitions (BME680, SRF04, WS2812, etc.)
 └── power/           # 2 power source definitions (Li-Ion, USB power bank)
 ```
 

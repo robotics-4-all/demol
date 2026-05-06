@@ -10,7 +10,6 @@ textX-based DSL engine: grammar → metamodel → parsing → validation → cod
 demol/
 ├── __init__.py          # textX language registration (@language decorators)
 ├── definitions.py       # Path constants, env-overridable model repo paths
-├── definitions.py       # Path constants, env-overridable model repo paths
 ├── grammar/             # 4 textX grammar files defining DSL syntax
 ├── lang/                # Language engine: metamodels, validation, semantics
 ├── transformations/     # Code generators: RPi, RiotOS, SVG, docs, pinmap, JSON, SmAuto

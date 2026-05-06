@@ -2,13 +2,13 @@
 
 ## OVERVIEW
 
-pytest suite: 33 test files covering semantic validation, code generation, LSP, CLI utilities, and advanced DSL features.
+pytest suite: 31 test files (~6,200 LOC, ~250 test cases) covering semantic validation, code generation, LSP, CLI utilities, and advanced DSL features.
 
 ## STRUCTURE
 
 ```
 tests/
-├── conftest.py                     # Fixtures: device_mm, component_mm (session-scoped)
+├── conftest.py                     # Fixtures: device_mm, component_mm, device_mm_skip (session-scoped); clear_validation_state (function autouse)
 ├── models/
 │   ├── valid/                      # 4 valid .dev models for integration tests
 │   └── invalid/                    # 4 invalid .dev models for error detection tests

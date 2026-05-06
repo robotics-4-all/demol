@@ -9,12 +9,12 @@ Metamodel construction, model parsing, semantic validation, and validation repor
 ```
 lang/
 ├── __init__.py      # Public API: get_device_mm(), get_component_mm()
-├── device.py        # Device metamodel: model_proc(), enrich_model(), validation orchestration (525 lines)
+├── device.py        # Device metamodel: model_proc(), enrich_model(), validation orchestration (520 lines)
 ├── component.py     # Component metamodel for .hwd files (boards, sensors, actuators)
 ├── validation.py    # ValidationReporter + ValidationResult — rich console output (457 lines)
 ├── semantics.py     # LEGACY monolith (1727 lines) — DO NOT EXTEND
-├── smart_connection.py  # SMARTCONNECT auto-wiring resolution (703 lines)
-└── semantics/       # NEW modular validator framework (14 validator classes, migration in progress)
+├── smart_connection.py  # SMARTCONNECT auto-wiring resolution (712 lines)
+└── semantics/       # NEW modular validator framework (21 validator classes across 14 files)
 ```
 
 ## WHERE TO LOOK
@@ -40,7 +40,7 @@ lang/
 
 ## ANTI-PATTERNS
 
-- **NEVER add validators to `semantics.py`** — it's a 1776-line legacy monolith being migrated
+- **NEVER add validators to `semantics.py`** — it's a 1727-line legacy monolith being migrated (also excluded from flake8)
 - New validators go in `semantics/validators/` following `BaseValidator` pattern
 - `semantics.py` and `semantics/` directory coexist — both are imported; the monolith provides backward-compatible function exports
 - Do NOT call `raise TextXSemanticError` directly — use `raise_validation_error()` from `semantics/core.py` to collect errors

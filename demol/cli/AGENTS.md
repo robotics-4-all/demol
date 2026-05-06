@@ -8,9 +8,11 @@ Click-based CLI providing the `demol` command with subcommands for validation, c
 
 | File | Role |
 |------|------|
-| `cli.py` | Main Click group + all command and subcommand definitions |
+| `cli.py` | Main Click group + all command and subcommand definitions (611 lines) |
 | `autofix.py` | Auto-fix engine: detects and corrects common validation errors |
 | `modeldiff.py` | Semantic diff engine: compares two `.dev` models structurally and semantically |
+
+Entry point declared in `pyproject.toml`: `demol = "demol.cli.cli:main"`.
 
 ## COMMANDS REFERENCE
 

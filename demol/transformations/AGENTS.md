@@ -9,14 +9,14 @@ Model-to-Text (M2T) and Model-to-Model (M2M) transformations. Generates platform
 ```
 transformations/
 ├── base_generator.py          # Abstract base: model querying, pin extraction, attribute conversion (631 lines)
-├── m2t_rpi.py                 # RPiCodeGenerator → Python code (RPi.GPIO, smbus2, spidev) (371 lines)
-├── m2t_riot.py                # RiotCodeGenerator → C code for RIOT OS (290 lines)
+├── m2t_rpi.py                 # RPiCodeGenerator → Python code (RPi.GPIO, smbus2, spidev) (332 lines)
+├── m2t_riot.py                # RiotCodeGenerator → C code for RIOT OS
 ├── m2t_docs.py                # Documentation generator → Markdown hardware guide
-├── m2t_pinmap.py              # Pin mapping report → Markdown + JSON (266 lines)
-├── device_to_svg.py           # Wiring diagram → SVG (282 lines)
-├── infrastructure_to_svg.py   # Infrastructure diagram → SVG (Edge/Comm/App layers) (143 lines)
+├── m2t_pinmap.py              # Pin mapping report → Markdown + JSON
+├── device_to_svg.py           # Wiring diagram → SVG
+├── infrastructure_to_svg.py   # Infrastructure diagram → SVG (Edge/Comm/App layers)
 ├── json_demol.py              # Bidirectional DSL ↔ JSON conversion (509 lines)
-├── m2m_smauto.py              # M2M → SmartAuto DSL format (129 lines)
+├── m2m_smauto.py              # M2M → SmartAuto DSL format
 └── __init__.py
 ```
 
@@ -36,8 +36,8 @@ transformations/
 | Symbol | Type | Lines | Role |
 |--------|------|-------|------|
 | `BaseCodeGenerator` | class | 631 | Abstract base: `get_broker_config()`, `get_board()`, `get_connections()`, pin extraction |
-| `RPiCodeGenerator` | class | 371 | Generates Python + Dockerfile + docker-compose + requirements.txt + install_deps.sh |
-| `RiotCodeGenerator` | class | 290 | Generates C + Makefile + build_docker.sh for RIOT OS |
+| `RPiCodeGenerator` | class | 332 | Generates Python + Dockerfile + docker-compose + requirements.txt + install_deps.sh |
+| `RiotCodeGenerator` | class | — | Generates C + Makefile + build_docker.sh for RIOT OS |
 | `demol_to_json` | function | 509 | Serialize parsed model to JSON dict |
 | `json_to_demol` | function | — | Generate `.dev` DSL string from JSON dict |
 

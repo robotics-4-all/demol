@@ -1,7 +1,7 @@
 # PROJECT KNOWLEDGE BASE
 
-**Generated:** 2026-03-22
-**Commit:** 4a28eca
+**Generated:** 2026-05-04
+**Commit:** e6985fb
 **Branch:** devel
 
 ## OVERVIEW
@@ -15,15 +15,15 @@ demol/                  # Core DSL package (grammar, semantics, codegen)
 ├── grammar/            # 4 textX grammar files (.tx)
 ├── lang/               # Language engine: parsing, validation, semantics
 │   ├── semantics.py    # LEGACY validator monolith (1727 lines) — DO NOT EXTEND
-│   ├── semantics/      # NEW modular validator framework (14 validator classes)
-│   └── smart_connection.py  # SMARTCONNECT auto-wiring resolution (703 lines)
+│   ├── semantics/      # NEW modular validator framework (21 validator classes across 14 files)
+│   └── smart_connection.py  # SMARTCONNECT auto-wiring resolution (712 lines)
 ├── transformations/    # M2T/M2M generators (rpi, riot, svg, docs, pinmap, smauto, json)
 ├── builtin_models/     # Hardware library: boards (.hwd), peripherals (.hwd), power
 ├── templates/          # Jinja2 templates per platform (rpi/, riot/, docs/, smauto/)
 ├── cli/                # Click CLI: validate, generate, analyze, fix, diff, lsp
 └── lsp/                # Language Server Protocol server
-tests/                  # pytest suite: 33 test files + models/valid/ + models/invalid/
-examples/               # Device models: rpi/ (22), esp/ (3), smauto/ (5)
+tests/                  # pytest suite: 31 test files + models/valid/ + models/invalid/
+examples/               # Device models: rpi/ (29), esp/ (3), smauto/ (5)
 scripts/                # Automation: validation, generation, evaluation
 docker/                 # Dockerfile.tests + CI container
 RIOT/                   # Full RIOT OS checkout — build target for riot codegen
@@ -43,7 +43,7 @@ build/                  # Generated output (RIOT firmware projects)
 | Modify visual designer | `demol-designer` repo | Separate repo: React + TypeScript + React Flow |
 | Write tests | `tests/` | pytest; use `device_mm`/`component_mm` fixtures from `conftest.py` |
 | Add example model | `examples/rpi/` or `examples/esp/` | `.dev` files |
-| SmartConnect logic | `demol/lang/smart_connection.py` | Auto pin assignment resolution (703 lines) |
+| SmartConnect logic | `demol/lang/smart_connection.py` | Auto pin assignment resolution (712 lines) |
 | Auto-fix engine | `demol/cli/autofix.py` | Detects and corrects common validation errors |
 | Model diff engine | `demol/cli/modeldiff.py` | Semantic comparison of two `.dev` models |
 | LSP server | `demol/lsp/server.py` | textX LSP: diagnostics, completion, hover, go-to-def |
@@ -68,7 +68,7 @@ build/                  # Generated output (RIOT firmware projects)
 
 ## CONVENTIONS
 
-- **Line length**: flake8=120 (setup.cfg + Makefile both use 120), ignores E203/E501
+- **Line length**: flake8=120 (`.flake8` + Makefile both use 120), ignores E203/E501; `demol/lang/semantics.py` excluded from flake8
 - **Grammar files**: `.tx` extension, textX syntax. 4 modular files; `common.tx` imported by all
 - **Model files**: `.dev` (device definitions), `.hwd` (hardware components)
 - **Templates**: `.j2` Jinja2, named `<component>.<ext>.j2` (e.g., `bme680.py.j2`)
@@ -151,8 +151,8 @@ make docker-test                    # Tests in container
 - `build/` contains generated output — do not edit manually
 - `venv/` and `.venv/` are virtual environments — exclude from searches
 - `demol/lang/semantics.py` and `demol/lang/semantics/` coexist — migration in progress (see `semantics/README.md`)
-- `setup.cfg` flake8 config (120 chars) matches Makefile lint target (120 chars)
+- Build: `pyproject.toml` only (PEP 517/518); `setup.py` and `setup.cfg` removed (commit e6985fb)
 - Visual designer is in the separate `demol-designer` repo
 - `demol/definitions.py` paths use `os.getenv()` for overridable model repos (BOARD_MODEL_REPO_PATH, etc.)
-- 33 test files covering 315+ test cases; CI runs across Python 3.9–3.13 matrix
-- `demol/lang/smart_connection.py` (703 lines) handles SMARTCONNECT auto-wiring resolution
+- 31 test files covering ~250 test cases; CI runs across Python 3.9–3.13 matrix
+- `demol/lang/smart_connection.py` (712 lines) handles SMARTCONNECT auto-wiring resolution

@@ -2,7 +2,7 @@
 
 ## OVERVIEW
 
-Modular semantic validation framework. Migrating from `../semantics.py` monolith (1727 lines) into category-based validator classes. Both are active — do not delete monolith until migration complete.
+Modular semantic validation framework: 21 validator classes across 14 category files. Migrating from `../semantics.py` monolith (1727 lines) into category-based validator classes. Both are active — do not delete monolith until migration complete.
 
 ## STRUCTURE
 
@@ -11,23 +11,23 @@ semantics/
 ├── __init__.py      # Public API re-exports (backward compat with monolith, 265 lines)
 ├── core.py          # Validation state: error/warning collection, ValidationError (81 lines)
 ├── utils.py         # Helpers: parse_voltage(), get_pin_functions(), are_voltages_compatible() (123 lines)
-├── README.md        # Detailed framework documentation
+├── README.md        # Detailed framework documentation (195 lines)
 └── validators/
     ├── base.py              # BaseValidator abstract class (77 lines)
-    ├── power.py             # Power: voltage compat, GND rules, power path (421 lines)
-    ├── communication.py     # GPIO, I2C, SPI, UART, PWM validation (633 lines)
-    ├── peripheral.py        # Connectivity, essential pins, unique names (181 lines)
-    ├── board.py             # Single board, pin conflicts, pin numbers, ports (311 lines)
-    ├── device.py            # Broker, network, security, topic format (355 lines)
-    ├── general.py           # Dependency sources, cross-cutting (330 lines)
-    ├── power_budget.py      # Power budget & battery autonomy analysis (336 lines)
-    ├── user_constraints.py  # CONSTRAINT expressions: count(), sum_power(), arithmetic (422 lines)
-    ├── alert.py             # ALERT triggers: conditions, PUBLISH, COOLDOWN (209 lines)
-    ├── sampling.py          # SAMPLING blocks: rate, mode, buffering (125 lines)
-    ├── smart_connection.py  # SMARTCONNECT validation (78 lines)
-    ├── multi_broker.py      # Multi-broker VIA routing validation
-    ├── pin_oversubscription.py  # Pin function overuse warnings (139 lines)
-    └── protocol_frequency.py   # Protocol bus frequency constraints (171 lines)
+    ├── power.py             # 5 classes: PowerConnection, VoltageLimits, IOVoltageCompatibility, CommonGround, PowerPath (428 lines)
+    ├── communication.py     # 6 classes: GPIO, I2C, I2CAddressUniqueness, SPI, UART, PWM (634 lines)
+    ├── peripheral.py        # 3 classes: PeripheralConnectivity, EssentialPins, UniquePeripheralNames (181 lines)
+    ├── board.py             # 4 classes: SingleBoard, PinConflicts, UniquePinNumbers, BoardPorts (304 lines)
+    ├── device.py            # 4 classes: BrokerRequirements, NetworkRequirements, BrokerSecurity, TopicFormat (355 lines)
+    ├── general.py           # 2 classes: DependencySources, ConnectionsOrchestrator (330 lines)
+    ├── power_budget.py      # PowerBudgetValidator: budget vs POWERSOURCE, battery runtime (340 lines)
+    ├── user_constraints.py  # UserConstraintValidator: CONSTRAINT count(), sum_power(), arithmetic (422 lines)
+    ├── alert.py             # AlertValidator: conditions, PUBLISH, COOLDOWN (209 lines)
+    ├── sampling.py          # SamplingValidator: rate, mode, buffering (125 lines)
+    ├── smart_connection.py  # SmartConnectValidator (78 lines)
+    ├── multi_broker.py      # MultiBrokerValidator: VIA routing references (74 lines)
+    ├── pin_oversubscription.py  # PinOversubscriptionValidator: function overuse warnings (139 lines)
+    └── protocol_frequency.py   # ProtocolFrequencyValidator: bus speed constraints (171 lines)
 ```
 
 ## WHERE TO LOOK
