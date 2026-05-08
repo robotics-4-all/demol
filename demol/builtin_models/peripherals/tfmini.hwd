@@ -10,8 +10,7 @@ SENSOR[Distance] TFMini WITH
         RXD[rx-0] @ 3,
         TXD[tx-0] @ 4
     TEMPLATES
-        raspbian="tfmini.py.j2",
-        riotos="tfmini_riot.c.j2"
+        raspbian="tfmini.py.j2"
     DEPENDENCIES
         raspbian=["pyserial"]
     ATTRIBUTES

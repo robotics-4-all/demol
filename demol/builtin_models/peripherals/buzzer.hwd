@@ -11,8 +11,7 @@ ACTUATOR[Buzzer] BuzzerGeneric WITH
         gnd[GND] @ 1,
         vin[gpio] @ 2
     TEMPLATES
-        raspbian="buzzer.py.j2",
-        riotos="buzzer.c.j2"
+        raspbian="buzzer.py.j2"
     DEPENDENCIES
         raspbian=["gpiozero"]
     ATTRIBUTES

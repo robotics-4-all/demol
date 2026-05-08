@@ -15,11 +15,9 @@ SENSOR[Distance] VL53L1X WITH
         ?XSHUT[gpio] @ 6,
         ?GPIO1[gpio] @ 7
     TEMPLATES
-        raspbian="vl53l1x.py.j2",
-        riotos="vl53l1x_riot.c.j2"
+        raspbian="vl53l1x.py.j2"
     DEPENDENCIES
-        raspbian=["vl53l1x"],
-        riotos=["vl53l1x"]
+        raspbian=["vl53l1x"]
     ATTRIBUTES
         i2c_address[int] = 41
 ;

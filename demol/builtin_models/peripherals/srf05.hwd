@@ -14,7 +14,8 @@ SENSOR[Distance] SRF05 WITH
         raspbian="srf05.py.j2",
         riotos="srf05_riot.c.j2"
     DEPENDENCIES
-        raspbian=["gpiozero", "pigpio"]
+        raspbian=["gpiozero", "pigpio"],
+        riotos=["srf04"]
     ATTRIBUTES
         gpio_modes[dict] = {trigger = "output", echo = "input"},
         frequency[float] = 10

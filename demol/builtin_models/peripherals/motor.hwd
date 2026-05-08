@@ -24,8 +24,7 @@ ACTUATOR[DCMotor] MotorGeneric WITH
         backward[pwm] @ 3, // The GPIO pin that the backward input of the motor driver chip is connected
         vcc[5V] @ 4
     TEMPLATES
-        raspbian="motor.py.j2",
-        riotos="motor.c.j2"
+        raspbian="motor.py.j2"
     DEPENDENCIES
         raspbian=["gpiozero"]
     ATTRIBUTES

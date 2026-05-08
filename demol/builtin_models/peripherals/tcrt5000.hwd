@@ -12,8 +12,7 @@ SENSOR[Proximity] TCRT5000 WITH
         D0[gpio] @ 3,
         ?A0[gpio] @ 4
     TEMPLATES
-        raspbian="tcrt5000.py.j2",
-        riotos="tcrt5000.c.j2"
+        raspbian="tcrt5000.py.j2"
     DEPENDENCIES
         raspbian=["gpiozero"]
     ATTRIBUTES

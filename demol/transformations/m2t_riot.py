@@ -267,16 +267,24 @@ class RiotCodeGenerator(BaseCodeGenerator):
                 }
             )
 
-            # Generate .c and .h for the sensor/actuator
-            # We look for sensor_<base_name>.c.j2 or actuator_<base_name>.c.j2
             p_type = type(pref).__name__.lower()
             try:
                 c_template = self.env.get_template(f"{p_type}_{base_name}.c.j2")
                 h_template = self.env.get_template(f"{p_type}_{base_name}.h.j2")
                 self._write_template(c_template, context, self.output_dir / f"{p_type}_{base_name}_{i}.c")
                 self._write_template(h_template, context, self.output_dir / f"{p_type}_{base_name}_{i}.h")
-            except jinja2.TemplateNotFound:
-                logger.warning(f"Templates for {p_type} {base_name} not found, skipping.")
+            except jinja2.TemplateNotFound as exc:
+                hwd_name = type(pref).__name__ + "[" + getattr(pref, "name", "?") + "]"
+                msg = (
+                    f"RIOT driver template missing for peripheral '{hwd_name}': "
+                    f"expected '{p_type}_{base_name}.c.j2' and '{p_type}_{base_name}.h.j2' "
+                    f"in demol/templates/riot/. The .hwd file declares riotos= but the "
+                    f"matching templates do not exist (jinja2: {exc})."
+                )
+                if os.environ.get("DEMOL_RIOT_SKIP_MISSING") == "1":
+                    logger.warning(msg + " Skipping (DEMOL_RIOT_SKIP_MISSING=1).")
+                    continue
+                raise FileNotFoundError(msg) from exc
 
         logger.info("RiotOS code generation complete!")
 

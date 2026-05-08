@@ -126,10 +126,17 @@ jobs:
   # regressions that pure substring tests cannot detect.
   # ===========================================================================
   riot-build:
-    name: RIOT Compile Gate (wemos_bme680)
+    name: RIOT Compile Gate (${{ matrix.example }})
     runs-on: ubuntu-latest
     needs: validate-examples
     timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        example:
+          - wemos_bme680
+          - wemos_button
+          - wemos_srf05
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -141,9 +148,10 @@ jobs:
           pip install --upgrade pip
           pip install -r requirements.txt
           pip install -e .
-      - name: Generate RIOT code from canonical example
+      - name: Generate RIOT code from example
         run: |
-          python -m demol.cli.cli generate riot examples/esp/wemos_bme680.dev \
+          python -m demol.cli.cli generate riot \
+            examples/esp/${{ matrix.example }}.dev \
             --output-dir build/ci_riot
           ls -la build/ci_riot
           test -f build/ci_riot/Dockerfile.riotbuild
