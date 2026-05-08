@@ -2,7 +2,7 @@
 
 ## OVERVIEW
 
-pytest suite: 31 test files (~6,200 LOC, ~250 test cases) covering semantic validation, code generation, LSP, CLI utilities, and advanced DSL features.
+pytest suite: 32 test files (~6,400 LOC, ~280 test cases) covering semantic validation, code generation, LSP, CLI utilities, and advanced DSL features.
 
 ## STRUCTURE
 
@@ -28,8 +28,9 @@ tests/
 ├── test_network_semantics.py       # Network configuration
 ├── test_power_path_bug.py          # Regression: power path issues
 │
-│ # Code Generation (6 files)
-├── test_rpi_transformation.py      # RPi Python code generation
+│ # Code Generation (7 files)
+├── test_rpi_transformation.py      # RPi Python code generation (file-existence + substring assertions)
+├── test_rpi_codegen_syntax.py      # ast.parse over generated Python for every examples/rpi/*.dev (catches template regressions)
 ├── test_riot_transformation.py     # RiotOS C code generation
 ├── test_smauto_transformation.py   # SmartAuto M2M transformation
 ├── test_docs_transformation.py     # Markdown docs generation

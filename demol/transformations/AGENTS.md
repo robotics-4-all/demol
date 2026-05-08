@@ -37,7 +37,7 @@ transformations/
 |--------|------|-------|------|
 | `BaseCodeGenerator` | class | 631 | Abstract base: `get_broker_config()`, `get_board()`, `get_connections()`, pin extraction |
 | `RPiCodeGenerator` | class | 332 | Generates Python + Dockerfile + docker-compose + requirements.txt + install_deps.sh |
-| `RiotCodeGenerator` | class | — | Generates C + Makefile + build_docker.sh for RIOT OS |
+| `RiotCodeGenerator` | class | — | Generates C + Makefile + build_docker.sh + Dockerfile.riotbuild for self-contained RIOT builds |
 | `demol_to_json` | function | 509 | Serialize parsed model to JSON dict |
 | `json_to_demol` | function | — | Generate `.dev` DSL string from JSON dict |
 
@@ -47,7 +47,8 @@ transformations/
 - Templates live in `demol/templates/<platform>/` — named `<component>.<ext>.j2`
 - Pin extraction methods: `_extract_gpio_pins()`, `_extract_i2c_pins()`, `_extract_spi_pins()`, `_extract_uart_pins()`, `_extract_pwm_pins()`
 - RPi generator produces deployment artifacts alongside code (Dockerfile, docker-compose, etc.)
-- RiotOS generator produces a complete RIOT application directory with Makefile referencing `$(RIOTBASE)`
+- RiotOS generator produces a complete RIOT application directory with Makefile referencing `$(RIOTBASE)`, plus `Dockerfile.riotbuild` and `build_docker.sh` so end users only need Docker (the script auto-builds `demol/riotbuild:<version>` if missing, cloning RIOT inside the image)
+- RIOT version/repo are env-overridable via `DEMOL_RIOT_VERSION` and `DEMOL_RIOT_REPO` at generation time
 
 ## ANTI-PATTERNS
 

@@ -169,6 +169,8 @@ class RiotCodeGenerator(BaseCodeGenerator):
             "module": modules,
             "dependencies": self.get_dependencies(),
             "peripheral_counts": self.get_peripheral_counts(),
+            "riot_version": os.environ.get("DEMOL_RIOT_VERSION", "2024.10"),
+            "riot_repo": os.environ.get("DEMOL_RIOT_REPO", "https://github.com/RIOT-OS/RIOT.git"),
         }
         return context
 
@@ -237,6 +239,10 @@ class RiotCodeGenerator(BaseCodeGenerator):
         self._write_template(template, global_context, script_path)
         # Make script executable
         os.chmod(script_path, 0o755)
+
+        # Generate Dockerfile for the self-contained RIOT build environment
+        template = self.env.get_template("Dockerfile.riotbuild.j2")
+        self._write_template(template, global_context, self.output_dir / "Dockerfile.riotbuild")
 
         # Generate peripheral drivers
         for i, conn in enumerate(self.get_connections()):
