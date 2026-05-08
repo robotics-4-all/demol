@@ -2,7 +2,7 @@
 
 ## OVERVIEW
 
-pytest suite: 31 test files (~6,300 LOC, ~280 test cases) covering semantic validation, code generation, CLI utilities, and advanced DSL features.
+pytest suite: 31 test files (~6,400 LOC, ~290 test cases) covering semantic validation, code generation, CLI utilities, and advanced DSL features. The RPi codegen syntax gate now parametrizes over **41 examples** (29 base + 10 orphan-coverage + 1 piper + 1 sentinel) and runs both `ast.parse` and `py_compile` on every emitted Python file.
 
 ## STRUCTURE
 
@@ -30,7 +30,7 @@ tests/
 │
 │ # Code Generation (7 files)
 ├── test_rpi_transformation.py      # RPi Python code generation (file-existence + substring assertions)
-├── test_rpi_codegen_syntax.py      # ast.parse over generated Python for every examples/rpi/*.dev (catches template regressions)
+├── test_rpi_codegen_syntax.py      # ast.parse + py_compile over generated Python for every examples/rpi/*.dev (catches template regressions)
 ├── test_riot_transformation.py     # RiotOS C code generation
 ├── test_smauto_transformation.py   # SmartAuto M2M transformation
 ├── test_docs_transformation.py     # Markdown docs generation

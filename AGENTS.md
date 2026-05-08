@@ -22,7 +22,7 @@ demol/                  # Core DSL package (grammar, semantics, codegen)
 ├── templates/          # Jinja2 templates per platform (rpi/, riot/, docs/, smauto/)
 └── cli/                # Click CLI: validate, generate, analyze, fix, diff
 tests/                  # pytest suite: 31 test files + models/valid/ + models/invalid/
-examples/               # Device models: rpi/ (29), esp/ (3), smauto/ (5)
+examples/               # Device models: rpi/ (40), esp/ (5), smauto/ (5)
 scripts/                # Automation: validation, generation, evaluation
 docker/                 # Dockerfile.tests + CI container
 RIOT/                   # Full RIOT OS checkout — build target for riot codegen
@@ -151,5 +151,7 @@ make docker-test                    # Tests in container
 - Build: `pyproject.toml` only (PEP 517/518); `setup.py` and `setup.cfg` removed (commit e6985fb)
 - Visual designer is in the separate `demol-designer` repo
 - `demol/definitions.py` paths use `os.getenv()` for overridable model repos (BOARD_MODEL_REPO_PATH, etc.)
-- 31 test files covering ~250 test cases; CI runs across Python 3.9–3.13 matrix
+- 31 test files covering ~290 test cases; CI runs across Python 3.9–3.13 matrix
 - `demol/lang/smart_connection.py` (712 lines) handles SMARTCONNECT auto-wiring resolution
+- RIOT mapper is **fail-fast on missing templates** — set `DEMOL_RIOT_SKIP_MISSING=1` only if intentional skipping is required
+- RIOT codegen ships **8 driver pairs** (bme680, hw006, mpl3115a2, srf04, srf05, led, ws281x, button); CI matrix compiles 3 ESP examples per push (wemos_bme680, wemos_button, wemos_srf05)

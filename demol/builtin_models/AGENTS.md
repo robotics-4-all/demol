@@ -9,7 +9,7 @@ Pre-defined hardware models in `.hwd` format: boards, sensors, actuators, and po
 ```
 builtin_models/
 ├── boards/          # 13 board definitions (RPi 3/4/5, Pico, ESP32, Wemos, etc.)
-├── peripherals/     # 48 sensor/actuator definitions (BME680, SRF04, WS2812, etc.)
+├── peripherals/     # 47 sensor/actuator definitions (BME680, SRF04, SRF05, WS2812, TactileButton, PiperTTSSpeaker, etc.)
 └── power/           # 2 power source definitions (Li-Ion, USB power bank)
 ```
 
@@ -68,5 +68,6 @@ Then create matching template(s) in `templates/rpi/` and/or `templates/riot/`.
 
 - Do NOT duplicate pin numbers within a component
 - Pin `ioVcc` must match the IO voltage level the component uses for data communication
-- Template filenames in TEMPLATES section must match actual files in `templates/` directory
+- Template filenames in TEMPLATES section must match actual files in `templates/` directory — RIOT codegen is **fail-fast** on missing templates (m2t_riot.py raises `FileNotFoundError` unless `DEMOL_RIOT_SKIP_MISSING=1`)
+- Declaring `riotos="..."` without a backing template is a bug — either author the template or remove the line so the .hwd is honest about its supported targets
 - Dependencies use `source="pip"` or `source="apt"` — no other sources supported
