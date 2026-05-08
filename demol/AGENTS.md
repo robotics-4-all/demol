@@ -15,8 +15,7 @@ demol/
 ├── transformations/     # Code generators: RPi, RiotOS, SVG, docs, pinmap, JSON, SmAuto
 ├── builtin_models/      # Hardware library: boards, peripherals, power sources
 ├── templates/           # Jinja2 templates per platform
-├── cli/                 # Click CLI: cli.py, autofix.py, modeldiff.py
-└── lsp/                 # Language Server Protocol server (server.py)
+└── cli/                 # Click CLI: cli.py, autofix.py, modeldiff.py
 ```
 
 ## WHERE TO LOOK
@@ -26,10 +25,9 @@ demol/
 | textX language registration | `__init__.py` | `component_language()` for `.hwd`, `device_language()` for `.dev` |
 | Path constants | `definitions.py` | `BOARD_MODEL_REPO_PATH`, `PERIPHERAL_MODEL_REPO_PATH` etc. — env-overridable |
 | Grammar syntax | `grammar/*.tx` | `device.tx` (main), `component.tx`, `communication.tx`, `common.tx` |
-| CLI commands | `cli/cli.py` | Click: `validate`, `generate`, `analyze`, `fix`, `diff`, `lsp` |
+| CLI commands | `cli/cli.py` | Click: `validate`, `generate`, `analyze`, `fix`, `diff` |
 | Auto-fix engine | `cli/autofix.py` | Detects and corrects common validation errors |
 | Semantic diff | `cli/modeldiff.py` | Compares two `.dev` models |
-| LSP server | `lsp/server.py` | textX LSP: diagnostics, completion, hover, go-to-def |
 
 ## CODE MAP
 

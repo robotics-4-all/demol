@@ -595,14 +595,6 @@ def fix_cmd(model_filepath, dry_run, output):
     click.secho(f"[✓] Fixed model written to {target}", fg="green", bold=True)
 
 
-@cli.command("lsp")
-def lsp_cmd():
-    """Start the DeMoL Language Server (LSP) for IDE integration"""
-    from demol.lsp.server import main as lsp_main
-
-    lsp_main()
-
-
 def main():
     cli(prog_name="demol")
 

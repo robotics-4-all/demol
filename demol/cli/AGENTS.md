@@ -2,7 +2,7 @@
 
 ## OVERVIEW
 
-Click-based CLI providing the `demol` command with subcommands for validation, code generation, power analysis, auto-fix, model diff, and LSP.
+Click-based CLI providing the `demol` command with subcommands for validation, code generation, power analysis, auto-fix, and model diff.
 
 ## FILES
 
@@ -33,7 +33,6 @@ Entry point declared in `pyproject.toml`: `demol = "demol.cli.cli:main"`.
 | `demol fix <file> --dry-run` | Preview fixes without modifying the file |
 | `demol diff <a.dev> <b.dev>` | Semantic diff between two `.dev` models |
 | `demol diff <a.dev> <b.dev> --json-output` | Diff output as JSON |
-| `demol lsp` | Start LSP server on stdio for IDE integration |
 
 ## CONVENTIONS
 

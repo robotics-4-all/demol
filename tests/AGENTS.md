@@ -2,7 +2,7 @@
 
 ## OVERVIEW
 
-pytest suite: 32 test files (~6,400 LOC, ~280 test cases) covering semantic validation, code generation, LSP, CLI utilities, and advanced DSL features.
+pytest suite: 31 test files (~6,300 LOC, ~280 test cases) covering semantic validation, code generation, CLI utilities, and advanced DSL features.
 
 ## STRUCTURE
 
@@ -51,10 +51,7 @@ tests/
 │ # CLI & Parser (3 files)
 ├── test_autofix.py                 # Auto-fix common validation errors
 ├── test_modeldiff.py               # Semantic model diff
-├── test_parser_robustness.py       # Malformed input, boundary values, encoding
-│
-│ # LSP (1 file)
-└── test_lsp.py                     # Diagnostics, completion, hover, go-to-def
+└── test_parser_robustness.py       # Malformed input, boundary values, encoding
 ```
 
 ## CONVENTIONS

@@ -6,7 +6,7 @@
 
 ## OVERVIEW
 
-DeMoL (Device Modeling Language) — a textX-based Python DSL for hardware-aware IoT device modeling with automated code generation (Raspberry Pi Python, RiotOS C), semantic validation (electrical safety, pin conflicts, protocol constraints), power budget analysis, SmartConnect auto-wiring, SAMPLING blocks, CONSTRAINT expressions, ALERT triggers, and LSP for IDE integration.
+DeMoL (Device Modeling Language) — a textX-based Python DSL for hardware-aware IoT device modeling with automated code generation (Raspberry Pi Python, RiotOS C), semantic validation (electrical safety, pin conflicts, protocol constraints), power budget analysis, SmartConnect auto-wiring, SAMPLING blocks, CONSTRAINT expressions, and ALERT triggers. (LSP/IDE integration is provided by the separate `tx-lsp` package, served via the Docker stack.)
 
 ## STRUCTURE
 
@@ -20,8 +20,7 @@ demol/                  # Core DSL package (grammar, semantics, codegen)
 ├── transformations/    # M2T/M2M generators (rpi, riot, svg, docs, pinmap, smauto, json)
 ├── builtin_models/     # Hardware library: boards (.hwd), peripherals (.hwd), power
 ├── templates/          # Jinja2 templates per platform (rpi/, riot/, docs/, smauto/)
-├── cli/                # Click CLI: validate, generate, analyze, fix, diff, lsp
-└── lsp/                # Language Server Protocol server
+└── cli/                # Click CLI: validate, generate, analyze, fix, diff
 tests/                  # pytest suite: 31 test files + models/valid/ + models/invalid/
 examples/               # Device models: rpi/ (29), esp/ (3), smauto/ (5)
 scripts/                # Automation: validation, generation, evaluation
@@ -46,7 +45,6 @@ build/                  # Generated output (RIOT firmware projects)
 | SmartConnect logic | `demol/lang/smart_connection.py` | Auto pin assignment resolution (712 lines) |
 | Auto-fix engine | `demol/cli/autofix.py` | Detects and corrects common validation errors |
 | Model diff engine | `demol/cli/modeldiff.py` | Semantic comparison of two `.dev` models |
-| LSP server | `demol/lsp/server.py` | textX LSP: diagnostics, completion, hover, go-to-def |
 
 ## CODE MAP
 
@@ -129,7 +127,6 @@ demol fix examples/rpi/multi_periph.dev             # Auto-fix common errors
 demol fix examples/rpi/multi_periph.dev --dry-run   # Preview fixes
 demol diff model_a.dev model_b.dev                  # Semantic diff
 demol diff model_a.dev model_b.dev --json-output
-demol lsp                                           # Start LSP server for IDE integration
 
 # Test
 make test                           # pytest tests/

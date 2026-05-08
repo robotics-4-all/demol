@@ -28,7 +28,6 @@
 | ⚙️ | **Automated Synthesis** | <ul><li>Generation of platform-specific code (Python/RiotOS) from abstract models</li><li>Automatic boilerplate generation for communication and hardware initialization</li><li>Consistent and error-free implementation artifacts</li></ul> |
 | 🌐 | **Protocol-Agnostic** | <ul><li>Abstract definition of communication logic</li><li>Seamless switching between MQTT, AMQP, and Redis brokers</li><li>Multiple brokers with selective VIA routing per connection</li><li>Decoupled application logic from transport implementation</li></ul> |
 | 🧩 | **Declarative Design** | <ul><li>High-level syntax for defining device composition</li><li>Separation of concerns between hardware, logic, and communication</li><li>Model-Driven Engineering (MDE) principles</li><li>SAMPLING blocks for declarative data acquisition configuration (rate, mode, buffering)</li></ul> |
-| 🔧 | **IDE Integration** | <ul><li>Language Server Protocol (LSP) for real-time diagnostics, completion, hover, and go-to-definition</li><li>Works with VS Code, Neovim, Emacs, and any LSP-compatible editor</li><li>Start with `demol lsp`</li></ul> |
 | ⚡ | **SmartConnect** | <ul><li>Automatic pin assignment for peripherals — no manual wiring needed</li><li>Resolves power and data connections based on peripheral requirements</li><li>Generates pin-mapping reports for visibility into auto-resolved connections</li></ul> |
 
 ---
@@ -109,7 +108,6 @@ demol fix <model.dev>                                   # Auto-fix common valida
 demol fix <model.dev> --dry-run                         # Preview fixes without modifying the file
 demol diff <model_a.dev> <model_b.dev>                  # Semantic diff between two models
 demol diff <model_a.dev> <model_b.dev> --json-output    # Diff as JSON
-demol lsp                                               # Start Language Server (LSP) for IDE integration
 ```
 
 ## Examples
@@ -261,7 +259,6 @@ The test suite covers 315+ tests across:
 | Parser robustness | 57 | Empty input, malformed syntax, boundary values, truncated models, encoding, edge cases |
 | Code generation | 30+ | RPi Python, RiotOS C, SAMPLING integration, JSON serialization |
 | CLI commands | 26+ | Auto-fix, model diff, power analysis |
-| LSP server | 16 | Diagnostics, completion, hover, go-to-definition |
 | Performance | 5 | Parse/validate timing with regression thresholds |
 | SmartConnect | 25+ | Automatic pin resolution, protocol classification |
 
