@@ -1,13 +1,18 @@
 """Syntax-level integrity tests for RPi code generation.
 
 For every example .dev model in examples/rpi/, generate the RPi Python
-code and run ast.parse on every emitted .py file. This catches template
-regressions that produce textually-plausible but unparseable Python —
-something the substring-based assertion suite in test_rpi_transformation.py
-cannot detect.
+code and verify every emitted .py file with both ast.parse and py_compile.
+This catches template regressions that produce textually-plausible but
+unparseable / uncompilable Python — something the substring-based
+assertion suite in test_rpi_transformation.py cannot detect.
+
+py_compile is stricter than ast.parse: it byte-compiles the module,
+exercising the full Python compiler (including some import-time error
+classes) rather than only the parser.
 """
 
 import ast
+import py_compile
 from pathlib import Path
 
 import pytest
@@ -33,16 +38,25 @@ def test_generated_python_parses(device_mm, tmp_path, example_path):
     assert py_files, f"No Python files generated for {example_path.name}"
 
     syntax_errors = []
+    compile_errors = []
     for py_file in py_files:
         source = py_file.read_text()
         try:
             ast.parse(source, filename=str(py_file))
         except SyntaxError as exc:
             syntax_errors.append(f"{py_file.relative_to(output_dir)}:{exc.lineno}: {exc.msg}")
+            continue
+        try:
+            py_compile.compile(str(py_file), doraise=True)
+        except py_compile.PyCompileError as exc:
+            compile_errors.append(f"{py_file.relative_to(output_dir)}: {exc.msg.strip()}")
 
-    assert not syntax_errors, f"Generated Python from {example_path.name} has syntax errors:\n  " + "\n  ".join(
-        syntax_errors
-    )
+    failures = []
+    if syntax_errors:
+        failures.append("AST parse errors:\n  " + "\n  ".join(syntax_errors))
+    if compile_errors:
+        failures.append("py_compile errors:\n  " + "\n  ".join(compile_errors))
+    assert not failures, f"Generated Python from {example_path.name} failed checks:\n" + "\n".join(failures)
 
 
 def test_examples_directory_not_empty():

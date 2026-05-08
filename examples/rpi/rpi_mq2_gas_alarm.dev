@@ -1,0 +1,16 @@
+DEVICE RpiMq2GasAlarm WITH description="RaspberryPi 5 with MQ-2 combustible gas sensor on a digital threshold output", author="demol", os=raspbian;
+
+USE RaspberryPi_5_8GB;
+USE MQ2[GasDetector];
+
+NETWORK[WiFi] WITH ssid="Wifi_2.4GHz", password="guest";
+
+BROKER[MQTT] MyBroker WITH host="localhost", port=1883, auth.username="guest", auth.password="guest", ssl=False;
+
+CONNECT GasDetector WITH
+    POWER
+        GND -- GND_1,
+        VCC -- power_5v_a
+    DATA
+        gpio[mode="input"] DO -- GPIO4
+    @ "my_raspi.sensors.gas.mq2";

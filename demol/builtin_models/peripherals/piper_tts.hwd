@@ -1,0 +1,20 @@
+// Neural Text-to-Speech Speaker model (Piper TTS engine)
+ACTUATOR[Speaker] PiperTTSSpeaker WITH
+    OP
+        vcc=5V,
+        ioVcc=3V3,
+        power.min=200 mW,
+        power.max=2500 mW,
+        power.avg=600 mW,
+        freq.max=1 hz
+    PINS
+        gnd[GND] @ 1
+    TEMPLATES
+        raspbian="piper.py.j2"
+    ATTRIBUTES
+        model[str] = "en_US-lessac-medium",
+        speaker[int] = 0,
+        length_scale[float] = 1.0,
+        noise_scale[float] = 0.667,
+        noise_w[float] = 0.8
+;
