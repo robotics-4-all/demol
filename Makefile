@@ -1,4 +1,4 @@
-.PHONY: help install install-dev clean test test-validation test-transformations test-all test-local lint format format-check type-check generate-examples ci ci-check validate-examples \
+.PHONY: help install install-dev clean test test-perf test-validation test-transformations test-all test-local lint format format-check type-check generate-examples ci ci-check validate-examples \
         build rebuild up down restart logs shell docker-clean dist release docs info
 
 # ── Variables ─────────────────────────────────────────────────────────────────
@@ -70,10 +70,15 @@ clean: ## Clean build artifacts and cache files
 # Testing
 # ============================================================================
 
-test: ## Run all pytest tests
+test: ## Run all pytest tests (excludes performance benchmarks)
 	@echo "Running pytest tests..."
-	$(PYTHON) -m pytest tests/ -v
+	$(PYTHON) -m pytest tests/ -v -m "not performance"
 	@echo "✓ Tests complete"
+
+test-perf: ## Run performance benchmarks only (timing-sensitive; run on quiet machine)
+	@echo "Running performance benchmarks..."
+	$(PYTHON) -m pytest tests/test_performance.py -v
+	@echo "✓ Performance benchmarks complete"
 
 test-validation: ## Run validation tests
 	@echo "Running validation tests..."

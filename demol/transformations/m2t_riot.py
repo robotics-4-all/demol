@@ -45,13 +45,10 @@ class PeripheralTemplateMapper:
                         base = base[:-5]
                     return base
 
-        # Fallback based on type
-        peripheral_type = type(peripheral_ref).__name__
-        if peripheral_type == "Sensor":
-            return "unsupported_sensor"
-        elif peripheral_type == "Actuator":
-            return "unsupported_actuator"
-
+        # No RIOT template declared in .hwd — skip cleanly. The generate loop
+        # will treat None as "this peripheral has no RIOT support" and move on.
+        # The fail-fast TemplateNotFound check only triggers when riotos= IS
+        # declared but the matching template file is missing (true misconfig).
         return None
 
 
