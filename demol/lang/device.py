@@ -289,6 +289,20 @@ def model_proc(model, metamodel):
     )
 
     # ========================================================================
+    # Peripheral PROPERTIES Validation (must run before alert codegen)
+    # ========================================================================
+    from demol.lang.semantics.validators.peripheral_properties import (
+        validate_peripheral_properties,
+    )
+
+    run_rule(
+        "Peripheral Properties",
+        validate_peripheral_properties,
+        model,
+        desc="PROPERTIES blocks on peripherals are well-formed",
+    )
+
+    # ========================================================================
     # Alert Trigger Validation
     # ========================================================================
     from demol.lang.semantics.validators.alert import validate_alerts

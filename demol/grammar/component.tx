@@ -35,6 +35,7 @@ Actuator:
     'ACTUATOR' '[' type=ActuatorType ']' name=ID 'WITH'
 	  'OP' operational=OperationalActuator
 	  'PINS' pins*=Pin[',']
+	  ('PROPERTIES' properties*=PeripheralProperty[','])?
 	  ('TEMPLATES' templates*=TemplateMapping[','])?
       ('DEPENDENCIES' dependencies*=DependencyMapping[','])?
       ('ATTRIBUTES' attributes*=Attribute[','])?
@@ -56,10 +57,41 @@ Sensor:
     'SENSOR' '[' type=SensorType ']' name=ID 'WITH'
 	  'OP' operational=OperationalSensor
 	  'PINS' pins*=Pin[',']
+	  ('PROPERTIES' properties*=PeripheralProperty[','])?
 	  ('TEMPLATES' templates*=TemplateMapping[','])?
       ('DEPENDENCIES' dependencies*=DependencyMapping[','])?
       ('ATTRIBUTES' attributes*=Attribute[','])?
     ';'
+;
+
+// Per-platform property mapping for ALERT codegen.
+// Maps DSL-visible property name to the underlying expression used by the
+// generated runtime, with optional integer-scaling for fixed-point drivers.
+//
+//   PROPERTIES
+//       temperature -> "data.temperature" : int32 SCALE 100,
+//       pressure    -> "data.pressure"    : uint32,
+//       humidity    -> "data.humidity"    : int32
+//
+// `expr`  - target expression (e.g. C struct access, Python dict key)
+// `ptype` - storage type (informational; used for cast/format selection)
+// `scale` - optional integer multiplier; the generator multiplies the DSL
+//           literal by this factor when emitting the comparison so that
+//           DSL `> 38.5 celsius` becomes `> 3850` for an int32 driver
+//           that stores 0.01 celsius units.
+// `target` - optional platform tag ("riotos" | "raspbian"); when omitted
+//            the mapping applies to every platform that has no specific
+//            override.
+PeripheralProperty:
+    name=ID '->' expr=STRING ':' ptype=PropertyType
+    ('SCALE' scale=INT)?
+    ('FOR' target=OperatingSystem)?
+;
+
+PropertyType:
+    'int8' | 'uint8' | 'int16' | 'uint16' |
+    'int32' | 'uint32' | 'int64' | 'uint64' |
+    'float' | 'double' | 'bool' | 'string'
 ;
 
 DependencyMapping:

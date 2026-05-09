@@ -158,6 +158,12 @@ from .validators.protocol_frequency import (
     validate_protocol_frequency,
 )
 
+# Peripheral properties validators
+from .validators.peripheral_properties import (
+    PeripheralPropertyValidator,
+    validate_peripheral_properties,
+)
+
 # Base validator class
 from .validators.base import BaseValidator
 
@@ -262,4 +268,7 @@ __all__ = [
     # Protocol frequency validators
     "ProtocolFrequencyValidator",
     "validate_protocol_frequency",
+    # Peripheral properties validators
+    "PeripheralPropertyValidator",
+    "validate_peripheral_properties",
 ]

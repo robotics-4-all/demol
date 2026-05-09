@@ -248,7 +248,7 @@ class RiotCodeGenerator(BaseCodeGenerator):
             if not base_name:
                 continue
 
-            # Build context for this specific peripheral
+            source_alerts = self._build_riot_alert_context(conn.peripheral, pref)
             context = global_context.copy()
             context.update(
                 {
@@ -261,6 +261,7 @@ class RiotCodeGenerator(BaseCodeGenerator):
                     "attributes": global_context["attributes_list"][i],
                     "op": global_context["op_list"][i],
                     "sampling": global_context["sampling_list"][i],
+                    "source_alerts": source_alerts,
                 }
             )
 
@@ -284,6 +285,85 @@ class RiotCodeGenerator(BaseCodeGenerator):
                 raise FileNotFoundError(msg) from exc
 
         logger.info("RiotOS code generation complete!")
+
+    def _build_riot_alert_context(self, instance, pref) -> List[Dict[str, Any]]:
+        """Build per-source alert specs for inline injection into RIOT driver C templates.
+
+        Returns one dict per emitted alert with: name, c_safe_name, condition_c
+        (rendered C boolean expression), cooldown_sec (uint64_t literal seconds),
+        and actions (list of {topic, payload_c}). Alerts whose condition cannot
+        be rendered (unknown property) are dropped with a logger.warning to keep
+        generated code honest. Multi-broker VIA is downgraded to default broker
+        with a warning since RIOT main.c only instantiates a single MQTTClient.
+        """
+        alerts = self.get_alerts_for_source(instance.name)
+        if not alerts:
+            return []
+        resolver = self.get_alert_property_resolver(pref, target="riotos")
+        if not resolver:
+            for a in alerts:
+                logger.warning(
+                    "RIOT alert '%s' on '%s' dropped: peripheral '%s' has no "
+                    "PROPERTIES block declaring riotos targets. Add PROPERTIES "
+                    "to the .hwd to enable RIOT alert codegen.",
+                    a.name,
+                    instance.name,
+                    type(pref).__name__,
+                )
+            return []
+        default_broker_name = getattr(self.device_model.broker, "name", None)
+        rendered: List[Dict[str, Any]] = []
+        for a in alerts:
+            condition_c = self.render_riot_condition(a.condition, resolver)
+            if condition_c is None:
+                logger.warning(
+                    "RIOT alert '%s' on '%s' dropped: condition references a "
+                    "property not declared in PROPERTIES (resolver=%s).",
+                    a.name,
+                    instance.name,
+                    sorted(resolver.keys()),
+                )
+                continue
+            cooldown_sec = self.cooldown_to_seconds(a.cooldown, a.cooldown_unit)
+            actions: List[Dict[str, Any]] = []
+            for act in a.actions:
+                kind = type(act).__name__
+                if kind == "AlertPublish":
+                    via = getattr(act, "via", None)
+                    if via and via != default_broker_name:
+                        logger.warning(
+                            "RIOT alert '%s': VIA '%s' downgraded to default broker "
+                            "'%s' (RIOT runtime supports a single MQTT client).",
+                            a.name,
+                            via,
+                            default_broker_name,
+                        )
+                    payload = '{\\"alert\\":\\"' + a.name + '\\",' '\\"source\\":\\"' + instance.name + '\\"}'
+                    actions.append({"topic": act.topic, "payload_c": payload})
+                elif kind == "AlertActivate":
+                    target_topic = self.resolve_activate_target_topic(act.target)
+                    if not target_topic:
+                        logger.warning(
+                            "RIOT alert '%s' ACTIVATE action skipped: target '%s' " "has no CONNECT topic.",
+                            a.name,
+                            getattr(act.target, "name", "?"),
+                        )
+                        continue
+                    payload = '{\\"command\\":\\"activate\\",' '\\"source\\":\\"' + a.name + '\\"}'
+                    actions.append({"topic": target_topic, "payload_c": payload})
+            if not actions:
+                logger.warning("RIOT alert '%s' dropped: no emittable actions.", a.name)
+                continue
+            rendered.append(
+                {
+                    "name": a.name,
+                    "c_safe_name": a.name.replace("-", "_"),
+                    "condition_c": condition_c,
+                    "cooldown_sec": int(cooldown_sec),
+                    "actions": actions,
+                }
+            )
+        return rendered
 
     def _write_template(self, template, context, output_path):
         output = template.render(**context)

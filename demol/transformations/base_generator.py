@@ -192,6 +192,82 @@ class BaseCodeGenerator(ABC):
                 return getattr(conn, "remote", None)
         return None
 
+    # Signed integer types used to cast scaled literals in RIOT condition rendering.
+    _RIOT_INT_TYPES = {"int8", "uint8", "int16", "uint16", "int32", "uint32", "int64", "uint64"}
+
+    _RIOT_COMP_OPS = {">": ">", "<": "<", ">=": ">=", "<=": "<=", "==": "==", "!=": "!="}
+
+    def get_alert_property_resolver(self, peripheral_ref, target: str = "riotos") -> Dict[str, Dict[str, Any]]:
+        """Build {property_name: {expr, scale, ptype}} from a peripheral's PROPERTIES.
+
+        Selects the entry tagged ``FOR <target>`` first; falls back to the
+        untagged (default) entry when the target-specific one is absent. Returns
+        an empty dict when the peripheral declares no properties (alert codegen
+        for this peripheral on this target should then be skipped with a warning).
+        """
+        resolver: Dict[str, Dict[str, Any]] = {}
+        properties = getattr(peripheral_ref, "properties", None) or []
+        # Two passes: tagged-for-target wins over untagged default.
+        for prop in properties:
+            if getattr(prop, "target", None) == target:
+                resolver[prop.name] = {
+                    "expr": prop.expr,
+                    "scale": getattr(prop, "scale", 0) or 0,
+                    "ptype": prop.ptype,
+                }
+        for prop in properties:
+            if getattr(prop, "target", None) is None and prop.name not in resolver:
+                resolver[prop.name] = {
+                    "expr": prop.expr,
+                    "scale": getattr(prop, "scale", 0) or 0,
+                    "ptype": prop.ptype,
+                }
+        return resolver
+
+    def render_riot_comparison(self, comparison, resolver: Dict[str, Dict[str, Any]]) -> Optional[str]:
+        """Render a single AlertComparison as a C boolean expression.
+
+        Returns None when the property is not declared in the resolver (the
+        caller should drop the entire alert with a warning to keep generated
+        code honest about what the driver actually exposes).
+        """
+        prop_name = comparison.property
+        info = resolver.get(prop_name)
+        if info is None:
+            return None
+        op_src = comparison.op
+        op_c = self._RIOT_COMP_OPS.get(op_src)
+        if op_c is None:
+            return None
+        scale = info["scale"] or 1
+        value = comparison.value * scale
+        ptype = info["ptype"]
+        if ptype in self._RIOT_INT_TYPES:
+            literal = f"(int64_t)({int(round(value))})"
+        else:
+            literal = repr(float(value))
+        return f"({info['expr']}) {op_c} {literal}"
+
+    def render_riot_condition(self, expr, resolver: Dict[str, Dict[str, Any]]) -> Optional[str]:
+        """Recursively render an AlertConditionExpr as a C boolean expression.
+
+        Returns None if any leaf comparison cannot be rendered (unknown
+        property), so the caller can skip the whole alert atomically.
+        """
+        left = expr.left
+        rendered_left = self.render_riot_comparison(left, resolver)
+        if rendered_left is None:
+            return None
+        op = getattr(expr, "op", None)
+        right = getattr(expr, "right", None)
+        if not op or right is None:
+            return rendered_left
+        rendered_right = self.render_riot_condition(right, resolver)
+        if rendered_right is None:
+            return None
+        c_op = "&&" if op == "&&" else "||"
+        return f"({rendered_left}) {c_op} ({rendered_right})"
+
     def get_peripheral_attributes(self, peripheral_ref) -> Dict[str, Any]:
         """Extract attributes from peripheral definition and instance.
 

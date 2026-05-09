@@ -10,6 +10,9 @@ SENSOR[Distance] SRF05 WITH
         echo[gpio] @ 2,
         trigger[gpio] @ 3,
         GND[GND] @ 5
+    PROPERTIES
+        // RIOT srf04 driver (re-used for SRF05) returns distance in mm.
+        distance -> "dist" : int32 FOR riotos
     TEMPLATES
         raspbian="srf05.py.j2",
         riotos="srf05_riot.c.j2"

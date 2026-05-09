@@ -50,3 +50,8 @@ void {{ peripheral_name[i] }}_{{ i }}_new_data_cb(char *payload)
 }
 {% endif -%}
 {% endfor %}
+
+void publish_alert(char *payload, char *topic)
+{
+    mqtt_publish(&client, &network, payload, topic);
+}

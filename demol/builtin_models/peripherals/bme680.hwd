@@ -10,6 +10,13 @@ SENSOR[Env] BME680 WITH
         gnd[GND] @ 5,
         sda[sda-0] @ 2,
         scl[scl-0] @ 3
+    PROPERTIES
+        // RIOT BME680 driver stores temperature in 0.01 degC, pressure in Pa,
+        // humidity in 0.001 %RH. SCALE converts DSL literals (e.g. 38.5 celsius)
+        // into the integer raw value the driver emits.
+        temperature -> "data.temperature" : int32 SCALE 100 FOR riotos,
+        pressure    -> "data.pressure"    : uint32 FOR riotos,
+        humidity    -> "data.humidity"    : int32 SCALE 1000 FOR riotos
     TEMPLATES
         raspbian="bme680.py.j2",
         riotos="bme680.c.j2"

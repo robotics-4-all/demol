@@ -2,6 +2,7 @@
 #include "thread.h"
 #include "xtimer.h"
 #include "json_handler.h"
+#include "mqtt_broker.h"
 #include "periph/gpio.h"
 
 static gpio_t {{ name }}_{{ index }}_pin;
@@ -44,10 +45,32 @@ void *{{ name }}_{{ index }}_thread(void *args)
     (void)args;
 
     int prev_state = -1;
+{% if source_alerts %}
+    /* ALERT cooldown trackers (function-scope statics persist across loop iterations) */
+{% for a in source_alerts %}
+    static uint64_t last_fire_{{ a.c_safe_name }} = 0;
+{% endfor %}
+{% endif %}
 
     while (1)
     {
         int state = gpio_read({{ name }}_{{ index }}_pin) ? 1 : 0;
+{% if source_alerts %}
+        /* ALERT triggers — evaluated on every sample, NOT only on state transitions */
+        {
+            uint64_t _now_sec = xtimer_now_usec64() / 1000000ULL;
+{% for a in source_alerts %}
+            if ({{ a.condition_c }}) {
+                if ((_now_sec - last_fire_{{ a.c_safe_name }}) >= {{ a.cooldown_sec }}ULL) {
+                    last_fire_{{ a.c_safe_name }} = _now_sec;
+{% for act in a.actions %}
+                    publish_alert("{{ act.payload_c }}", "{{ act.topic }}");
+{% endfor %}
+                }
+            }
+{% endfor %}
+        }
+{% endif %}
 
         if (state != prev_state)
         {

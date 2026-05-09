@@ -8,6 +8,9 @@ SENSOR[Proximity] HW006 WITH
         DO[gpio] @ 1,
         vcc[5V] @ 2,
         gnd[GND] @ 3
+    PROPERTIES
+        // HW006 RIOT template reads gpio into local `val` (0/1).
+        proximity -> "val" : int32 FOR riotos
     TEMPLATES
         raspbian="hw006.py.j2",
         riotos="hw006.c.j2"

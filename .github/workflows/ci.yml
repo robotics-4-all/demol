@@ -135,6 +135,7 @@ jobs:
       matrix:
         example:
           - wemos_bme680
+          - wemos_bme680_alert
           - wemos_button
           - wemos_srf05
     steps:

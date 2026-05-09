@@ -10,6 +10,11 @@ SENSOR[Button] TactileButton WITH
     PINS
         gnd[GND] @ 1,
         state[gpio] @ 2
+    PROPERTIES
+        // RIOT button template reads GPIO into local `state` (0/1) and derives
+        // `pressed` (active-low: pressed=1 when state=0). Both are int locals.
+        state   -> "state" : int32 FOR riotos,
+        pressed -> "(state == 0 ? 1 : 0)" : int32 FOR riotos
     TEMPLATES
         raspbian="button.py.j2",
         riotos="button.c.j2"

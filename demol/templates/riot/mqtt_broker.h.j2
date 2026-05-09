@@ -41,4 +41,9 @@ int mqtt_connect(MQTTClient *client, Network *network);
 int mqtt_disconnect(MQTTClient *client, Network *network);
 void mqtt_publish(MQTTClient *client, Network *network, char *payload, char *topic);
 
+/* Driver-facing alert publisher. Defined in main.c so it can wrap the
+   file-static MQTTClient/Network globals. Drivers include this header to
+   emit alert payloads from their _thread without needing direct broker access. */
+void publish_alert(char *payload, char *topic);
+
 #endif

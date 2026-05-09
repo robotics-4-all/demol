@@ -11,6 +11,9 @@ SENSOR[Env] Mpl3115a2 WITH
         gnd[GND] @ 2,
         scl[scl-0] @ 5,
         sda[sda-0] @ 6
+    PROPERTIES
+        // RIOT mpl3115a2 driver reads pressure directly into local `pressure` (Pa).
+        pressure -> "pressure" : int32 FOR riotos
     TEMPLATES
         raspbian="mpl3115a2.py.j2",
         riotos="mpl3115a2_riot.c.j2"

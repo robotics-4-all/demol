@@ -9,7 +9,7 @@ This module validates ALERT trigger declarations:
 - Condition properties are syntactically valid identifiers
 """
 
-from ..core import raise_validation_error
+from ..core import raise_validation_error, raise_validation_warning
 from .base import BaseValidator
 
 
@@ -45,6 +45,18 @@ class AlertValidator(BaseValidator):
         board = getattr(model.components, "board", None)
         peripherals = getattr(model.components, "peripherals", [])
         broker_map = getattr(model, "_broker_map", {})
+
+        # Detect RIOT target — RIOT runtime has a single global MQTTClient,
+        # so VIA non-default-broker is downgraded by the codegen.
+        metadata = getattr(model, "metadata", None)
+        target_os = (getattr(metadata, "os", "") or "").lower() if metadata else ""
+        is_riot = target_os == "riotos"
+        default_broker_name = None
+        brokers_list = getattr(model, "brokers", None) or []
+        if brokers_list:
+            default_broker_name = getattr(brokers_list[0], "name", None)
+        elif getattr(model, "broker", None):
+            default_broker_name = getattr(model.broker, "name", None)
 
         # Build lookup: instance name -> component instance
         peripheral_map = {}
@@ -115,6 +127,19 @@ class AlertValidator(BaseValidator):
                             f"Available brokers: "
                             f"{', '.join(broker_map.keys()) if broker_map else 'none'}",
                             "AlertViaResolveError",
+                        )
+
+                    # [Safety-Alert-RiotMultiBroker] RIOT runtime ships a single
+                    # global MQTTClient; m2t_riot.py downgrades non-default VIA
+                    # to the default broker. Surface that contract at validate-time.
+                    if is_riot and via and via in broker_map and default_broker_name and via != default_broker_name:
+                        raise_validation_warning(
+                            alert,
+                            f"[Safety-Alert-RiotMultiBroker] ALERT '{alert.name}' "
+                            f"PUBLISH ... VIA '{via}' will be routed to the "
+                            f"default broker '{default_broker_name}' on RIOT "
+                            f"because the firmware uses a single MQTT client.",
+                            "AlertRiotMultiBrokerWarning",
                         )
 
                     # Validate topic is non-empty

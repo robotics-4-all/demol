@@ -27,6 +27,10 @@ from .protocol_frequency import (
     ProtocolFrequencyValidator,
     validate_protocol_frequency,
 )
+from .peripheral_properties import (
+    PeripheralPropertyValidator,
+    validate_peripheral_properties,
+)
 
 __all__ = [
     "BaseValidator",
@@ -46,4 +50,6 @@ __all__ = [
     "validate_alerts",
     "ProtocolFrequencyValidator",
     "validate_protocol_frequency",
+    "PeripheralPropertyValidator",
+    "validate_peripheral_properties",
 ]
