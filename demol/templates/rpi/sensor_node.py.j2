@@ -3,6 +3,9 @@ from commlib.utils import get_timestamp_ns, Rate
 from commlib.transports.mqtt import ConnectionParameters
 from .msg import {{class}}Message
 from .{{ driver_module_name }} import {{ driver_class_name }}
+{% if source_alerts %}
+from .alerts import AlertTrigger
+{% endif %}
 
 
 class {{ peripheral.name }}Node:
@@ -41,11 +44,60 @@ class {{ peripheral.name }}Node:
         self.node = Node(
             node_name='sensors.{{ class | lower }}.{{ instance | lower }}',
             connection_params=conn_params, heartbeats=False)
-    
+{% if source_alerts %}
+        self._alert_brokers = {}
+        self._alert_pubs = {}
+{% for broker_name, broker_cfg in alert_brokers.items() %}
+        self._alert_brokers["{{ broker_name }}"] = Node(
+            node_name='alerts.{{ instance | lower }}.{{ broker_name | lower }}',
+            connection_params=ConnectionParameters(
+                host="{{ broker_cfg.host }}",
+                port={{ broker_cfg.port }},
+                ssl={{ broker_cfg.ssl }},
+                username="{{ broker_cfg.username }}",
+                password="{{ broker_cfg.password }}",
+            ),
+            heartbeats=False,
+        )
+{% endfor %}
+        self.alerts = []
+{% endif %}
+
     def _initialize(self):
         self.sensor.initialize()
         self.pub = self.node.create_publisher(msg_type={{ class }}Message, topic="{{ topic }}")
         self.node.run()
+{% if source_alerts %}
+        for _broker_node in self._alert_brokers.values():
+            _broker_node.run()
+{% for alert in source_alerts %}
+{% for act in alert.action_specs %}
+        self._alert_pubs[("{{ alert.name }}", {{ loop.index0 }})] = (
+            self._alert_brokers["{{ act.broker_name }}"].create_publisher(
+                msg_type=None, topic="{{ act.topic }}"
+            )
+        )
+{% endfor %}
+{% endfor %}
+        self._build_alerts()
+
+    def _build_alerts(self):
+{% for alert in source_alerts %}
+        def _cond_{{ alert.name }}(data):
+            return {{ alert.condition_expr }}
+        _actions_{{ alert.name }} = [
+{% for act in alert.action_specs %}
+            lambda _pub=self._alert_pubs[("{{ alert.name }}", {{ loop.index0 }})], _payload={{ act.payload_expr }}: _pub.publish(_payload),
+{% endfor %}
+        ]
+        self.alerts.append(AlertTrigger(
+            name="{{ alert.name }}",
+            condition=_cond_{{ alert.name }},
+            actions=_actions_{{ alert.name }},
+            cooldown_sec={{ alert.cooldown_sec }},
+        ))
+{% endfor %}
+{% endif %}
 
     def _send(self):
         msg = {{class}}Message(**self.sensor.current_state['data'])
@@ -93,6 +145,11 @@ class {{ peripheral.name }}Node:
             self._initialize()
             while True:
                 self._read()
+{% if source_alerts %}
+                _data = self.sensor.current_state.get('data', {})
+                for _alert in self.alerts:
+                    _alert.evaluate(_data)
+{% endif %}
 {% if sampling and sampling.mode == "on_change" %}
                 if self._has_changed():
                     self._send()

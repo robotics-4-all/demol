@@ -92,6 +92,7 @@ class RPiCodeGenerator(BaseCodeGenerator):
         driver_module_name = f"{peripheral_ref.name.lower()}_{connection.peripheral.name.lower()}"
 
         sampling = self.get_sampling_config(connection.peripheral.name)
+        source_alerts, alert_brokers = self._build_alert_context(connection.peripheral.name)
 
         context = {
             "name": peripheral_ref.name,
@@ -109,6 +110,8 @@ class RPiCodeGenerator(BaseCodeGenerator):
             "op": op_attributes,
             "max_frequency": op_attributes.get("freq_max", {}).get("value", 100.0),
             "sampling": sampling,
+            "source_alerts": source_alerts,
+            "alert_brokers": alert_brokers,
         }
 
         context["conn"] = self._build_conn_info(pins, board)
@@ -122,8 +125,94 @@ class RPiCodeGenerator(BaseCodeGenerator):
         self.generate_peripheral_nodes()
         self.generate_common()
         self.generate_messages()
+        self.generate_alerts_runtime()
         self.generate_docker_files()
         logger.info("Code generation complete!")
+
+    _COMP_OPS = {">": ">", "<": "<", ">=": ">=", "<=": "<=", "==": "==", "!=": "!="}
+
+    def _render_alert_condition(self, expr) -> str:
+        left = self._render_alert_comparison(expr.left)
+        if getattr(expr, "op", None) and getattr(expr, "right", None):
+            joiner = " and " if expr.op == "&&" else " or "
+            return f"({left}){joiner}({self._render_alert_condition(expr.right)})"
+        return left
+
+    def _render_alert_comparison(self, cmp) -> str:
+        op = self._COMP_OPS.get(cmp.op, "==")
+        return f"data.get('{cmp.property}') is not None and data['{cmp.property}'] {op} {cmp.value}"
+
+    def _build_alert_context(self, source_name: str):
+        alerts = self.get_alerts_for_source(source_name)
+        if not alerts:
+            return [], {}
+
+        default_broker = self.device_model.broker
+        default_broker_name = getattr(default_broker, "name", "broker")
+        brokers_used: Dict[str, Any] = {}
+        rendered_alerts = []
+
+        for alert in alerts:
+            condition_expr = self._render_alert_condition(alert.condition)
+            cooldown_sec = self.cooldown_to_seconds(
+                getattr(alert, "cooldown", None), getattr(alert, "cooldown_unit", None)
+            )
+            action_specs = []
+            for act in alert.actions:
+                if type(act).__name__ == "AlertPublish":
+                    via_name = getattr(act, "via", None) or default_broker_name
+                    broker = self.resolve_broker(via_name)
+                    topic = act.topic
+                    payload_expr = "{'alert': '" + alert.name + "', 'source': '" + source_name + "', 'data': data}"
+                else:
+                    target_topic = self.resolve_activate_target_topic(act.target)
+                    if not target_topic:
+                        logger.warning(
+                            "Alert '%s' ACTIVATE target '%s' has no CONNECT topic; skipping action",
+                            alert.name,
+                            getattr(act.target, "name", "?"),
+                        )
+                        continue
+                    via_name = default_broker_name
+                    broker = default_broker
+                    topic = target_topic
+                    payload_expr = "{'command': 'activate', 'source': '" + alert.name + "'}"
+                brokers_used[via_name] = self._broker_to_cfg(broker)
+                action_specs.append(
+                    {
+                        "kind": "publish" if type(act).__name__ == "AlertPublish" else "activate",
+                        "broker_name": via_name,
+                        "topic": topic,
+                        "payload_expr": payload_expr,
+                    }
+                )
+            rendered_alerts.append(
+                {
+                    "name": alert.name,
+                    "condition_expr": condition_expr,
+                    "cooldown_sec": cooldown_sec,
+                    "action_specs": action_specs,
+                }
+            )
+        return rendered_alerts, brokers_used
+
+    def _broker_to_cfg(self, broker) -> Dict[str, Any]:
+        cfg = {
+            "host": broker.host,
+            "port": broker.port,
+            "ssl": getattr(broker, "ssl", False),
+            "username": "",
+            "password": "",
+        }
+        auth = getattr(broker, "auth", None)
+        if auth and type(auth).__name__ == "AuthPlain":
+            cfg["username"] = getattr(auth, "username", "") or ""
+            cfg["password"] = getattr(auth, "password", "") or ""
+        return cfg
+
+    def generate_alerts_runtime(self) -> None:
+        template = self.env.get_template("alerts.py.j2")
+        self._write_template(template, {}, self.output_dir / "alerts.py")
 
     def generate_peripheral_classes(self) -> None:
         """Generate peripheral class files by querying model."""

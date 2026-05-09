@@ -111,6 +111,87 @@ class BaseCodeGenerator(ABC):
                 }
         return None
 
+    # ---- Alert helpers ----
+    # Cooldown unit conversion: durations are in seconds.
+    # NB: the grammar currently allows FrequencyUnit on COOLDOWN (e.g. "60 hz");
+    # that is semantically wrong for a duration. We coerce hz/khz/mhz/ghz to
+    # seconds with a warning so generated code keeps working, and document the
+    # deprecation. New examples should use sec/min/hr.
+    _COOLDOWN_UNIT_TO_SEC = {
+        "sec": 1.0,
+        "second": 1.0,
+        "seconds": 1.0,
+        "min": 60.0,
+        "minute": 60.0,
+        "minutes": 60.0,
+        "hr": 3600.0,
+        "hour": 3600.0,
+        "hours": 3600.0,
+    }
+
+    def get_alerts_for_source(self, source_name: str) -> List[Any]:
+        """Return alerts whose source is the named peripheral instance.
+
+        Returns an empty list when the model has no alerts attribute or no
+        alerts bind to the given source. Caller-side templates can iterate
+        unconditionally on the result.
+        """
+        alerts = getattr(self.device_model, "alerts", None) or []
+        return [a for a in alerts if getattr(a.source, "name", None) == source_name]
+
+    def get_brokers(self) -> List[Any]:
+        """Return all brokers declared in the model."""
+        return list(getattr(self.device_model, "brokers", []) or [])
+
+    def resolve_broker(self, name: Optional[str]) -> Any:
+        """Look up a broker by its declared name.
+
+        When ``name`` is None, returns the model's default/first broker
+        (i.e. ``device_model.broker``). Raises KeyError when the name is
+        provided but no matching broker exists, so generators fail loudly
+        rather than producing silently broken runtimes.
+        """
+        if name is None:
+            return self.device_model.broker
+        for b in self.get_brokers():
+            if getattr(b, "name", None) == name:
+                return b
+        raise KeyError(f"Broker '{name}' not declared in model")
+
+    def cooldown_to_seconds(self, value: Optional[float], unit: Optional[str]) -> float:
+        """Coerce an alert COOLDOWN to wall-clock seconds.
+
+        Returns 0.0 when no cooldown is declared. ``hz``/``khz``/``mhz``/``ghz``
+        units are treated as ``sec`` with a logged warning (see class comment).
+        """
+        if not value:
+            return 0.0
+        unit_norm = (unit or "sec").lower()
+        if unit_norm in self._COOLDOWN_UNIT_TO_SEC:
+            return float(value) * self._COOLDOWN_UNIT_TO_SEC[unit_norm]
+        if unit_norm in self._FREQ_UNIT_TO_HZ:
+            logger.warning(
+                "Alert COOLDOWN unit '%s' is a frequency, not a duration; "
+                "treating value as seconds. Use sec/min/hr instead.",
+                unit_norm,
+            )
+            return float(value)
+        logger.warning("Unknown COOLDOWN unit '%s'; treating value as seconds.", unit_norm)
+        return float(value)
+
+    def resolve_activate_target_topic(self, target) -> Optional[str]:
+        """Find the connection topic an ACTIVATE target subscribes to.
+
+        Returns the ``CONNECT @ "topic"`` for the target peripheral instance,
+        or None when the target has no connection (in which case the alert
+        action will be skipped at codegen time).
+        """
+        target_name = getattr(target, "name", None)
+        for conn in self.get_connections():
+            if getattr(conn.peripheral, "name", None) == target_name:
+                return getattr(conn, "remote", None)
+        return None
+
     def get_peripheral_attributes(self, peripheral_ref) -> Dict[str, Any]:
         """Extract attributes from peripheral definition and instance.
 
