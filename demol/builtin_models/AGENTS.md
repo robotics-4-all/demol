@@ -51,9 +51,13 @@ SENSOR[Type] Name WITH
         raspbian = [{package="lib", version=">=1.0", source="pip"}]
     ATTRIBUTES
         poll_period[int] = 10
+    PROPERTIES
+        temperature -> "data.temperature" : int32 SCALE 100 FOR riotos
 ;
 ```
 Then create matching template(s) in `templates/rpi/` and/or `templates/riot/`.
+
+The `PROPERTIES` block is **required** for any `.hwd` whose peripheral may appear as the source of an `ALERT` on RIOT — it maps DSL property names to driver-local C expressions, declares the C type, and (for integer types stored in scaled units) the SCALE multiplier so DSL literals like `38.5 celsius` get emitted as `(int64_t)(3850)` in the generated C. Tag with `FOR riotos` to scope the property to the RIOT backend; untagged entries act as defaults.
 
 ## CONVENTIONS
 

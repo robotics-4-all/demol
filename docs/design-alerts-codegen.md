@@ -217,70 +217,132 @@ demol/transformations/m2t_rpi.py          | +15 (context plumbing + emit alerts.
 
 ---
 
-## 5. RIOT Implementation Sketch
+## 5. RIOT Implementation (Phase 2 — SHIPPED)
 
-More invasive — no closures, no dicts of broker configs, must use static structs.
+RIOT alerts inject inline per-driver C checks (no separate runtime, no broker dispatch table). Each alert becomes a static `last_fire_<name>` cooldown tracker plus an `if (condition_c) { … publish_alert(payload, topic); }` block placed inside the driver's `_thread` function right after data is read and before the JSON publish path.
 
-### 5.1 New header pair: `templates/riot/alerts.{c,h}.j2`
+### 5.1 PROPERTIES grammar extension (`demol/grammar/component.tx`)
 
-```c
-typedef bool (*alert_check_fn_t)(const sensor_data_t *data);
-typedef void (*alert_action_fn_t)(void);
+Both `Sensor` and `Actuator` rules accept an optional `PROPERTIES` section that maps DSL property names to driver-local C expressions:
 
-typedef struct {
-    const char *name;
-    alert_check_fn_t check;
-    alert_action_fn_t *actions;
-    size_t actions_count;
-    uint32_t cooldown_us;
-    uint32_t last_fired_us;
-} alert_t;
-
-void alerts_init(alert_t *alerts, size_t count);
-void alerts_evaluate(alert_t *alerts, size_t count, const sensor_data_t *data);
+```
+SENSOR[Env] BME680
+    PINS sda[i2c]@1, scl[i2c]@2, vcc[VCC]@3, gnd[GND]@4
+    PROPERTIES
+        temperature -> "data.temperature" : int32 SCALE 100 FOR riotos,
+        pressure    -> "data.pressure"    : uint32          FOR riotos,
+        humidity    -> "data.humidity"    : int32 SCALE 1000 FOR riotos
+    TEMPLATES raspbian="bme680.py.j2", riotos="bme680.c.j2"
 ```
 
-### 5.2 Per-source alert table emission
+Each `PeripheralProperty`:
 
-In each `sensor_*.c.j2`, after publishing the data:
+- `name` — DSL property identifier referenced from `WHEN <name> <op> <value>`.
+- `expr` — verbatim C expression in scope at the alert injection point (e.g. `data.temperature`, `(state == 0 ? 1 : 0)`).
+- `ptype` — one of `int8|uint8|…|int64|uint64|float|double|bool|string`. Integer types trigger an `(int64_t)` cast on the comparison RHS.
+- `scale` — optional integer multiplier. The DSL literal is multiplied by SCALE before emission so DSL units (e.g. `38.5 celsius`) translate to the driver's native units (e.g. BME680 stores temperature as int32 in 0.01 °C → SCALE 100 emits `> (int64_t)(3850)`).
+- `target` — optional `FOR <os>` tag scoping the property to a single backend (e.g. `riotos`). Untagged properties act as defaults.
+
+Today only `riotos`-tagged properties are consumed; the same mechanism is reusable for future backends.
+
+### 5.2 PROPERTIES validator (`demol/lang/semantics/validators/peripheral_properties.py`)
+
+`PeripheralPropertyValidator` walks `model.connections`, dedups peripheral refs by `id()`, and emits four rules:
+
+| Rule | Severity |
+| --- | --- |
+| `[Properties-Empty-Expr]` — `expr` must be a non-empty string | error |
+| `[Properties-Scale-Positive]` — `SCALE` must be `>= 0` | error |
+| `[Properties-Duplicate-Per-Target]` — same `(name, target)` cannot repeat in one peripheral | error |
+| `[Properties-Conflicting-Default]` — both untagged and tagged entries for the same name | warning |
+
+Registered in `demol/lang/device.py` immediately before the existing `Alert Triggers` rule so resolver lookups see validated data.
+
+### 5.3 Codegen helpers (`demol/transformations/base_generator.py`)
+
+Three platform-agnostic helpers expose the resolver to all backends:
+
+- `get_alert_property_resolver(peripheral_ref, target='riotos')` — two-pass merge (tagged FOR-target wins over untagged default), returns `{name: {expr, scale, ptype}}`.
+- `render_riot_comparison(comparison, resolver)` — emits `({expr}) {op} (int64_t)({int(value*scale)})` for integer types, `({expr}) {op} {float}` for float types, returns `None` if the property is unknown.
+- `render_riot_condition(expr, resolver)` — recursive AST walker; leaf = comparison, node = `({left}) && ({right})` or `||`. Returns `None` atomically if any leaf is unrenderable so the caller can drop the whole alert.
+
+Class constants `_RIOT_INT_TYPES` and `_RIOT_COMP_OPS` keep the type/operator mappings co-located.
+
+### 5.4 RIOT alert context (`demol/transformations/m2t_riot.py`)
+
+`RiotCodeGenerator._build_riot_alert_context(instance, pref)` is invoked per driver instance and produces the `source_alerts` list injected into each driver template's context:
+
+```python
+{
+    "name": "fever_alert",
+    "c_safe_name": "fever_alert",          # '-' → '_' for C identifier safety
+    "condition_c": "(data.temperature) > (int64_t)(3850)",
+    "cooldown_sec": 60,                    # uint64_t literal seconds
+    "actions": [
+        {
+            "kind": "publish",
+            "topic": "health/alerts/fever",
+            "payload_c": "{\"alert\":\"fever_alert\",\"source\":\"BME\"}",
+        },
+    ],
+}
+```
+
+Error handling is fail-soft per alert:
+
+- No PROPERTIES on the peripheral → drop **all** alerts for that source with a logger warning.
+- Unrenderable condition (unknown property / unsupported op) → drop **that** alert only.
+- `ACTIVATE` with a target that has no `CONNECT @ "topic"` → drop the action with a logger warning.
+- `PUBLISH … VIA <non-default-broker>` → log a warning and downgrade to the default broker (RIOT runs a single global `MQTTClient`).
+
+### 5.5 Single-broker constraint (`mqtt_broker.h.j2` + `main.c.j2`)
+
+RIOT's runtime ships one `static MQTTClient client;` and one `static Network network;` in `main.c`. Multi-broker dispatch would require a major refactor of every driver, so Phase 2 keeps the single-client model and surfaces the constraint to the user instead:
+
+```c
+/* in mqtt_broker.h.j2 */
+void publish_alert(char *payload, char *topic);
+
+/* in main.c.j2 */
+void publish_alert(char *payload, char *topic)
+{
+    mqtt_publish(&client, &network, payload, topic);
+}
+```
+
+`AlertValidator` mirrors the codegen-time downgrade with rule `[Safety-Alert-RiotMultiBroker]` — when `metadata.os == "riotos"` and an `AlertPublish` references a non-default `VIA`, the validator emits a warning naming the default broker that will actually be used. This makes the contract visible at validate-time, not just at runtime.
+
+### 5.6 Driver template hooks (`templates/riot/sensor_{bme680,srf04,srf05,button}.c.j2`)
+
+Each driver received three modifications, all guarded by `{% if source_alerts %}` so non-alert peripherals emit byte-identical C to before:
+
+1. Unconditional `#include "mqtt_broker.h"` for `publish_alert` visibility.
+2. Function-scope `static uint64_t last_fire_<c_safe_name> = 0;` declarations near the other `_thread` locals.
+3. Per-alert cooldown gate inside the success branch (after data is read, before the JSON publish path):
 
 ```c
 {% if source_alerts %}
-static bool fever_alert_check(const sensor_data_t *d) {
-    return d->object_temperature > 37.5f;
-}
-static void fever_alert_pub_0(void) {
-    mqtt_broker_publish(&brk_HealthGateway, "health/alerts/fever",
-                        "{\"alert\":\"fever_alert\"}");
-}
-static void fever_alert_act_0(void) {
-    mqtt_broker_publish(&brk_HealthGateway, "health/status",
-                        "{\"command\":\"on\"}");
-}
-static alert_action_fn_t fever_alert_actions[] = { fever_alert_pub_0, fever_alert_act_0 };
-static alert_t source_alerts[] = {
-    { "fever_alert", fever_alert_check, fever_alert_actions, 2, 60UL * 1000000UL, 0 },
-};
+    /* ALERT triggers — evaluated on every successful read,
+       independent of sampling mode. */
+    uint64_t _now_sec = xtimer_now_usec64() / 1000000ULL;
+{% for a in source_alerts %}
+    if ({{ a.condition_c }}) {
+        if ((_now_sec - last_fire_{{ a.c_safe_name }}) >= {{ a.cooldown_sec }}ULL) {
+            last_fire_{{ a.c_safe_name }} = _now_sec;
+{% for act in a.actions %}
+            publish_alert("{{ act.payload_c }}", "{{ act.topic }}");
+{% endfor %}
+        }
+    }
+{% endfor %}
 {% endif %}
 ```
 
-### 5.3 Multi-broker brokers
+`sensor_button.c.j2` wraps the block in its own scope `{ … }` so `_now_sec` does not collide with adjacent locals, and places the block **before** the `if (state != prev_state)` edge-detection branch — alerts evaluate on every sample, not only on transitions.
 
-`mqtt_broker.{c,h}` currently exposes one global broker. Refactor to: one `mqtt_broker_t` struct per broker in `main.c`, each peripheral driver passed pointers to the brokers it uses (data broker + alert VIA brokers).
+### 5.7 Phase 2 effort (actual)
 
-### 5.4 Property→data-struct contract
-
-The biggest RIOT-specific concern: `condition.property = "temperature"` must compile to `data->temperature`. We need a stable, generated `sensor_<peripheral>_data_t` struct that names match the .hwd ATTRIBUTES section. **Today this is informal**. Two options:
-
-A. **Cheap:** declare in each .hwd a `DATA_FIELDS:` section listing names+C types, fail at codegen if alert references unknown field.
-B. **Expensive:** introspect existing C drivers via convention. Brittle.
-
-I recommend **(A)** — add a small DSL extension (`PROPERTIES property_name : type, ...` in `.hwd`) and validate at parse time.
-
-### 5.5 Effort estimate
-
-- RPi alone: ~half day (templates + 3 helpers + tests). Low risk.
-- RIOT: ~1.5–2 days. Requires DSL extension for property typing. Medium risk.
+~570 LOC across grammar (1), .hwd files (8), validator (1), codegen (2), templates (6), example (1), tests (1), CI (1). Shipped in three atomic commits per the Phase 1 pattern.
 
 ---
 
@@ -292,7 +354,7 @@ I recommend **(A)** — add a small DSL extension (`PROPERTIES property_name : t
    - assert generated file contains the threshold value (e.g., `> 37.5`)
    - assert action publisher uses correct broker host
 3. **New `test_alert_runtime.py`** — import `alerts.py` directly, instantiate `AlertTrigger`, feed mock data, assert action callbacks fire / don't fire / honor cooldown.
-4. **RIOT** — extend `test_riot_codegen_syntax.py` analog, but C-level (string assertions only; Docker compile gate catches the rest).
+4. **RIOT** — `tests/test_riot_alerts_emission.py` runs string assertions on generated `sensor_bme680_0.c` (mqtt_broker.h include, `last_fire_<name>` statics, SCALE arithmetic, `publish_alert` call with C-escaped payload, `xtimer_now_usec64()` cooldown gate). The `wemos_bme680_alert` entry in the CI matrix runs `./build_docker.sh` against a real RIOT toolchain to prove the emitted C compiles and links against `paho_mqtt`.
 
 ---
 
@@ -315,8 +377,6 @@ I recommend **(A)** — add a small DSL extension (`PROPERTIES property_name : t
 
 ## 9. Recommended Sequence
 
-1. **Phase 1 (RPi only, half day):** Sections 4.1–4.5 + tests in Section 6 #1-3. Ship.
-2. **Phase 2 (RIOT, separate PR):** Add DSL property-type extension + validator → re-emit RIOT drivers with alert tables → CI compile gate proves it.
-3. **Phase 3 (polish):** Address Open Questions 1, 2, 4.
-
-This gives a clean, low-blast-radius RPi rollout immediately, and a more deliberate RIOT pass once the DSL story is settled.
+1. **Phase 1 (RPi only, SHIPPED):** Sections 4.1–4.5 + tests in Section 6 #1-3. Commits `6b94ac8`, `632e749`, `eb98f16`.
+2. **Phase 2 (RIOT, SHIPPED):** PROPERTIES grammar + validator + per-driver inline injection + `publish_alert` wrapper + `[Safety-Alert-RiotMultiBroker]` validator warning + CI compile gate. See Section 5.
+3. **Phase 3 (future polish):** Address Open Questions 1, 2, 4. Multi-broker RIOT support would require a runtime refactor (per-broker `MQTTClient` instances) — deferred until a use case justifies the cost.

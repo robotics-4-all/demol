@@ -2,7 +2,7 @@
 
 ## OVERVIEW
 
-pytest suite: 31 test files (~6,400 LOC, ~290 test cases) covering semantic validation, code generation, CLI utilities, and advanced DSL features. The RPi codegen syntax gate now parametrizes over **41 examples** (29 base + 10 orphan-coverage + 1 piper + 1 sentinel) and runs both `ast.parse` and `py_compile` on every emitted Python file.
+pytest suite: 34 test files (~6,750 LOC, ~373 test cases) covering semantic validation, code generation, CLI utilities, and advanced DSL features. The RPi codegen syntax gate parametrizes over **41 examples** (29 base + 10 orphan-coverage + 1 piper + 1 sentinel) and runs both `ast.parse` and `py_compile` on every emitted Python file. ALERT codegen is covered by `test_rpi_alerts_emission.py` (string assertions on emitted Python), `test_alert_runtime.py` (importlib-loads the rendered `alerts.py` and exercises `AlertTrigger.evaluate` end-to-end), and `test_riot_alerts_emission.py` (string assertions on emitted C, including SCALE arithmetic and the `publish_alert` cooldown gate).
 
 ## STRUCTURE
 
@@ -28,10 +28,13 @@ tests/
 ├── test_network_semantics.py       # Network configuration
 ├── test_power_path_bug.py          # Regression: power path issues
 │
-│ # Code Generation (7 files)
+│ # Code Generation (10 files)
 ├── test_rpi_transformation.py      # RPi Python code generation (file-existence + substring assertions)
 ├── test_rpi_codegen_syntax.py      # ast.parse + py_compile over generated Python for every examples/rpi/*.dev (catches template regressions)
+├── test_rpi_alerts_emission.py     # ALERT emission for RPi: alerts.py runtime, AlertTrigger imports, condition None-safety, broker routing, ACTIVATE topic resolution
+├── test_alert_runtime.py           # Importlib-loads emitted alerts.py and exercises AlertTrigger.evaluate (cooldown windows, condition errors, action isolation)
 ├── test_riot_transformation.py     # RiotOS C code generation
+├── test_riot_alerts_emission.py    # ALERT emission for RIOT: publish_alert wrapper, last_fire statics, SCALE arithmetic, xtimer cooldown gate
 ├── test_smauto_transformation.py   # SmartAuto M2M transformation
 ├── test_docs_transformation.py     # Markdown docs generation
 ├── test_svg_transformation.py      # SVG diagram generation

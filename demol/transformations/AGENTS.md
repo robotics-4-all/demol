@@ -35,7 +35,7 @@ transformations/
 
 | Symbol | Type | Lines | Role |
 |--------|------|-------|------|
-| `BaseCodeGenerator` | class | 631 | Abstract base: `get_broker_config()`, `get_board()`, `get_connections()`, pin extraction |
+| `BaseCodeGenerator` | class | 631 | Abstract base: `get_broker_config()`, `get_board()`, `get_connections()`, pin extraction, ALERT helpers (`get_alerts_for_source`, `resolve_broker`, `cooldown_to_seconds`, `resolve_activate_target_topic`, `get_alert_property_resolver`, `render_riot_condition`, `render_riot_comparison`) |
 | `RPiCodeGenerator` | class | 332 | Generates Python + Dockerfile + docker-compose + requirements.txt + install_deps.sh |
 | `RiotCodeGenerator` | class | — | Generates C + Makefile + build_docker.sh + Dockerfile.riotbuild for self-contained RIOT builds |
 | `demol_to_json` | function | 509 | Serialize parsed model to JSON dict |
@@ -49,6 +49,8 @@ transformations/
 - RPi generator produces deployment artifacts alongside code (Dockerfile, docker-compose, etc.)
 - RiotOS generator produces a complete RIOT application directory with Makefile referencing `$(RIOTBASE)`, plus `Dockerfile.riotbuild` and `build_docker.sh` so end users only need Docker (the script auto-builds `demol/riotbuild:<version>` if missing, cloning RIOT inside the image)
 - RIOT version/repo are env-overridable via `DEMOL_RIOT_VERSION` and `DEMOL_RIOT_REPO` at generation time
+- ALERT codegen (both platforms): per-source AlertTrigger evaluators with cooldown gates. RPi emits `alerts.py` runtime + per-driver `_build_alerts()` closures. RIOT emits inline per-driver `static uint64_t last_fire_<name>` + `if (condition_c) { … publish_alert(payload, topic); }` blocks via `_build_riot_alert_context()`. RIOT alerts route through the `publish_alert()` wrapper in `main.c` (single-MQTTClient constraint); non-default `VIA` brokers are downgraded with a logger warning + the `[Safety-Alert-RiotMultiBroker]` validator warning.
+- RIOT condition rendering uses the `.hwd` `PROPERTIES` block (DSL property → C expression + type + SCALE) — see `get_alert_property_resolver()` in `base_generator.py`
 
 ## ANTI-PATTERNS
 
