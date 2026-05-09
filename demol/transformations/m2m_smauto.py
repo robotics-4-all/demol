@@ -1,4 +1,5 @@
 import os
+from typing import Any, Dict, List
 
 from demol.definitions import SMAUTO_TEMPLATES, REPO_PATH
 from demol.lang import build_model
@@ -7,9 +8,9 @@ import codecs
 
 fsloader = jinja2.FileSystemLoader(SMAUTO_TEMPLATES)
 env = jinja2.Environment(loader=fsloader)
-broker_data = {}
+broker_data: Dict[str, Any] = {}
 device_name = ""
-peripherals_data = []
+peripherals_data: List[Dict[str, Any]] = []
 
 
 def get_broker_info(device_model):

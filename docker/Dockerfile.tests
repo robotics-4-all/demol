@@ -11,13 +11,14 @@ RUN apt-get update && apt-get install -y \
 # Copy requirements and install dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
-RUN pip install --no-cache-dir pytest pytest-cov flake8 black mypy
+RUN pip install --no-cache-dir flake8 black mypy
 
 # Copy the source code
 COPY . .
 
-# Install the package
-RUN pip install --no-cache-dir -e .
+# Install the package with test extras (pulls in pytest, pytest-cov, commlib-py
+# for end-to-end tests that exec generated RPi modules).
+RUN pip install --no-cache-dir -e ".[test]"
 
 # Default: run full CI pipeline
 CMD ["make", "ci-check"]

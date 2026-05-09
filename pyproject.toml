@@ -40,12 +40,23 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = [
+test = [
     "pytest",
     "pytest-cov",
+    # Runtime deps of generated RPi `alerts.py` / sensor / actuator nodes.
+    # Required by tests (e.g. test_alert_runtime.py) that importlib-load and
+    # exec the generated modules end-to-end. commlib-py imports paho lazily
+    # from its MQTT transport, so paho-mqtt must be installed alongside it.
+    "commlib-py>=0.13.0",
+    "paho-mqtt>=2.0",
+]
+dev = [
+    "demol[test]",
     "black",
     "flake8",
-    "mypy",
+    # Pin mypy: 2.x tightened `--var-annotated` and breaks our currently-clean
+    # type-check on bare dict/list literals. Bump deliberately, not by drift.
+    "mypy>=1.8,<2",
     "wheel",
     "twine",
     "tox",
