@@ -110,7 +110,7 @@ test-cov: ## Run tests with coverage report (performance tests excluded)
 
 lint: ## Run linting checks (flake8)
 	@echo "Running linting checks..."
-	$(PYTHON) -m flake8 demol/ --max-line-length=120 --exclude=__pycache__,.venv,demol/lang/semantics.py --extend-ignore=E203,E501
+	$(PYTHON) -m flake8 demol/ --max-line-length=120 --exclude=__pycache__,.venv --extend-ignore=E203,E501
 	@echo "✓ Linting complete"
 
 format: ## Format code with black
