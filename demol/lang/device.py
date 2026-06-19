@@ -7,8 +7,6 @@ from demol.definitions import METAMODEL_REPO_PATH, DEVICES_MODEL_REPO_PATH
 
 logger = logging.getLogger(__name__)
 
-GRAMMAR_BULTINS: dict = {}
-
 
 def model_proc(model, metamodel):
     """
