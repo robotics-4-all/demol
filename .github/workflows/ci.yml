@@ -77,11 +77,13 @@ jobs:
           pip install -e .
           pip install pytest pytest-cov
       - name: Run tests
-        run: python -m pytest tests/ -v --tb=short
+        # Exclude @pytest.mark.performance — flaky on shared CI runners.
+        # Mirrors `make test`; keep in sync with the Makefile `test` target.
+        run: python -m pytest tests/ -v --tb=short -m "not performance"
       - name: Run tests with coverage (3.11 only)
         if: matrix.python-version == '3.11'
         run: |
-          python -m pytest tests/ --cov=demol --cov-report=xml --cov-report=term
+          python -m pytest tests/ --cov=demol --cov-report=xml --cov-report=term -m "not performance"
       - name: Upload coverage artifact
         if: matrix.python-version == '3.11'
         uses: actions/upload-artifact@v4
