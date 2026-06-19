@@ -1,4 +1,4 @@
-.PHONY: help install install-dev clean test test-perf test-validation test-transformations test-all test-local lint format format-check type-check generate-examples ci ci-check validate-examples \
+.PHONY: help install install-dev clean test test-perf test-riot test-validation test-transformations test-all test-local lint format format-check type-check generate-examples ci ci-check validate-examples \
         build rebuild up down restart logs shell docker-clean dist release docs info
 
 # ── Variables ─────────────────────────────────────────────────────────────────
@@ -79,6 +79,10 @@ test-perf: ## Run performance benchmarks only (timing-sensitive; run on quiet ma
 	@echo "Running performance benchmarks..."
 	$(PYTHON) -m pytest tests/test_performance.py -v
 	@echo "✓ Performance benchmarks complete"
+
+test-riot: ## Compile generated RIOT firmware for the canonical wemos examples (requires Docker, ~30s each)
+	@echo "Running RIOT compile gate..."
+	./scripts/test_riot_compile.sh
 
 test-validation: ## Run validation tests
 	@echo "Running validation tests..."

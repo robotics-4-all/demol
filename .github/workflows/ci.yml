@@ -124,6 +124,11 @@ jobs:
   # Generates code from a canonical ESP example and compiles it inside the
   # generated, self-contained Docker build environment. This catches template
   # regressions that pure substring tests cannot detect.
+  #
+  # The compile+verify logic lives in scripts/test_riot_compile.sh so that
+  # `make test-riot` runs the same gate locally before pushing. Matrix
+  # entries here still run in parallel (one per example), each invoking
+  # the script with a single example arg.
   # ===========================================================================
   riot-build:
     name: RIOT Compile Gate (${{ matrix.example }})
@@ -147,24 +152,6 @@ jobs:
       - name: Install demol
         run: |
           pip install --upgrade pip
-          pip install -r requirements.txt
           pip install -e .
-      - name: Generate RIOT code from example
-        run: |
-          python -m demol.cli.cli generate riot \
-            examples/esp/${{ matrix.example }}.dev \
-            --output-dir build/ci_riot
-          ls -la build/ci_riot
-          test -f build/ci_riot/Dockerfile.riotbuild
-          test -f build/ci_riot/build_docker.sh
-          test -f build/ci_riot/Makefile
-          test -f build/ci_riot/main.c
-      - name: Compile via self-contained Docker build
-        working-directory: build/ci_riot
-        run: ./build_docker.sh
-      - name: Verify firmware artifact exists
-        working-directory: build/ci_riot
-        run: |
-          BOARD=$(grep -m1 '^BOARD ?=' Makefile | sed 's/.*= *//')
-          echo "Board: $BOARD"
-          ls -la "bin/${BOARD}/" || (echo "No firmware produced for ${BOARD}" && exit 1)
+      - name: Run RIOT compile gate
+        run: ./scripts/test_riot_compile.sh ${{ matrix.example }}
