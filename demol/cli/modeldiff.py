@@ -17,11 +17,6 @@ def _safe_model(filepath):
         return mm.model_from_file(filepath)
 
 
-def _peripheral_names(model) -> set:
-    peripherals = getattr(getattr(model, "components", None), "peripherals", [])
-    return {getattr(p, "name", None) for p in peripherals} - {None}
-
-
 def _peripheral_map(model) -> Dict[str, Any]:
     peripherals = getattr(getattr(model, "components", None), "peripherals", [])
     result = {}
