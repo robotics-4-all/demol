@@ -491,17 +491,27 @@ def get_device_mm(debug: bool = False, global_repo: bool = False, skip_semantics
         debug=debug,
     )
 
-    from textx import register_language
+    from textx import register_language, registration as textx_registration
     from demol.lang.component import get_component_mm
 
     component_mm = get_component_mm(skip_semantics=skip_semantics)
 
-    # Register component language explicitly for .hwd files.
-    # This ensures that FQNGlobalRepo uses the correct metamodel.
-    try:
-        register_language("demol-component", pattern="*.hwd", metamodel=component_mm)
-    except Exception:
-        pass  # Language may already be registered
+    # Register component language explicitly for .hwd files so that
+    # FQNGlobalRepo uses the correct metamodel. The entry-point scan
+    # that textX runs on first use can fail on malformed third-party
+    # textx_languages entries, which previously caused the FQNGlobalRepo
+    # to fall back to the device metamodel for .hwd files (producing
+    # "Syntax Error ... => '*BOARD[ESP]'"). Pre-initializing the
+    # languages dict bypasses that scan.
+    if textx_registration.languages is None:
+        textx_registration.languages = {}
+    textx_registration.languages.pop("demol-component", None)
+    register_language(
+        "demol-component",
+        pattern="*.hwd",
+        description="DeMoL component language",
+        metamodel=component_mm,
+    )
 
     mm.register_scope_providers(
         {
