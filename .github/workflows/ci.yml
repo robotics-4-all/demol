@@ -71,11 +71,10 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: pip
       - name: Install dependencies
+        # Mirror `make test` install (Makefile).
         run: |
           pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install -e .
-          pip install pytest pytest-cov
+          pip install -e ".[test]"
       - name: Run tests
         # Exclude @pytest.mark.performance — flaky on shared CI runners.
         # Mirrors `make test`; keep in sync with the Makefile `test` target.
