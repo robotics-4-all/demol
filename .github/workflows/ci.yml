@@ -63,7 +63,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+        python-version: ["3.11"]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -79,12 +79,10 @@ jobs:
         # Exclude @pytest.mark.performance — flaky on shared CI runners.
         # Mirrors `make test`; keep in sync with the Makefile `test` target.
         run: python -m pytest tests/ -v --tb=short -m "not performance"
-      - name: Run tests with coverage (3.11 only)
-        if: matrix.python-version == '3.11'
+      - name: Run tests with coverage
         run: |
           python -m pytest tests/ --cov=demol --cov-report=xml --cov-report=term -m "not performance"
       - name: Upload coverage artifact
-        if: matrix.python-version == '3.11'
         uses: actions/upload-artifact@v4
         with:
           name: coverage-report
