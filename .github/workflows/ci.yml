@@ -30,7 +30,10 @@ jobs:
       - name: Check formatting (black --check)
         run: black --check --line-length=120 demol/ tests/ scripts/
       - name: Lint (flake8)
-        run: flake8 demol/ --max-line-length=120 --exclude=__pycache__,.venv
+        # Mirror `make lint` (Makefile line 113). semantics.py is the legacy
+        # 1727-line monolith (see demol/lang/AGENTS.md) and is intentionally
+        # excluded from linting; new validators live in demol/lang/semantics/.
+        run: flake8 demol/ --max-line-length=120 --exclude=__pycache__,.venv,demol/lang/semantics.py --extend-ignore=E203,E501
 
   # ===========================================================================
   # Type Check
