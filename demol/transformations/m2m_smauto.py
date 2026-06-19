@@ -1,8 +1,7 @@
 import os
 from typing import Any, Dict, List
 
-from demol.definitions import SMAUTO_TEMPLATES, REPO_PATH
-from demol.lang import build_model
+from demol.definitions import SMAUTO_TEMPLATES
 import jinja2
 import codecs
 
@@ -109,22 +108,3 @@ def demol2smauto(model, output_dir="."):
     ofh = codecs.open(filepath, "w", encoding="utf-8")
     ofh.write(rt)
     ofh.close()
-
-
-def main(dev_model, output_dir):
-    rpi5_device_path = os.path.join(REPO_PATH, "examples", dev_model)
-    rpi5_device = build_model(rpi5_device_path)
-
-    output = os.path.join(REPO_PATH, output_dir)
-
-    print("Collecting broker info...")
-    get_broker_info(rpi5_device)
-    print("Collecting peripherals info...")
-    get_peripherals_info(rpi5_device)
-    print(peripherals_data)
-    print("Generating SmAuto model...")
-    demol2smauto(rpi5_device, output_dir=output)
-
-
-if __name__ == "__main__":
-    main("ThesisExamples\\ThesisExample.dev", "rpi5_out\\ThesisExample")
