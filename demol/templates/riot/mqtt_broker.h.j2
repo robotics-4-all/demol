@@ -33,9 +33,6 @@
 #define BROKER_IPV4_ADDR ("{{ address }}")
 #endif
 
-static unsigned char writebuf[MQTT_BUF_SIZE];
-static unsigned char readbuf[MQTT_BUF_SIZE];
-
 void init_mqtt_broker(MQTTClient *client, Network *network);
 int mqtt_connect(MQTTClient *client, Network *network);
 int mqtt_disconnect(MQTTClient *client, Network *network);

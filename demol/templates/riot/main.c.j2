@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include "xtimer.h"
 {% for i in range(num_of_peripherals) -%}
 #include "{{ peripheral_type[peripheral_name[i]] }}_{{ peripheral_name[i] }}_{{ i }}.h"
 {% endfor -%}
