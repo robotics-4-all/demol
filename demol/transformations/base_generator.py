@@ -561,20 +561,6 @@ class BaseCodeGenerator(ABC):
                         return int(func.channel)
         return None
 
-    def _convert_dict_attribute(self, dict_attr) -> Dict[str, Any]:
-        """Convert DictAttribute object to Python dictionary.
-
-        Args:
-            dict_attr: DictAttribute object from model
-
-        Returns:
-            Python dictionary with attribute values
-        """
-        result = {}
-        for item in dict_attr.items:
-            result[item.key] = item.value
-        return result
-
     def _convert_attribute_value(self, value) -> Any:
         """Convert AttributeValue to Python object.
 
