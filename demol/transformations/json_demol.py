@@ -134,18 +134,23 @@ def device_to_json(model) -> Dict[str, Any]:
     # Map to store instances
     instances = {}
 
-    # Find board, peripherals, and power sources in uses
-    for use in model.uses:
-        if hasattr(use, "board") and use.board:
-            boards = use.board if isinstance(use.board, list) else [use.board]
-            for b in boards:
-                res["board"] = board_to_json(b)
-                res["board"]["id"] = f"{b.name}.hwd"
-                instances[b.name] = res["board"]
+    # Board: extract from model.components.board (already populated by
+    # enrich_model in device.py:404). The previous code checked use.board,
+    # which the textX grammar never sets - boards live in use.components
+    # alongside peripherals, which made j["board"] always None.
+    components = getattr(model, "components", None)
+    board = getattr(components, "board", None) if components else None
+    if board is not None:
+        res["board"] = board_to_json(board)
+        res["board"]["id"] = f"{board.name}.hwd"
+        instances[board.name] = res["board"]
 
+    for use in model.uses:
         if hasattr(use, "components") and use.components:
             for comp_def in use.components:
                 ref_type = comp_def.ref.__class__.__name__.lower()
+                if "board" in ref_type:
+                    continue
                 if "powersource" in ref_type:
                     ps_json = powersource_to_json(comp_def.ref)
                     ps_json["instanceName"] = comp_def.name

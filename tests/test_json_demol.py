@@ -190,3 +190,62 @@ def test_demol_to_json_roundtrip():
     assert model_b.metadata.name == "RoundtripDev"
     assert len(model_b.components.peripherals) == 1
     assert len(model_b.connections) == 1
+
+
+def test_demol_to_json_basic():
+    model_str = """
+    DEVICE BasicDev WITH description="basic test", author="tester", os=raspbian;
+    USE RaspberryPi_5_8GB;
+    USE BME680 [EnvSensor];
+    NETWORK [WiFi] WITH ssid="s", password="p";
+    BROKER [MQTT] MyBroker WITH host="localhost", port=1883;
+    CONNECT EnvSensor WITH
+        POWER gnd -- GND_1, vcc -- power_5v_a
+        DATA i2c [slave_address=0x77] sda sda -- GPIO2, scl scl -- GPIO3;
+    """
+    model = _build_model(model_str)
+    j = demol_to_json(model)
+    assert j["board"] is not None
+    assert j["board"]["name"] == "RaspberryPi_5_8GB"
+    assert j["board"]["type"] == "RPI"
+    assert j["board"]["id"] == "RaspberryPi_5_8GB.hwd"
+    assert len(j["board"]["pins"]) > 0
+    assert j["board"]["operational"]["vcc"] == "5V"
+    assert len(j["peripherals"]) == 1
+    assert j["peripherals"][0]["name"] == "BME680"
+
+
+def test_demol_to_json_power_source():
+    model_str = """
+    DEVICE PSDev WITH description="x", author="t", os=raspbian;
+    USE RaspberryPi_5_8GB;
+    USE BME680 [EnvSensor];
+    USE usb_power_bank [Bat];
+    NETWORK [WiFi] WITH ssid="s", password="p";
+    BROKER [MQTT] MyBroker WITH host="localhost", port=1883;
+    CONNECT EnvSensor WITH
+        POWER gnd -- GND_1, vcc -- power_5v_a
+        DATA i2c [slave_address=0x77] sda sda -- GPIO2, scl scl -- GPIO3;
+    """
+    model = _build_model(model_str)
+    j = demol_to_json(model)
+    assert any(p["name"] == "usb_power_bank" for p in j["powerSources"])
+    assert all(p["name"] != "usb_power_bank" for p in j["peripherals"])
+
+
+def test_demol_to_json_pin_optional_status():
+    model_str = """
+    DEVICE PinStatus WITH description="x", author="t", os=raspbian;
+    USE RaspberryPi_5_8GB;
+    USE BME680 [EnvSensor];
+    NETWORK [WiFi] WITH ssid="s", password="p";
+    BROKER [MQTT] MyBroker WITH host="localhost", port=1883;
+    CONNECT EnvSensor WITH
+        POWER gnd -- GND_1, vcc -- power_5v_a
+        DATA i2c [slave_address=0x77] sda sda -- GPIO2, scl scl -- GPIO3;
+    """
+    model = _build_model(model_str)
+    j = demol_to_json(model)
+    board_pins = j["board"]["pins"]
+    statuses = [p["status"] for p in board_pins]
+    assert "essential" in statuses
