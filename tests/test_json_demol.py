@@ -1,5 +1,11 @@
-from demol.transformations.json_demol import json_to_demol
+from demol.transformations.json_demol import demol_to_json, json_to_demol
 from demol.lang.device import get_device_mm
+
+
+def _build_model(demol_str: str):
+    mm = get_device_mm()
+    mm.skip_semantics = True
+    return mm.model_from_str(demol_str)
 
 
 def test_json_to_demol_basic():
@@ -162,3 +168,25 @@ def test_json_to_demol_uart_connection():
     assert "uart [baudrate=115200]" in demol_str
     assert "tx RXD -- GPIO14" in demol_str
     assert "rx TXD -- GPIO15" in demol_str
+
+
+def test_demol_to_json_roundtrip():
+    """JSON serialization then deserialization should produce an equivalent model."""
+    model_str = """
+    DEVICE RoundtripDev WITH description="rt", author="tester", os=raspbian;
+    USE RaspberryPi_5_8GB;
+    USE BME680 [EnvSensor];
+    NETWORK [WiFi] WITH ssid="s", password="p";
+    BROKER [MQTT] MyBroker WITH host="localhost", port=1883;
+    CONNECT EnvSensor WITH
+        POWER gnd -- GND_1, vcc -- power_5v_a
+        DATA i2c [slave_address=0x77] sda sda -- GPIO2, scl scl -- GPIO3
+        @ "dev.sensor.env";
+    """
+    model_a = _build_model(model_str)
+    j = demol_to_json(model_a)
+    demol_str = json_to_demol(j)
+    model_b = _build_model(demol_str)
+    assert model_b.metadata.name == "RoundtripDev"
+    assert len(model_b.components.peripherals) == 1
+    assert len(model_b.connections) == 1
