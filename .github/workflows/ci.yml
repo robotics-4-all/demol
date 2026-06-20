@@ -34,6 +34,22 @@ jobs:
         run: flake8 demol/ --max-line-length=120 --exclude=__pycache__,.venv --extend-ignore=E203,E501
 
   # ===========================================================================
+  # Lint README
+  # Runs `tools/lint-readme.sh` which checks line count, markdownlint,
+  # markdown-link-check, slop patterns, image src resolution, and alt-text.
+  # ===========================================================================
+  lint-readme:
+    name: Lint README
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Run tools/lint-readme.sh
+        run: bash tools/lint-readme.sh
+
+  # ===========================================================================
   # Type Check
   # ===========================================================================
   typecheck:

@@ -1,0 +1,61 @@
+# DeMoL README banned-phrase list
+# Usage: grep -v '^#' tools/slop-patterns.txt | grep -i -f - README.md
+# Phrases below are case-insensitive, partial-match.
+# Lines starting with # are comments and are skipped by passing through grep -v '^#' first.
+empowering
+enabling
+unleashing
+unlocking
+game-changing
+revolutionary
+next-generation
+cutting-edge
+in today's fast-paced
+whether you're a hobbyist
+fast\. easy\. powerful\. flexible
+stop wasting time
+tired of
+loved by
+trusted by
+built by researchers, for researchers
+the future of
+the only .* that does
+we believe
+we hope
+we'd love
+we can't wait
+made with
+crafted with
+join our community
+let's dive in
+buckle up
+ready\? let's go
+the best part\?
+imagine if you could
+from day one
+since the beginning
+quick wins
+pro tip:
+did you know\?
+fun fact:
+happy modeling
+coming soon
+industry-leading
+first and only
+use cases: smart cities
+use cases: industrial iot
+use cases: wearables
+10x faster
+state-of-the-art
+world-class
+best-in-class
+robust and
+powerful and flexible
+seamless
+frictionless
+delightful
+elevate
+transform your
+reimagine
+pioneering
+trailblazing
