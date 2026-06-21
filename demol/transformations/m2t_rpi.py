@@ -7,7 +7,7 @@ publisher/subscriber processes.
 
 import os
 from pathlib import Path
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List
 import logging
 
 import jinja2
@@ -15,37 +15,14 @@ import jinja2
 from demol.definitions import TEMPLATES_RPI
 from demol.lang import build_model
 from .base_generator import BaseCodeGenerator
+from ._template_mapper import PeripheralTemplateMapper
+
+# Backward-compat re-export — prefer importing from demol.transformations._template_mapper
+__all__ = ["PeripheralTemplateMapper", "RPiCodeGenerator"]
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-
-class PeripheralTemplateMapper:
-    """Maps peripheral types to their corresponding Jinja2 templates."""
-
-    @classmethod
-    def get_template(cls, peripheral_ref) -> Optional[str]:
-        """Get template name for a peripheral from its templates section.
-
-        Args:
-            peripheral_ref: Reference to the peripheral object (has .name and .templates)
-
-        Returns:
-            Template filename for raspbian OS, or None if not found
-        """
-        # Check peripheral's templates section for raspbian
-        if hasattr(peripheral_ref, "templates") and peripheral_ref.templates:
-            for template_mapping in peripheral_ref.templates:
-                if template_mapping.os == "raspbian":
-                    return str(template_mapping.template)
-
-        # No template found
-        logger.warning(
-            f"No raspbian template found for peripheral '{peripheral_ref.name}'. "
-            f"Please add a templates section with raspbian mapping to the peripheral model."
-        )
-        return None
 
 
 class RPiCodeGenerator(BaseCodeGenerator):

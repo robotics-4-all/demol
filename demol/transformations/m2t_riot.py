@@ -8,48 +8,20 @@ communication.
 import os
 import logging
 from pathlib import Path
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List
 
 import jinja2
 
 from demol.definitions import TEMPLATES
 from .base_generator import BaseCodeGenerator
+from ._template_mapper import PeripheralTemplateMapper
+
+# Backward-compat re-export — prefer importing from demol.transformations._template_mapper
+__all__ = ["PeripheralTemplateMapper", "RiotCodeGenerator"]
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-
-class PeripheralTemplateMapper:
-    """Maps peripheral types to their corresponding Jinja2 templates for RiotOS."""
-
-    @classmethod
-    def get_template_base(cls, peripheral_ref) -> Optional[str]:
-        """Get template base name for a peripheral.
-
-        Example: if riotos="bme680.c.j2", returns "bme680".
-        """
-        if hasattr(peripheral_ref, "templates") and peripheral_ref.templates:
-            for template_mapping in peripheral_ref.templates:
-                if template_mapping.os == "riotos":
-                    tmpl: str = str(template_mapping.template)
-                    # Strip .c.j2 or .j2
-                    base = tmpl
-                    if tmpl.endswith(".c.j2"):
-                        base = tmpl[:-5]
-                    elif tmpl.endswith(".j2"):
-                        base = tmpl[:-3]
-
-                    # Strip _riot suffix if present
-                    if base.endswith("_riot"):
-                        base = base[:-5]
-                    return base
-
-        # No RIOT template declared in .hwd — skip cleanly. The generate loop
-        # will treat None as "this peripheral has no RIOT support" and move on.
-        # The fail-fast TemplateNotFound check only triggers when riotos= IS
-        # declared but the matching template file is missing (true misconfig).
-        return None
 
 
 class RiotCodeGenerator(BaseCodeGenerator):
