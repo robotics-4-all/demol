@@ -5,6 +5,7 @@ cover the main validation paths. This file adds coverage for the
 private helpers + the structured `analyze_power_budget` / `analyze_*`
 entry points that the CLI depends on.
 """
+
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -101,28 +102,38 @@ def test_get_peripheral_supply_budget_no_op_returns_none():
 
 def test_get_peripheral_supply_budget_5v_with_avg():
     """5V rail default = 1.5A = 7500mW minus board own avg."""
-    board = SimpleNamespace(operational=SimpleNamespace(
-        vcc="5V",
-        avg=SimpleNamespace(value=500, unit="mW"),
-        max=None,
-    ))
+    board = SimpleNamespace(
+        operational=SimpleNamespace(
+            vcc="5V",
+            avg=SimpleNamespace(value=500, unit="mW"),
+            max=None,
+        )
+    )
     result = _get_peripheral_supply_budget_mw(board)
     assert result == pytest.approx(7000.0, rel=1e-3)
 
 
 def test_get_peripheral_supply_budget_3v3_default():
     """3.3V rail default = 0.5A = 1650mW."""
-    board = SimpleNamespace(operational=SimpleNamespace(
-        vcc="3V3", avg=None, max=None,
-    ))
+    board = SimpleNamespace(
+        operational=SimpleNamespace(
+            vcc="3V3",
+            avg=None,
+            max=None,
+        )
+    )
     result = _get_peripheral_supply_budget_mw(board)
     assert result == pytest.approx(1650.0, rel=1e-3)
 
 
 def test_get_peripheral_supply_budget_12v_default():
-    board = SimpleNamespace(operational=SimpleNamespace(
-        vcc="12V", avg=None, max=None,
-    ))
+    board = SimpleNamespace(
+        operational=SimpleNamespace(
+            vcc="12V",
+            avg=None,
+            max=None,
+        )
+    )
     result = _get_peripheral_supply_budget_mw(board)
     assert result == pytest.approx(24000.0, rel=1e-3)
 
@@ -205,10 +216,15 @@ def test_is_optional_no_when_explicitly_empty():
 def test_get_primary_protocol_i2c_wins():
     assert get_primary_protocol([SimpleNamespace(ptype="gpio")])[0].ptype == "gpio"
     assert get_primary_protocol([SimpleNamespace(ptype="i2c")])[0].ptype == "i2c"
-    assert get_primary_protocol([
-        SimpleNamespace(ptype="i2c"),
-        SimpleNamespace(ptype="spi"),
-    ])[0].ptype == "i2c"
+    assert (
+        get_primary_protocol(
+            [
+                SimpleNamespace(ptype="i2c"),
+                SimpleNamespace(ptype="spi"),
+            ]
+        )[0].ptype
+        == "i2c"
+    )
 
 
 def test_classify_peripheral_io_pins_returns_dict_with_expected_keys():
@@ -238,10 +254,12 @@ def test_get_peripheral_attribute_missing_returns_none():
 def test_infer_gpio_mode_actuator_returns_output():
     class FakeActuator:
         pass
+
     assert infer_gpio_mode(FakeActuator()) == "output"
 
 
 def test_infer_gpio_mode_sensor_returns_input():
     class FakeSensor:
         pass
+
     assert infer_gpio_mode(FakeSensor()) == "input"

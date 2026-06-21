@@ -387,9 +387,7 @@ def test_smartconnect_only_model(device_mm):
 
 
 def test_spec_i2c_int_address_converted_to_hex(device_mm):
-    model = device_mm.model_from_str(
-        make_model("USE BME680[Env];", 'SMARTCONNECT Env @ "sensors/env";')
-    )
+    model = device_mm.model_from_str(make_model("USE BME680[Env];", 'SMARTCONNECT Env @ "sensors/env";'))
     conn = model.connections[0]
     i2c_dcs = [dc for dc in conn.dataConns if dc.type == "i2c"]
     assert len(i2c_dcs) == 1
@@ -400,9 +398,7 @@ def test_spec_i2c_int_address_converted_to_hex(device_mm):
 
 
 def test_spec_spi_emits_single_dc_with_no_props(device_mm):
-    model = device_mm.model_from_str(
-        make_model("USE MFRC522[Rfid];", 'SMARTCONNECT Rfid @ "sensors/rfid";')
-    )
+    model = device_mm.model_from_str(make_model("USE MFRC522[Rfid];", 'SMARTCONNECT Rfid @ "sensors/rfid";'))
     conn = model.connections[0]
     spi_dcs = [dc for dc in conn.dataConns if dc.type == "spi"]
     assert len(spi_dcs) == 1
@@ -410,9 +406,7 @@ def test_spec_spi_emits_single_dc_with_no_props(device_mm):
 
 
 def test_spec_pwm_emits_one_dc_per_pin(device_mm):
-    model = device_mm.model_from_str(
-        make_model("USE LedGeneric[Led];", 'SMARTCONNECT Led @ "actuators/led";')
-    )
+    model = device_mm.model_from_str(make_model("USE LedGeneric[Led];", 'SMARTCONNECT Led @ "actuators/led";'))
     conn = model.connections[0]
     pwm_dcs = [dc for dc in conn.dataConns if dc.type == "pwm"]
     assert len(pwm_dcs) >= 1
@@ -422,9 +416,7 @@ def test_spec_pwm_emits_one_dc_per_pin(device_mm):
 
 
 def test_spec_gpio_sensor_infers_input_mode(device_mm):
-    model = device_mm.model_from_str(
-        make_model("USE HCSR04[Dist];", 'SMARTCONNECT Dist @ "sensors/dist";')
-    )
+    model = device_mm.model_from_str(make_model("USE HCSR04[Dist];", 'SMARTCONNECT Dist @ "sensors/dist";'))
     conn = model.connections[0]
     gpio_dcs = [dc for dc in conn.dataConns if dc.type == "gpio"]
     assert len(gpio_dcs) >= 1
@@ -451,6 +443,3 @@ def test_spec_dispatcher_uses_spec_name_for_dc_type():
     _resolve_pins_with_spec(_PWM_SPEC, [(pin, pin.funcs[0])], peripheral_inst, None, pool, sc, data_conns)
     assert len(data_conns) == 1
     assert data_conns[0].type == "pwm"
-
-
-

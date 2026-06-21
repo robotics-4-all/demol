@@ -5,6 +5,7 @@ catches dispatch and argument-parsing regressions that unit tests on
 backend functions would miss (e.g. the esp_iot_device.dev parse bug
 that escaped the test suite until CI's riot-build step found it).
 """
+
 from pathlib import Path
 from unittest.mock import patch
 
@@ -13,7 +14,6 @@ from click.testing import CliRunner
 
 from demol.cli.cli import cli
 from demol.lang.device import get_device_mm
-
 
 VALID_DEV = """
 DEVICE CliDev WITH description="x", author="t", os=raspbian;

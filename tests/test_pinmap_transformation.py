@@ -4,6 +4,7 @@ The pinmap generator (10% baseline coverage) is exercised end-to-end:
 helpers, the structured connection builder, the Markdown formatter, the
 JSON serializer, and the public `generate_pinmap` entry point.
 """
+
 import json
 import os
 from types import SimpleNamespace
@@ -139,15 +140,13 @@ def test_format_props_mixed_values():
 
 
 def test_build_connection_data_power_only():
-    model = _build_model(
-        """
+    model = _build_model("""
         DEVICE PinTest WITH description="x", author="t", os=riotos;
         USE RaspberryPi_5_8GB;
         USE BME680 [EnvSensor];
         CONNECT EnvSensor WITH
             POWER gnd -- GND_1, vcc -- power_5v_a;
-        """
-    )
+        """)
     data = _build_connection_data(model)
     assert len(data) == 1
     entry = data[0]
@@ -160,8 +159,7 @@ def test_build_connection_data_power_only():
 
 
 def test_build_connection_data_i2c_data():
-    model = _build_model(
-        """
+    model = _build_model("""
         DEVICE I2CTest WITH description="x", author="t", os=riotos;
         USE RaspberryPi_5_8GB;
         USE BME680 [EnvSensor];
@@ -169,8 +167,7 @@ def test_build_connection_data_i2c_data():
             POWER gnd -- GND_1, vcc -- power_5v_a
             DATA i2c [slave_address=0x77] sda sda -- GPIO2, scl scl -- GPIO3
             @ "dev.sensor.env";
-        """
-    )
+        """)
     data = _build_connection_data(model)
     assert len(data) == 1
     entry = data[0]
@@ -183,15 +180,13 @@ def test_build_connection_data_i2c_data():
 
 def test_build_connection_data_smartconnect_flag():
     """Connections that the smart_connection resolver adds are flagged."""
-    model = _build_model(
-        """
+    model = _build_model("""
         DEVICE SmartTest WITH description="x", author="t", os=riotos;
         USE RaspberryPi_5_8GB;
         USE BME680 [EnvSensor];
         CONNECT EnvSensor WITH
             POWER gnd -- GND_1, vcc -- power_5v_a;
-        """
-    )
+        """)
     # Mark the first connection as smart
     model.connections[0]._is_smart_connection = True
     data = _build_connection_data(model)
@@ -200,15 +195,13 @@ def test_build_connection_data_smartconnect_flag():
 
 def test_build_connection_data_missing_peripheral_attr_skipped():
     """A connection without a `.peripheral` attribute is skipped, not crashed."""
-    model = _build_model(
-        """
+    model = _build_model("""
         DEVICE SkipTest WITH description="x", author="t", os=riotos;
         USE RaspberryPi_5_8GB;
         USE BME680 [EnvSensor];
         CONNECT EnvSensor WITH
             POWER gnd -- GND_1, vcc -- power_5v_a;
-        """
-    )
+        """)
     conn = model.connections[0]
     # Simulate a connection with no `peripheral` attribute
     if hasattr(conn, "peripheral"):
@@ -221,8 +214,7 @@ def test_build_connection_data_missing_peripheral_attr_skipped():
 
 
 def test_generate_markdown_basic_shape():
-    model = _build_model(
-        """
+    model = _build_model("""
         DEVICE MdTest WITH description="x", author="alice", os=riotos;
         USE RaspberryPi_5_8GB;
         USE BME680 [EnvSensor];
@@ -230,8 +222,7 @@ def test_generate_markdown_basic_shape():
             POWER gnd -- GND_1, vcc -- power_5v_a
             DATA i2c [slave_address=0x77] sda sda -- GPIO2, scl scl -- GPIO3
             @ "dev.sensor.env";
-        """
-    )
+        """)
     connections = _build_connection_data(model)
     md = _generate_markdown(model, connections)
 
@@ -252,14 +243,12 @@ def test_generate_markdown_basic_shape():
 
 
 def test_generate_markdown_no_author_omits_line():
-    model = _build_model(
-        """
+    model = _build_model("""
         DEVICE NoAuth WITH description="x", author="x", os=riotos;
         USE RaspberryPi_5_8GB;
         USE BME680 [EnvSensor];
         CONNECT EnvSensor WITH POWER gnd -- GND_1, vcc -- power_5v_a;
-        """
-    )
+        """)
     if hasattr(model.metadata, "author"):
         delattr(model.metadata, "author")
     connections = _build_connection_data(model)
@@ -268,14 +257,12 @@ def test_generate_markdown_no_author_omits_line():
 
 
 def test_generate_markdown_smartconnect_badge():
-    model = _build_model(
-        """
+    model = _build_model("""
         DEVICE SmartBadge WITH description="x", author="t", os=riotos;
         USE RaspberryPi_5_8GB;
         USE BME680 [EnvSensor];
         CONNECT EnvSensor WITH POWER gnd -- GND_1, vcc -- power_5v_a;
-        """
-    )
+        """)
     model.connections[0]._is_smart_connection = True
     connections = _build_connection_data(model)
     md = _generate_markdown(model, connections)
@@ -285,16 +272,14 @@ def test_generate_markdown_smartconnect_badge():
 
 
 def test_generate_markdown_data_with_no_pin_number():
-    model = _build_model(
-        """
+    model = _build_model("""
         DEVICE NoPinNum WITH description="x", author="t", os=riotos;
         USE RaspberryPi_5_8GB;
         USE BME680 [EnvSensor];
         CONNECT EnvSensor WITH
             POWER gnd -- GND_1, vcc -- power_5v_a
             DATA i2c [slave_address=0x77] sda sda -- GPIO2, scl scl -- GPIO3;
-        """
-    )
+        """)
     # Drop the pin number on one of the board pins to exercise "?" fallback
     board = model.components.board
     for pin in board.pins:
@@ -309,14 +294,12 @@ def test_generate_markdown_data_with_no_pin_number():
 
 
 def test_generate_json_shape():
-    model = _build_model(
-        """
+    model = _build_model("""
         DEVICE JsonTest WITH description="x", author="bob", os=riotos;
         USE RaspberryPi_5_8GB;
         USE BME680 [EnvSensor];
         CONNECT EnvSensor WITH POWER gnd -- GND_1, vcc -- power_5v_a;
-        """
-    )
+        """)
     connections = _build_connection_data(model)
     j = _generate_json(model, connections)
     assert j["device"] == "JsonTest"
@@ -326,14 +309,12 @@ def test_generate_json_shape():
 
 
 def test_generate_json_no_author_returns_empty_string():
-    model = _build_model(
-        """
+    model = _build_model("""
         DEVICE NoAuthJson WITH description="x", author="x", os=riotos;
         USE RaspberryPi_5_8GB;
         USE BME680 [EnvSensor];
         CONNECT EnvSensor WITH POWER gnd -- GND_1, vcc -- power_5v_a;
-        """
-    )
+        """)
     if hasattr(model.metadata, "author"):
         delattr(model.metadata, "author")
     j = _generate_json(model, [])
@@ -344,8 +325,7 @@ def test_generate_json_no_author_returns_empty_string():
 
 
 def test_generate_pinmap_writes_markdown_and_json(tmp_path):
-    model = _build_model(
-        """
+    model = _build_model("""
         DEVICE FullTest WITH description="x", author="t", os=riotos;
         USE RaspberryPi_5_8GB;
         USE BME680 [EnvSensor];
@@ -353,8 +333,7 @@ def test_generate_pinmap_writes_markdown_and_json(tmp_path):
             POWER gnd -- GND_1, vcc -- power_5v_a
             DATA i2c [slave_address=0x77] sda sda -- GPIO2, scl scl -- GPIO3
             @ "dev.sensor.env";
-        """
-    )
+        """)
     files = generate_pinmap(model, output_dir=str(tmp_path))
     assert len(files) == 2
     md_path = tmp_path / "FullTest_pinmap.md"
@@ -369,14 +348,12 @@ def test_generate_pinmap_writes_markdown_and_json(tmp_path):
 
 def test_generate_pinmap_default_output_dir_creates_files_in_cwd(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
-    model = _build_model(
-        """
+    model = _build_model("""
         DEVICE CwdTest WITH description="x", author="t", os=riotos;
         USE RaspberryPi_5_8GB;
         USE BME680 [EnvSensor];
         CONNECT EnvSensor WITH POWER gnd -- GND_1, vcc -- power_5v_a;
-        """
-    )
+        """)
     files = generate_pinmap(model)
     assert any(f.endswith("CwdTest_pinmap.md") for f in files)
     assert any(f.endswith("CwdTest_pinmap.json") for f in files)

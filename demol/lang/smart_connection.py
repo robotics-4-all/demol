@@ -194,6 +194,7 @@ class ProtocolSpec:
             (e.g. lambda f: f"I2C-{f.ptype.upper()}" for I2C).
         build_dc: callable(spec, pin_mappings, props) -> SimpleNamespace dc.
     """
+
     name: str
     find_pin: Callable
     map_function: Callable
@@ -477,8 +478,7 @@ def _resolve_pins_with_spec(spec, pins, peripheral_inst, peripheral_ref, pool, s
             elif not optional:
                 raise_validation_error(
                     sc,
-                    f"No available {spec.name.upper()} board pin "
-                    f"for '{pin.name}' of '{peripheral_inst.name}'.",
+                    f"No available {spec.name.upper()} board pin " f"for '{pin.name}' of '{peripheral_inst.name}'.",
                     f"SmartConnect-{spec.name.upper()}",
                 )
 

@@ -5,6 +5,7 @@ public `validate_model_file` / `validate_models` entry points are
 exercised end-to-end, including the rich and the plain-text fallback
 paths.
 """
+
 import os
 import warnings
 from pathlib import Path
@@ -21,7 +22,6 @@ from demol.lang.validation import (
     validate_model_file,
     validate_models,
 )
-
 
 # ── ValidationStatus / ACTIVE_VALIDATIONS / ValidationResult ────────────────
 
@@ -52,24 +52,22 @@ def test_validation_result_rel_path(tmp_path, monkeypatch):
 
 
 def test_validation_result_has_issues_false_when_empty():
-    r = ValidationResult(
-        file_path="x.dev", status=ValidationStatus.PASS, warnings=[], errors=[]
-    )
+    r = ValidationResult(file_path="x.dev", status=ValidationStatus.PASS, warnings=[], errors=[])
     assert r.has_issues is False
 
 
 def test_validation_result_has_issues_true_with_warning():
     r = ValidationResult(
-        file_path="x.dev", status=ValidationStatus.WARN,
-        warnings=["w"], errors=[],
+        file_path="x.dev",
+        status=ValidationStatus.WARN,
+        warnings=["w"],
+        errors=[],
     )
     assert r.has_issues is True
 
 
 def test_validation_result_has_issues_true_with_error():
-    r = ValidationResult(
-        file_path="x.dev", status=ValidationStatus.FAIL, warnings=[], errors=["e"]
-    )
+    r = ValidationResult(file_path="x.dev", status=ValidationStatus.FAIL, warnings=[], errors=["e"])
     assert r.has_issues is True
 
 

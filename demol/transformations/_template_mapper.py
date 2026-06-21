@@ -11,6 +11,7 @@ Methods:
         name (e.g., "bme680") for the "riotos" OS, with `.c.j2`/`.j2` and
         optional `_riot` suffix removed.
 """
+
 import logging
 from typing import Optional
 

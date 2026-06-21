@@ -8,6 +8,7 @@ themselves. Templates are loaded via jinja2's FileSystemLoader with an
 empty context (the templates have no Jinja directives, so the output
 is the file content unchanged).
 """
+
 import textwrap
 from pathlib import Path
 

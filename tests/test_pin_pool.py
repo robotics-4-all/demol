@@ -13,6 +13,7 @@ Covers:
 These tests use synthetic ``SimpleNamespace`` boards to exercise PinPool
 in isolation, so they do not depend on the metamodel or any example files.
 """
+
 from types import SimpleNamespace
 
 import pytest
@@ -26,7 +27,6 @@ from demol.lang.pin_pool import (
     is_power_pin,
 )
 from demol.lang.smart_connection import classify_peripheral_io_pins, is_optional
-
 
 # ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -92,12 +92,14 @@ def test_is_optional_false_when_not_marked():
 
 
 def test_pinpool_init_indexes_pins_by_name_and_sorts():
-    board = _board([
-        _pin("GPIO27", 13, funcs=[_func("gpio")]),
-        _pin("VCC", 1, ptype="3V3"),
-        _pin("GPIO2", 3, funcs=[_func("sda", bus=1), _func("gpio")]),
-        _pin("GND", 6, ptype="GND"),
-    ])
+    board = _board(
+        [
+            _pin("GPIO27", 13, funcs=[_func("gpio")]),
+            _pin("VCC", 1, ptype="3V3"),
+            _pin("GPIO2", 3, funcs=[_func("sda", bus=1), _func("gpio")]),
+            _pin("GND", 6, ptype="GND"),
+        ]
+    )
     pool = PinPool(board)
 
     assert set(pool._all_pins.keys()) == {"GPIO27", "VCC", "GPIO2", "GND"}
@@ -157,10 +159,12 @@ def test_is_available_i2c_pin_can_host_power_too():
 
 
 def test_mark_used_from_connections_skips_smart_connection_synthetic():
-    board = _board([
-        _pin("GND", 6, ptype="GND"),
-        _pin("GPIO2", 3, funcs=[_func("gpio")]),
-    ])
+    board = _board(
+        [
+            _pin("GND", 6, ptype="GND"),
+            _pin("GPIO2", 3, funcs=[_func("gpio")]),
+        ]
+    )
     pool = PinPool(board)
 
     manual_conn = SimpleNamespace(
@@ -171,9 +175,12 @@ def test_mark_used_from_connections_skips_smart_connection_synthetic():
             SimpleNamespace(fromPin="GND", toPin="GND_SENSOR"),
         ],
         dataConns=[
-            SimpleNamespace(type="gpio", pins=[
-                SimpleNamespace(fromPin="GPIO2", toPin="SIG"),
-            ]),
+            SimpleNamespace(
+                type="gpio",
+                pins=[
+                    SimpleNamespace(fromPin="GPIO2", toPin="SIG"),
+                ],
+            ),
         ],
     )
     synthetic_conn = SimpleNamespace(
@@ -196,11 +203,13 @@ def test_mark_used_from_connections_skips_smart_connection_synthetic():
 
 
 def test_find_power_pin_voltage_match_returns_unused_first():
-    board = _board([
-        _pin("GND", 6, ptype="GND"),
-        _pin("3V3_A", 1, ptype="3V3"),
-        _pin("3V3_B", 17, ptype="3V3"),
-    ])
+    board = _board(
+        [
+            _pin("GND", 6, ptype="GND"),
+            _pin("3V3_A", 1, ptype="3V3"),
+            _pin("3V3_B", 17, ptype="3V3"),
+        ]
+    )
     pool = PinPool(board)
 
     # No prior usage → should pick the first by pin number
@@ -211,10 +220,12 @@ def test_find_power_pin_voltage_match_returns_unused_first():
 
 
 def test_find_power_pin_falls_back_to_used_shareable_pin():
-    board = _board([
-        _pin("3V3_A", 1, ptype="3V3"),
-        _pin("3V3_B", 17, ptype="3V3"),
-    ])
+    board = _board(
+        [
+            _pin("3V3_A", 1, ptype="3V3"),
+            _pin("3V3_B", 17, ptype="3V3"),
+        ]
+    )
     pool = PinPool(board)
 
     pool.mark_used("3V3_A", "Sensor1", "POWER")
@@ -246,9 +257,11 @@ def test_find_power_pin_no_match_returns_none():
 
 
 def test_find_io_pin_by_function_matches_simple_function():
-    board = _board([
-        _pin("GPIO4", 7, funcs=[_func("gpio"), _func("sda", bus=1)]),
-    ])
+    board = _board(
+        [
+            _pin("GPIO4", 7, funcs=[_func("gpio"), _func("sda", bus=1)]),
+        ]
+    )
     pool = PinPool(board)
 
     pin = pool.find_io_pin_by_function("sda")
@@ -257,10 +270,12 @@ def test_find_io_pin_by_function_matches_simple_function():
 
 
 def test_find_io_pin_by_function_respects_bus_filter():
-    board = _board([
-        _pin("GPIO2", 3, funcs=[_func("sda", bus=1)]),
-        _pin("GPIO4", 7, funcs=[_func("sda", bus=0)]),  # different bus
-    ])
+    board = _board(
+        [
+            _pin("GPIO2", 3, funcs=[_func("sda", bus=1)]),
+            _pin("GPIO4", 7, funcs=[_func("sda", bus=0)]),  # different bus
+        ]
+    )
     pool = PinPool(board)
 
     # bus=None → first match
@@ -282,10 +297,12 @@ def test_find_io_pin_by_function_returns_none_when_all_bus_mismatch():
 
 
 def test_find_gpio_pin_returns_first_available():
-    board = _board([
-        _pin("GPIO2", 3, funcs=[_func("sda", bus=1), _func("gpio")]),
-        _pin("GPIO4", 7, funcs=[_func("gpio")]),
-    ])
+    board = _board(
+        [
+            _pin("GPIO2", 3, funcs=[_func("sda", bus=1), _func("gpio")]),
+            _pin("GPIO4", 7, funcs=[_func("gpio")]),
+        ]
+    )
     pool = PinPool(board)
 
     pin = pool.find_gpio_pin()
@@ -294,10 +311,12 @@ def test_find_gpio_pin_returns_first_available():
 
 
 def test_find_gpio_pin_skips_exclusive_use():
-    board = _board([
-        _pin("GPIO2", 3, funcs=[_func("sda", bus=1), _func("gpio")]),
-        _pin("GPIO4", 7, funcs=[_func("gpio")]),
-    ])
+    board = _board(
+        [
+            _pin("GPIO2", 3, funcs=[_func("sda", bus=1), _func("gpio")]),
+            _pin("GPIO4", 7, funcs=[_func("gpio")]),
+        ]
+    )
     pool = PinPool(board)
 
     pool.mark_used("GPIO2", "BME680", "I2C-SDA")
@@ -308,10 +327,12 @@ def test_find_gpio_pin_skips_exclusive_use():
 
 
 def test_find_pwm_pin_with_channel_filter():
-    board = _board([
-        _pin("GPIO12", 32, funcs=[_func("pwm", channel=0)]),
-        _pin("GPIO13", 33, funcs=[_func("pwm", channel=1)]),
-    ])
+    board = _board(
+        [
+            _pin("GPIO12", 32, funcs=[_func("pwm", channel=0)]),
+            _pin("GPIO13", 33, funcs=[_func("pwm", channel=1)]),
+        ]
+    )
     pool = PinPool(board)
 
     # No channel filter → first PWM pin by number

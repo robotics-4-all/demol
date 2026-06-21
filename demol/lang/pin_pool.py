@@ -240,6 +240,4 @@ from .smart_connection import (  # noqa: E402,F401  (re-exported for convenience
     is_power_pin,
 )
 
-
-__all__ = ["PinPool", "is_io_pin", "is_power_pin",
-           "I2C_FUNCTIONS", "SPI_FUNCTIONS", "UART_FUNCTIONS"]
+__all__ = ["PinPool", "is_io_pin", "is_power_pin", "I2C_FUNCTIONS", "SPI_FUNCTIONS", "UART_FUNCTIONS"]
