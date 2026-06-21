@@ -18,8 +18,9 @@ The resolution algorithm:
 from __future__ import annotations
 
 import logging
+from dataclasses import dataclass
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, Callable
 
 from demol.lang.semantics.core import raise_validation_error
 
@@ -171,6 +172,140 @@ def infer_gpio_mode(peripheral_ref):
     return "input"
 
 
+# ============================================================================
+# ProtocolSpec dispatcher (P0 refactor — replaces 5 hand-rolled resolvers)
+# ============================================================================
+
+
+@dataclass(frozen=True)
+class ProtocolSpec:
+    """Per-protocol configuration driving the unified dispatcher.
+
+    Fields:
+        name: protocol identifier ("i2c"/"spi"/"uart"/"pwm"/"gpio").
+        find_pin: callable(pool, pin, func, bus, channel) -> board_pin.
+        map_function: callable(func.ptype) -> board-side function name
+            (UART inverts tx<->rx; others are identity).
+        build_props: callable(pin, peripheral_inst, func) -> list[SimpleNamespace].
+        group_by_bus: True for bus-grouped protocols (I2C/SPI/UART), False for per-pin (PWM/GPIO).
+        all_resolved_gate: True if the DC is suppressed when any mandatory pin
+            fails to resolve; False if a DC is emitted per successful pin.
+        mark_label: callable(func) -> label string for pool.mark_used
+            (e.g. lambda f: f"I2C-{f.ptype.upper()}" for I2C).
+        build_dc: callable(spec, pin_mappings, props) -> SimpleNamespace dc.
+    """
+    name: str
+    find_pin: Callable
+    map_function: Callable
+    build_props: Callable
+    group_by_bus: bool
+    all_resolved_gate: bool
+    mark_label: Callable
+    build_dc: Callable
+
+
+def _find_io_pin(pool, pin, func, bus=None, channel=None):
+    return pool.find_io_pin_by_function(func.ptype, bus=bus)
+
+
+def _find_uart_pin(pool, pin, func, bus=None, channel=None):
+    board_func_type = "rx" if func.ptype == "tx" else "tx"
+    return pool.find_io_pin_by_function(board_func_type, bus=bus)
+
+
+def _find_pwm_pin(pool, pin, func, bus=None, channel=None):
+    return pool.find_pwm_pin(channel=getattr(func, "channel", None))
+
+
+def _find_gpio_pin(pool, pin, func, bus=None, channel=None):
+    return pool.find_gpio_pin()
+
+
+def _i2c_props(pin, peripheral_inst, func):
+    addr = get_instance_attribute(peripheral_inst, "i2c_address")
+    if isinstance(addr, int):
+        addr = hex(addr)
+    return [SimpleNamespace(name="slave_address", value=addr)]
+
+
+def _uart_props(pin, peripheral_inst, func):
+    baud = get_instance_attribute(peripheral_inst, "uart_baudrate")
+    if baud is None:
+        baud = 9600
+    return [SimpleNamespace(name="baudrate", value=baud)]
+
+
+def _gpio_props(pin, peripheral_inst, func):
+    peripheral_ref = peripheral_inst.ref
+    default_mode = infer_gpio_mode(peripheral_ref)
+    pin_modes = _get_gpio_modes(peripheral_ref)
+    return [SimpleNamespace(name="mode", value=pin_modes.get(pin.name, default_mode))]
+
+
+def _empty_props(pin, peripheral_inst, func):
+    return []
+
+
+def _build_dc(spec, pin_mappings, props):
+    return SimpleNamespace(type=spec.name, props=props, pins=pin_mappings)
+
+
+_I2C_SPEC = ProtocolSpec(
+    name="i2c",
+    find_pin=_find_io_pin,
+    map_function=lambda ptype: ptype,
+    build_props=_i2c_props,
+    group_by_bus=True,
+    all_resolved_gate=True,
+    mark_label=lambda func: f"I2C-{func.ptype.upper()}",
+    build_dc=_build_dc,
+)
+
+_SPI_SPEC = ProtocolSpec(
+    name="spi",
+    find_pin=_find_io_pin,
+    map_function=lambda ptype: ptype,
+    build_props=_empty_props,
+    group_by_bus=True,
+    all_resolved_gate=True,
+    mark_label=lambda func: "SPI",
+    build_dc=_build_dc,
+)
+
+_UART_SPEC = ProtocolSpec(
+    name="uart",
+    find_pin=_find_uart_pin,
+    map_function=lambda ptype: "rx" if ptype == "tx" else "tx",
+    build_props=_uart_props,
+    group_by_bus=True,
+    all_resolved_gate=True,
+    mark_label=lambda func: "UART",
+    build_dc=_build_dc,
+)
+
+_PWM_SPEC = ProtocolSpec(
+    name="pwm",
+    find_pin=_find_pwm_pin,
+    map_function=lambda ptype: ptype,
+    build_props=_empty_props,
+    group_by_bus=False,
+    all_resolved_gate=False,
+    mark_label=lambda func: "PWM",
+    build_dc=_build_dc,
+)
+
+_GPIO_SPEC = ProtocolSpec(
+    name="gpio",
+    find_pin=_find_gpio_pin,
+    map_function=lambda ptype: ptype,
+    build_props=_gpio_props,
+    group_by_bus=False,
+    all_resolved_gate=False,
+    mark_label=lambda func: "GPIO",
+    build_dc=_build_dc,
+)
+
+
 # PinPool was extracted to its own module in the P0 refactor.
 # Imported here (AFTER helpers and protocol constants are defined above)
 # so that pin_pool.py can import them back without a circular-import error.
@@ -260,200 +395,92 @@ def _resolve_peripheral_pins(peripheral_ref, peripheral_inst, board, pool, sc):
 
     # 3. Resolve by priority: I2C > SPI > UART > PWM > GPIO
     if classified["i2c"]:
-        _resolve_i2c_pins(classified["i2c"], peripheral_inst, peripheral_ref, pool, sc, data_conns)
+        _resolve_pins_with_spec(_I2C_SPEC, classified["i2c"], peripheral_inst, peripheral_ref, pool, sc, data_conns)
 
     if classified["spi"]:
-        _resolve_spi_pins(classified["spi"], peripheral_inst, pool, sc, data_conns)
+        _resolve_pins_with_spec(_SPI_SPEC, classified["spi"], peripheral_inst, peripheral_ref, pool, sc, data_conns)
 
     if classified["uart"]:
-        _resolve_uart_pins(classified["uart"], peripheral_inst, peripheral_ref, pool, sc, data_conns)
+        _resolve_pins_with_spec(_UART_SPEC, classified["uart"], peripheral_inst, peripheral_ref, pool, sc, data_conns)
 
     if classified["pwm"]:
-        _resolve_pwm_pins(classified["pwm"], peripheral_inst, pool, sc, data_conns)
+        _resolve_pins_with_spec(_PWM_SPEC, classified["pwm"], peripheral_inst, peripheral_ref, pool, sc, data_conns)
 
     if classified["gpio"]:
-        _resolve_gpio_pins(classified["gpio"], peripheral_inst, peripheral_ref, pool, sc, data_conns)
+        _resolve_pins_with_spec(_GPIO_SPEC, classified["gpio"], peripheral_inst, peripheral_ref, pool, sc, data_conns)
 
     return power_conns, data_conns
 
 
-def _resolve_i2c_pins(i2c_pins, peripheral_inst, peripheral_ref, pool, sc, data_conns):
-    """Resolve I2C pins. Requires i2c_address attribute on the peripheral."""
-    slave_addr = get_instance_attribute(peripheral_inst, "i2c_address")
-    if slave_addr is None:
-        raise_validation_error(
-            sc,
-            f"Peripheral '{peripheral_inst.name}' uses I2C but has no "
-            f"'i2c_address' attribute. Add i2c_address to its ATTRIBUTES section.",
-            "SmartConnect-I2C",
-        )
+def _resolve_pins_with_spec(spec, pins, peripheral_inst, peripheral_ref, pool, sc, data_conns):
+    if not pins:
         return
 
-    # Group pins by bus number
-    buses: dict[int, list[Any]] = {}
-    for pin, func in i2c_pins:
-        bus = getattr(func, "bus", 0)
-        buses.setdefault(bus, []).append((pin, func))
-
-    for bus_num, pins_on_bus in buses.items():
-        pin_mappings = []
-        all_resolved = True
-
-        for pin, func in pins_on_bus:
-            optional = is_optional(pin)
-            board_pin = pool.find_io_pin_by_function(func.ptype, bus=bus_num)
-
-            if board_pin:
-                pm = SimpleNamespace(
-                    function=func.ptype,
-                    fromPin=pin.name,
-                    toPin=board_pin.name,
-                )
-                copy_tx_location(sc, pm)
-                pin_mappings.append(pm)
-                pool.mark_used(board_pin.name, peripheral_inst.name, f"I2C-{func.ptype.upper()}")
-            elif not optional:
-                raise_validation_error(
-                    sc,
-                    f"No available {func.ptype}-{bus_num} board pin " f"for '{pin.name}' of '{peripheral_inst.name}'.",
-                    "SmartConnect-I2C",
-                )
-                all_resolved = False
-
-        if pin_mappings and all_resolved:
-            # Format slave_address as hex string for compatibility with existing validators
-            addr_value = slave_addr
-            if isinstance(addr_value, int):
-                addr_value = hex(addr_value)
-
-            dc = SimpleNamespace(
-                type="i2c",
-                props=[SimpleNamespace(name="slave_address", value=addr_value)],
-                pins=pin_mappings,
-            )
-            copy_tx_location(sc, dc)
-            data_conns.append(dc)
-
-
-def _resolve_spi_pins(spi_pins, peripheral_inst, pool, sc, data_conns):
-    """Resolve SPI pins."""
-    # Group pins by bus number
-    buses: dict[int, list[Any]] = {}
-    for pin, func in spi_pins:
-        bus = getattr(func, "bus", 0)
-        buses.setdefault(bus, []).append((pin, func))
-
-    for bus_num, pins_on_bus in buses.items():
-        pin_mappings = []
-        all_resolved = True
-
-        for pin, func in pins_on_bus:
-            optional = is_optional(pin)
-            board_pin = pool.find_io_pin_by_function(func.ptype, bus=bus_num)
-
-            if board_pin:
-                pm = SimpleNamespace(
-                    function=func.ptype,
-                    fromPin=pin.name,
-                    toPin=board_pin.name,
-                )
-                copy_tx_location(sc, pm)
-                pin_mappings.append(pm)
-                pool.mark_used(board_pin.name, peripheral_inst.name, "SPI")
-            elif not optional:
-                raise_validation_error(
-                    sc,
-                    f"No available {func.ptype}-{bus_num} board pin " f"for '{pin.name}' of '{peripheral_inst.name}'.",
-                    "SmartConnect-SPI",
-                )
-                all_resolved = False
-
-        if pin_mappings and all_resolved:
-            dc = SimpleNamespace(
-                type="spi",
-                props=[],
-                pins=pin_mappings,
-            )
-            copy_tx_location(sc, dc)
-            data_conns.append(dc)
-
-
-def _resolve_uart_pins(uart_pins, peripheral_inst, peripheral_ref, pool, sc, data_conns):
-    """Resolve UART pins with TX/RX crossover.
-
-    UART crossover: peripheral TX connects to board RX line,
-    peripheral RX connects to board TX line.
-    """
-    baudrate = get_instance_attribute(peripheral_inst, "uart_baudrate")
-    if baudrate is None:
-        baudrate = 9600  # Default
-
-    # Group pins by bus number
-    buses: dict[int, list[Any]] = {}
-    for pin, func in uart_pins:
-        bus = getattr(func, "bus", 0)
-        buses.setdefault(bus, []).append((pin, func))
-
-    for bus_num, pins_on_bus in buses.items():
-        pin_mappings = []
-        all_resolved = True
-
-        for pin, func in pins_on_bus:
-            optional = is_optional(pin)
-            # CROSSOVER: peripheral TX needs board RX, peripheral RX needs board TX
-            board_func_type = "rx" if func.ptype == "tx" else "tx"
-            board_pin = pool.find_io_pin_by_function(board_func_type, bus=bus_num)
-
-            if board_pin:
-                pm = SimpleNamespace(
-                    function=func.ptype,
-                    fromPin=pin.name,
-                    toPin=board_pin.name,
-                )
-                copy_tx_location(sc, pm)
-                pin_mappings.append(pm)
-                pool.mark_used(board_pin.name, peripheral_inst.name, "UART")
-            elif not optional:
-                raise_validation_error(
-                    sc,
-                    f"No available {board_func_type}-{bus_num} board pin "
-                    f"for '{pin.name}' of '{peripheral_inst.name}'.",
-                    "SmartConnect-UART",
-                )
-                all_resolved = False
-
-        if pin_mappings and all_resolved:
-            dc = SimpleNamespace(
-                type="uart",
-                props=[SimpleNamespace(name="baudrate", value=baudrate)],
-                pins=pin_mappings,
-            )
-            copy_tx_location(sc, dc)
-            data_conns.append(dc)
-
-
-def _resolve_pwm_pins(pwm_pins, peripheral_inst, pool, sc, data_conns):
-    """Resolve PWM pins."""
-    for pin, func in pwm_pins:
-        optional = is_optional(pin)
-        channel = getattr(func, "channel", None)
-        board_pin = pool.find_pwm_pin(channel=channel)
-
-        if board_pin:
-            dc = SimpleNamespace(
-                type="pwm",
-                props=[],
-                pins=[SimpleNamespace(fromPin=pin.name, toPin=board_pin.name)],
-            )
-            copy_tx_location(sc, dc)
-            data_conns.append(dc)
-            pool.mark_used(board_pin.name, peripheral_inst.name, "PWM")
-        elif not optional:
+    if spec.name == "i2c":
+        slave_addr = get_instance_attribute(peripheral_inst, "i2c_address")
+        if slave_addr is None:
             raise_validation_error(
                 sc,
-                f"No available PWM board pin " f"for '{pin.name}' of '{peripheral_inst.name}'.",
-                "SmartConnect-PWM",
+                f"Peripheral '{peripheral_inst.name}' uses I2C but has no "
+                f"'i2c_address' attribute. Add i2c_address to its ATTRIBUTES section.",
+                f"SmartConnect-{spec.name.upper()}",
             )
+            return
+
+    if spec.group_by_bus:
+        buses = {}
+        for pin, func in pins:
+            bus = getattr(func, "bus", 0)
+            buses.setdefault(bus, []).append((pin, func))
+
+        for bus_num, pins_on_bus in buses.items():
+            pin_mappings = []
+            all_resolved = True
+            for pin, func in pins_on_bus:
+                optional = is_optional(pin)
+                channel = getattr(func, "channel", None)
+                board_pin = spec.find_pin(pool, pin, func, bus=bus_num, channel=channel)
+                if board_pin:
+                    pm = SimpleNamespace(function=func.ptype, fromPin=pin.name, toPin=board_pin.name)
+                    copy_tx_location(sc, pm)
+                    pin_mappings.append(pm)
+                    pool.mark_used(board_pin.name, peripheral_inst.name, spec.mark_label(func))
+                elif not optional:
+                    raise_validation_error(
+                        sc,
+                        f"No available {spec.map_function(func.ptype)}-{bus_num} board pin "
+                        f"for '{pin.name}' of '{peripheral_inst.name}'.",
+                        f"SmartConnect-{spec.name.upper()}",
+                    )
+                    all_resolved = False
+
+            if spec.all_resolved_gate and not all_resolved:
+                continue
+            if not pin_mappings:
+                continue
+            first_pin, first_func = pins_on_bus[0]
+            props = spec.build_props(first_pin, peripheral_inst, first_func)
+            dc = spec.build_dc(spec, pin_mappings, props)
+            copy_tx_location(sc, dc)
+            data_conns.append(dc)
+    else:
+        for pin, func in pins:
+            optional = is_optional(pin)
+            channel = getattr(func, "channel", None)
+            board_pin = spec.find_pin(pool, pin, func, channel=channel)
+            if board_pin:
+                props = spec.build_props(pin, peripheral_inst, func)
+                dc = spec.build_dc(spec, [SimpleNamespace(fromPin=pin.name, toPin=board_pin.name)], props)
+                copy_tx_location(sc, dc)
+                data_conns.append(dc)
+                pool.mark_used(board_pin.name, peripheral_inst.name, spec.mark_label(func))
+            elif not optional:
+                raise_validation_error(
+                    sc,
+                    f"No available {spec.name.upper()} board pin "
+                    f"for '{pin.name}' of '{peripheral_inst.name}'.",
+                    f"SmartConnect-{spec.name.upper()}",
+                )
 
 
 def _get_gpio_modes(peripheral_ref):
@@ -464,33 +491,6 @@ def _get_gpio_modes(peripheral_ref):
     if hasattr(gpio_modes_attr, "items"):
         return {item.key: item.value for item in gpio_modes_attr.items}
     return {}
-
-
-def _resolve_gpio_pins(gpio_pins, peripheral_inst, peripheral_ref, pool, sc, data_conns):
-    """Resolve GPIO pins. Mode from gpio_modes attribute, falling back to type inference."""
-    default_mode = infer_gpio_mode(peripheral_ref)
-    pin_modes = _get_gpio_modes(peripheral_ref)
-
-    for pin, func in gpio_pins:
-        optional = is_optional(pin)
-        board_pin = pool.find_gpio_pin()
-        mode = pin_modes.get(pin.name, default_mode)
-
-        if board_pin:
-            dc = SimpleNamespace(
-                type="gpio",
-                props=[SimpleNamespace(name="mode", value=mode)],
-                pins=[SimpleNamespace(fromPin=pin.name, toPin=board_pin.name)],
-            )
-            copy_tx_location(sc, dc)
-            data_conns.append(dc)
-            pool.mark_used(board_pin.name, peripheral_inst.name, "GPIO")
-        elif not optional:
-            raise_validation_error(
-                sc,
-                f"No available GPIO board pin " f"for '{pin.name}' of '{peripheral_inst.name}'.",
-                "SmartConnect-GPIO",
-            )
 
 
 def _synthesize_connection(sc, peripheral_inst, power_conns, data_conns):

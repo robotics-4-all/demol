@@ -384,3 +384,73 @@ def test_smartconnect_only_model(device_mm):
 
     assert len(manual) == 0
     assert len(smart) == 1
+
+
+def test_spec_i2c_int_address_converted_to_hex(device_mm):
+    model = device_mm.model_from_str(
+        make_model("USE BME680[Env];", 'SMARTCONNECT Env @ "sensors/env";')
+    )
+    conn = model.connections[0]
+    i2c_dcs = [dc for dc in conn.dataConns if dc.type == "i2c"]
+    assert len(i2c_dcs) == 1
+    addr_props = [p for p in i2c_dcs[0].props if p.name == "slave_address"]
+    assert len(addr_props) == 1
+    assert isinstance(addr_props[0].value, str)
+    assert addr_props[0].value.startswith("0x")
+
+
+def test_spec_spi_emits_single_dc_with_no_props(device_mm):
+    model = device_mm.model_from_str(
+        make_model("USE MFRC522[Rfid];", 'SMARTCONNECT Rfid @ "sensors/rfid";')
+    )
+    conn = model.connections[0]
+    spi_dcs = [dc for dc in conn.dataConns if dc.type == "spi"]
+    assert len(spi_dcs) == 1
+    assert spi_dcs[0].props == []
+
+
+def test_spec_pwm_emits_one_dc_per_pin(device_mm):
+    model = device_mm.model_from_str(
+        make_model("USE LedGeneric[Led];", 'SMARTCONNECT Led @ "actuators/led";')
+    )
+    conn = model.connections[0]
+    pwm_dcs = [dc for dc in conn.dataConns if dc.type == "pwm"]
+    assert len(pwm_dcs) >= 1
+    for dc in pwm_dcs:
+        assert len(dc.pins) == 1
+        assert dc.props == []
+
+
+def test_spec_gpio_sensor_infers_input_mode(device_mm):
+    model = device_mm.model_from_str(
+        make_model("USE HCSR04[Dist];", 'SMARTCONNECT Dist @ "sensors/dist";')
+    )
+    conn = model.connections[0]
+    gpio_dcs = [dc for dc in conn.dataConns if dc.type == "gpio"]
+    assert len(gpio_dcs) >= 1
+    for dc in gpio_dcs:
+        mode_props = [p for p in dc.props if p.name == "mode"]
+        assert len(mode_props) == 1
+        assert mode_props[0].value in ("input", "output")
+
+
+def test_spec_dispatcher_uses_spec_name_for_dc_type():
+    from demol.lang.smart_connection import _PWM_SPEC, _resolve_pins_with_spec
+    from types import SimpleNamespace
+
+    pin = SimpleNamespace(name="din", optional=None, funcs=[SimpleNamespace(ptype="pwm", channel=0)])
+    peripheral_inst = SimpleNamespace(name="X", ref=None)
+    sc = SimpleNamespace(name="sc")
+    data_conns = []
+
+    fake_board_pin = SimpleNamespace(name="GPIO18", number=18)
+    pool = SimpleNamespace()
+    pool.find_pwm_pin = lambda channel=None: fake_board_pin
+    pool.mark_used = lambda *a, **k: None
+
+    _resolve_pins_with_spec(_PWM_SPEC, [(pin, pin.funcs[0])], peripheral_inst, None, pool, sc, data_conns)
+    assert len(data_conns) == 1
+    assert data_conns[0].type == "pwm"
+
+
+
