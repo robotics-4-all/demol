@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+{% for conn in connections %}
+  {{ conn.peripheral.name | lower }}:
+    build: .
+    container_name: {{ conn.peripheral.name | lower }}
+    command: python3 {{ conn.peripheral.name | lower }}_node.py
+    privileged: true
+    devices:
+      - /dev/gpiomem:/dev/gpiomem
+      - /dev/i2c-1:/dev/i2c-1
+      - /dev/snd:/dev/snd
+    environment:
+      - GPIOZERO_PIN_FACTORY=native
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
+
+{% endfor %}

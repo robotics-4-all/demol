@@ -1,7 +1,7 @@
 DEVICE ParkingSensor WITH description="Device for distance sensing", author="maria", os=raspbian;
 
 USE RaspberryPi_5_8GB;
-USE SRF05(ParkingDistance) [frequency = 20.0];
+USE SRF05[ParkingDistance] WITH frequency = 20.0;
 
 NETWORK[WiFi] WITH ssid="Wifi_2.4GHz", password="guest";
 
@@ -9,9 +9,9 @@ BROKER[MQTT] locsys_broker WITH host="locsys.issel.ee.auth.gr", port=1883, auth.
 
 CONNECT ParkingDistance WITH
     POWER
-        GND_1 -- GND,
-        power_5v_a -- VCC
+        GND -- GND_1,
+        VCC -- power_5v_a
     DATA
-        gpio[mode="input"] GPIO24 -- echo,
-        gpio[mode="output"] GPIO23 -- trigger
+        gpio[mode="input"] echo -- GPIO24,
+        gpio[mode="output"] trigger -- GPIO23
     @ "my_raspi.sensors.distance.srf05";

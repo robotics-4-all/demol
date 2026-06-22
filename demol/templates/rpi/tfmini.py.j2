@@ -1,0 +1,43 @@
+import time
+import adafruit_tfmini   
+import serial
+from .peripheral import Sensor
+
+
+class {{ driver_class_name }}(Sensor):
+    """
+    TFMini LiDAR distance sensor (UART-based)
+    """
+    _PORT = "{{ conn.uart.port if conn.uart is defined else '/dev/ttyAMA0' }}"
+    _BAUDRATE = {{ conn.uart.baudrate if conn.uart is defined else 115200 }}
+    _MAX_DISTANCE = {{ attributes.get('max_distance', 200.0) }}
+    _MIN_DISTANCE = {{ attributes.get('min_distance', 0.1) }}
+    _MAX_FREQUENCY = {{ op.get('freq_max', 100.0) }}
+    _FREQUENCY = {{ attributes.get('frequency', 10.0) }}
+
+    def __init__(self):
+        super().__init__(
+            name="{{ instance }}", 
+            connections={{ conn }}, 
+            attributes={{ attributes }}
+        )
+        self.uart = None
+        self.tfmini = None
+
+    def initialize(self):
+        """Initialize the sensor hardware"""
+        self.uart = serial.Serial(self._PORT, baudrate=self._BAUDRATE, timeout=1)
+        self.tfmini = adafruit_tfmini.TFmini(self.uart, timeout=60)
+
+    def read(self):
+        """Read sensor data"""
+        self.update_state_data({
+            "distance": self.tfmini.distance,
+            "max_distance": self._MAX_DISTANCE,
+            "min_distance": self._MIN_DISTANCE
+        })
+
+    def disconnect(self):
+        """Release hardware resources"""
+        if self.uart:
+            self.uart.close()

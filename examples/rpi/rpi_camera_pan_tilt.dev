@@ -1,0 +1,50 @@
+DEVICE CameraPanTilt WITH 
+    description="Pan-tilt camera system with distance tracking", 
+    author="Antigravity", 
+    os=raspbian;
+
+USE RaspberryPi_5_8GB;
+
+// Peripherals
+USE ServoGeneric[PanServo] WITH 
+    min_angle = -90.0,
+    max_angle = 90.0
+;
+USE ServoGeneric[TiltServo] WITH 
+    min_angle = -45.0,
+    max_angle = 45.0
+;
+USE VL53L1X[DistanceSensor];
+
+NETWORK[WiFi] WITH 
+    ssid="CameraNet", 
+    password="camera_password";
+
+BROKER[MQTT] CameraBroker WITH 
+    host="localhost", 
+    port=1883;
+
+// Connections
+CONNECT PanServo WITH
+    POWER 
+        gnd -- GND_1, 
+        vcc -- power_5v_a
+    DATA 
+        gpio[mode="output"] din -- GPIO12
+    @ "camera/pan";
+
+CONNECT TiltServo WITH
+    POWER 
+        gnd -- GND_2, 
+        vcc -- power_5v_b
+    DATA 
+        gpio[mode="output"] din -- GPIO13
+    @ "camera/tilt";
+
+CONNECT DistanceSensor WITH
+    POWER 
+        GND -- GND_3, 
+        VIN -- power_3v3_a
+    DATA 
+        i2c[slave_address=0x29] sda SDA -- GPIO2, scl SCL -- GPIO3
+    @ "camera/distance";

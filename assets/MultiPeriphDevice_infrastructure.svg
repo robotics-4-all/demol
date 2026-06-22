@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="480" viewBox="0 0 1200 480" style="background-color: #FFFFFF;">
+<text x="600.0" y="30" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="20" font-weight="bold" fill="#1E293B" text-anchor="middle" dominant-baseline="middle">Infrastructure: MultiPeriphDevice</text><line x1="450.0" y1="80" x2="450.0" y2="440" stroke="#94A3B8" stroke-width="2" stroke-dasharray="5,5" />
+<line x1="775.0" y1="80" x2="775.0" y2="440" stroke="#94A3B8" stroke-width="2" stroke-dasharray="5,5" />
+<rect x="30.0" y="50.0" width="140" height="60" fill="#2563EB" stroke="#2980b9" stroke-width="2" rx="5" ry="5" />
+<text x="100" y="70.0" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="bold" fill="#F8FAFC" text-anchor="middle" dominant-baseline="middle">EnvSensor</text>
+<text x="100" y="90.0" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#F8FAFC" text-anchor="middle" dominant-baseline="middle">(Env)</text>
+<line x1="170.0" y1="80.0" x2="280.0" y2="240.0" stroke="#94A3B8" stroke-width="2" />
+<text x="225.0" y="155.0" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="9" font-weight="normal" fill="#1E293B" text-anchor="middle" dominant-baseline="middle">I2C</text>
+<rect x="30.0" y="130.0" width="140" height="60" fill="#2563EB" stroke="#2980b9" stroke-width="2" rx="5" ry="5" />
+<text x="100" y="150.0" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="bold" fill="#F8FAFC" text-anchor="middle" dominant-baseline="middle">DistanceSensor</text>
+<text x="100" y="170.0" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#F8FAFC" text-anchor="middle" dominant-baseline="middle">(Distance)</text>
+<line x1="170.0" y1="160.0" x2="280.0" y2="240.0" stroke="#94A3B8" stroke-width="2" />
+<text x="225.0" y="195.0" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="9" font-weight="normal" fill="#1E293B" text-anchor="middle" dominant-baseline="middle">GPIO</text>
+<rect x="30.0" y="210.0" width="140" height="60" fill="#2563EB" stroke="#2980b9" stroke-width="2" rx="5" ry="5" />
+<text x="100" y="230.0" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="bold" fill="#F8FAFC" text-anchor="middle" dominant-baseline="middle">StatusLed</text>
+<text x="100" y="250.0" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#F8FAFC" text-anchor="middle" dominant-baseline="middle">(LedArray)</text>
+<line x1="170.0" y1="240.0" x2="280.0" y2="240.0" stroke="#94A3B8" stroke-width="2" />
+<text x="225.0" y="235.0" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="9" font-weight="normal" fill="#1E293B" text-anchor="middle" dominant-baseline="middle">GPIO</text>
+<rect x="30.0" y="290.0" width="140" height="60" fill="#2563EB" stroke="#2980b9" stroke-width="2" rx="5" ry="5" />
+<text x="100" y="310.0" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="bold" fill="#F8FAFC" text-anchor="middle" dominant-baseline="middle">LineTracker</text>
+<text x="100" y="330.0" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#F8FAFC" text-anchor="middle" dominant-baseline="middle">(Proximity)</text>
+<line x1="170.0" y1="320.0" x2="280.0" y2="240.0" stroke="#94A3B8" stroke-width="2" />
+<text x="225.0" y="275.0" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="9" font-weight="normal" fill="#1E293B" text-anchor="middle" dominant-baseline="middle">GPIO</text>
+<rect x="30.0" y="370.0" width="140" height="60" fill="#2563EB" stroke="#2980b9" stroke-width="2" rx="5" ry="5" />
+<text x="100" y="390.0" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="bold" fill="#F8FAFC" text-anchor="middle" dominant-baseline="middle">UserButton</text>
+<text x="100" y="410.0" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#F8FAFC" text-anchor="middle" dominant-baseline="middle">(Button)</text>
+<line x1="170.0" y1="400.0" x2="280.0" y2="240.0" stroke="#94A3B8" stroke-width="2" />
+<text x="225.0" y="315.0" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="9" font-weight="normal" fill="#1E293B" text-anchor="middle" dominant-baseline="middle">GPIO</text>
+<rect x="280.0" y="210.0" width="140" height="60" fill="#0F172A" stroke="#1a252f" stroke-width="2" rx="5" ry="5" />
+<text x="350" y="230.0" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="bold" fill="#F8FAFC" text-anchor="middle" dominant-baseline="middle">RaspberryPi_5_8GB</text>
+<text x="350" y="250.0" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#F8FAFC" text-anchor="middle" dominant-baseline="middle">(RPI)</text>
+<rect x="580.0" y="210.0" width="140" height="60" fill="#D97706" stroke="#d35400" stroke-width="2" rx="5" ry="5" />
+<text x="650" y="230.0" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="14" font-weight="bold" fill="#F8FAFC" text-anchor="middle" dominant-baseline="middle">MQTT Broker</text>
+<text x="650" y="250.0" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#F8FAFC" text-anchor="middle" dominant-baseline="middle">broker.hivemq.com:1883</text>
+<rect x="930.0" y="130.0" width="140" height="60" fill="#059669" stroke="#1e8449" stroke-width="2" rx="5" ry="5" />
+<text x="1000" y="160.0" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="bold" fill="#F8FAFC" text-anchor="middle" dominant-baseline="middle">Cloud Platform</text>
+<line x1="720.0" y1="240.0" x2="930.0" y2="160.0" stroke="#94A3B8" stroke-width="2" />
+<text x="825.0" y="195.0" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="9" font-weight="normal" fill="#1E293B" text-anchor="middle" dominant-baseline="middle">MQTT</text>
+<rect x="930.0" y="210.0" width="140" height="60" fill="#059669" stroke="#1e8449" stroke-width="2" rx="5" ry="5" />
+<text x="1000" y="240.0" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="bold" fill="#F8FAFC" text-anchor="middle" dominant-baseline="middle">Mobile App</text>
+<line x1="720.0" y1="240.0" x2="930.0" y2="240.0" stroke="#94A3B8" stroke-width="2" />
+<text x="825.0" y="235.0" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="9" font-weight="normal" fill="#1E293B" text-anchor="middle" dominant-baseline="middle">MQTT</text>
+<rect x="930.0" y="290.0" width="140" height="60" fill="#059669" stroke="#1e8449" stroke-width="2" rx="5" ry="5" />
+<text x="1000" y="320.0" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="bold" fill="#F8FAFC" text-anchor="middle" dominant-baseline="middle">Analytics Service</text>
+<line x1="720.0" y1="240.0" x2="930.0" y2="320.0" stroke="#94A3B8" stroke-width="2" />
+<text x="825.0" y="275.0" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="9" font-weight="normal" fill="#1E293B" text-anchor="middle" dominant-baseline="middle">MQTT</text>
+<line x1="420.0" y1="240.0" x2="580.0" y2="240.0" stroke="#94A3B8" stroke-width="2" />
+<text x="500.0" y="225.0" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10" font-weight="bold" fill="#1E293B" text-anchor="middle" dominant-baseline="middle">WiFi</text>
+<text x="500.0" y="255.0" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="8" font-weight="normal" fill="#7f8c8d" text-anchor="middle" dominant-baseline="middle">sensors/environment</text>
+<text x="500.0" y="267.0" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="8" font-weight="normal" fill="#7f8c8d" text-anchor="middle" dominant-baseline="middle">sensors/distance</text>
+<text x="500.0" y="279.0" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="8" font-weight="normal" fill="#7f8c8d" text-anchor="middle" dominant-baseline="middle">actuators/status_led</text>
+<text x="500.0" y="291.0" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="8" font-weight="normal" fill="#7f8c8d" text-anchor="middle" dominant-baseline="middle">sensors/line_tracker</text>
+<text x="500.0" y="303.0" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="8" font-weight="normal" fill="#7f8c8d" text-anchor="middle" dominant-baseline="middle">sensors/user_button</text>
+<text x="350" y="60" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="14" font-weight="bold" fill="#1E293B" text-anchor="middle" dominant-baseline="middle">Edge Layer</text>
+<text x="650" y="60" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="14" font-weight="bold" fill="#1E293B" text-anchor="middle" dominant-baseline="middle">Communication Layer</text>
+<text x="1000" y="60" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="14" font-weight="bold" fill="#1E293B" text-anchor="middle" dominant-baseline="middle">Application Layer</text>
+</svg>

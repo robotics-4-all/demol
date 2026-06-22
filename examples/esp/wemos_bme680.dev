@@ -5,12 +5,12 @@ NETWORK[WiFi] WITH ssid="Wifi_2.4GHz", password="guest";
 BROKER[MQTT] MyMqttBroker WITH host="node.mqtt.local", port=1883, auth.username="guest", auth.password="guest";
 
 USE WemosD1Mini;
-USE BME680(BME);
+USE BME680[BME];
 
 CONNECT BME WITH
     POWER
         gnd -- gnd,
-        power_5v -- vcc
+        vcc -- power_5v
     DATA
-        i2c[slave_address=0x78] sda d2 -- sda, scl d1 -- scl
-    @ "my_wemos.actuators.visual.ledstrip";
+        i2c[slave_address=0x76] sda sda -- d2, scl scl -- d1
+    @ "my_wemos.sensors.env.bme680";

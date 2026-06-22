@@ -1,0 +1,16 @@
+DEVICE RpiRelaySwitch WITH description="RaspberryPi 5 driving a single-channel active-low relay module from a GPIO output", author="demol", os=raspbian;
+
+USE RaspberryPi_5_8GB;
+USE RelayModule[PowerRelay];
+
+NETWORK[WiFi] WITH ssid="Wifi_2.4GHz", password="guest";
+
+BROKER[MQTT] MyBroker WITH host="localhost", port=1883, auth.username="guest", auth.password="guest", ssl=False;
+
+CONNECT PowerRelay WITH
+    POWER
+        GND -- GND_1,
+        VCC -- power_5v_a
+    DATA
+        gpio[mode="output"] IN -- GPIO4
+    @ "my_raspi.actuators.relay.power_relay";

@@ -1,0 +1,32 @@
+#!/bin/bash
+
+# Exit on error
+set -e
+
+echo "Installing system dependencies (apt)..."
+sudo apt-get update
+sudo apt-get install -y \
+    gcc \
+    libgpiod2 \
+    i2c-tools \
+    espeak-ng \
+    espeak \
+    alsa-utils \
+    portaudio19-dev \
+{% for dep in apt_dependencies %}
+    {{ dep }} \
+{% endfor %}
+
+echo "Installing Python dependencies (pip)..."
+# Ensure pip is installed
+sudo apt-get install -y python3-pip
+
+# Install requirements from requirements.txt if it exists
+if [ -f "requirements.txt" ]; then
+    pip3 install -r requirements.txt
+fi
+
+# Install common libraries
+pip3 install lgpio pigpio gpio gpiozero
+
+echo "All dependencies installed successfully!"

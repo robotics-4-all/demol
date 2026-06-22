@@ -1,0 +1,51 @@
+import board
+import busio
+import adafruit_ads1x15.ads1115 as ADS
+from adafruit_ads1x15.analog_in import AnalogIn
+from .peripheral import Sensor
+
+
+class {{ driver_class_name }}(Sensor):
+    """
+    ADS1115 16-bit 4-channel I2C ADC
+    """
+    _PRIMARY_ADDRESS = {{ conn.i2c.slave_address if conn.i2c is defined else 0x48 }}
+    _GAIN = {{ attributes.get('gain', 1) }}
+    _FREQUENCY = {{ attributes.get('poll_period', 10) }}
+
+    def __init__(self):
+        super().__init__(
+            name="{{ instance }}",
+            connections={{ conn }},
+            attributes={{ attributes }}
+        )
+        self.ads = None
+        self.channels = []
+
+    def initialize(self):
+        """Initialize the ADC hardware"""
+        i2c = busio.I2C(board.SCL, board.SDA)
+        self.ads = ADS.ADS1115(i2c, address=self._PRIMARY_ADDRESS, gain=self._GAIN)
+        self.channels = [
+            AnalogIn(self.ads, ADS.P0),
+            AnalogIn(self.ads, ADS.P1),
+            AnalogIn(self.ads, ADS.P2),
+            AnalogIn(self.ads, ADS.P3)
+        ]
+
+    def read(self):
+        """Read all 4 ADC channels"""
+        self.update_state_data({
+            "channel_0_value": self.channels[0].value,
+            "channel_0_voltage": self.channels[0].voltage,
+            "channel_1_value": self.channels[1].value,
+            "channel_1_voltage": self.channels[1].voltage,
+            "channel_2_value": self.channels[2].value,
+            "channel_2_voltage": self.channels[2].voltage,
+            "channel_3_value": self.channels[3].value,
+            "channel_3_voltage": self.channels[3].voltage
+        })
+
+    def disconnect(self):
+        """Release hardware resources"""
+        pass

@@ -1,0 +1,109 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "demol"
+version = "0.0.1"
+description = "Domain-Specific Language for IoT Devices"
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.9"
+authors = [
+    { name = "Konstantinos Panayiotou", email = "klpanagi@gmail.com" },
+]
+keywords = ["textX", "DSL", "IoT", "code-generation", "model-driven"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Information Technology",
+    "Intended Audience :: Science/Research",
+    "Topic :: Software Development :: Interpreters",
+    "Topic :: Software Development :: Compilers",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Natural Language :: English",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "textX[cli]>=4.3.0",
+    "Jinja2>=3.1.3",
+    "plantuml>=0.3.0",
+    "click>=8.1.7",
+    "python-multipart>=0.0.9",
+    "aiofiles>=23.2.1",
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest",
+    "pytest-cov",
+    # Runtime deps of generated RPi `alerts.py` / sensor / actuator nodes.
+    # Required by tests (e.g. test_alert_runtime.py) that importlib-load and
+    # exec the generated modules end-to-end. commlib-py imports paho lazily
+    # from its MQTT transport, so paho-mqtt must be installed alongside it.
+    "commlib-py>=0.13.0",
+    "paho-mqtt>=2.0",
+]
+dev = [
+    "demol[test]",
+    "black",
+    "flake8",
+    # Pin mypy: 2.x tightened `--var-annotated` and breaks our currently-clean
+    # type-check on bare dict/list literals. Bump deliberately, not by drift.
+    "mypy>=1.8,<2",
+    "wheel",
+    "twine",
+    "tox",
+    "coverage",
+    "coveralls",
+]
+
+[project.scripts]
+demol = "demol.cli.cli:main"
+
+[project.entry-points."textx_languages"]
+demol-component = "demol:component_language"
+demol-device = "demol:device_language"
+
+[tool.setuptools.packages.find]
+include = ["demol*"]
+
+[tool.setuptools.package-data]
+demol = [
+    "grammar/*.tx",
+    "builtin_models/boards/*.hwd",
+    "builtin_models/peripherals/*.hwd",
+    "builtin_models/power/*.hwd",
+    "templates/rpi/*.j2",
+    "templates/riot/*.j2",
+    "templates/docs/*.j2",
+    "templates/smauto/*.j2",
+]
+
+# ---------------------------------------------------------------------------
+# Tool configuration
+# ---------------------------------------------------------------------------
+
+[tool.black]
+line-length = 120
+target-version = ["py39"]
+
+[tool.flake8]
+
+[tool.mypy]
+ignore_missing_imports = true
+warn_return_any = true
+warn_unused_configs = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+markers = [
+    "performance: timing-sensitive benchmarks (skipped under --cov)",
+]

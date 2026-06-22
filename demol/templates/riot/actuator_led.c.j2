@@ -1,0 +1,62 @@
+#include "actuator_{{ name }}_{{ index }}.h"
+#include "thread.h"
+#include "xtimer.h"
+#include "json_handler.h"
+#include "mqtt_broker.h"
+#include "periph/gpio.h"
+
+static gpio_t {{ name }}_{{ index }}_pin;
+char {{ name }}_{{ index }}_stack[THREAD_STACKSIZE_MAIN];
+
+void *{{ name }}_{{ index }}_thread(void *args);
+
+int init_actuator_{{ name }}_{{ index }}(void)
+{
+    {{ name }}_{{ index }}_pin = GPIO_PIN(0, {{ conn.gpio.pins.vin.id }});
+    printf("Initialize {{ name|upper }} actuator on pin %d ... ", {{ conn.gpio.pins.vin.id }});
+    if (gpio_init({{ name }}_{{ index }}_pin, GPIO_OUT) < 0)
+    {
+        puts("failed");
+        return -1;
+    }
+    else
+    {
+        puts("OK");
+        return 0;
+    }
+}
+
+void start_actuator_{{ name }}_{{ index }}(void)
+{
+    thread_create({{ name }}_{{ index }}_stack, sizeof({{ name }}_{{ index }}_stack),
+                  (THREAD_PRIORITY_MAIN + 1),
+                  THREAD_CREATE_STACKTEST,
+                  {{ name }}_{{ index }}_thread,
+                  NULL, "{{ name }}_{{ index }}_actuator");
+};
+
+void *{{ name }}_{{ index }}_thread(void *args)
+{
+    (void)args;
+    while (1)
+    {
+        xtimer_msleep(1000);
+    }
+};
+
+void {{ name }}_{{ index }}_on_message(MessageData *data)
+{
+    printf("Received message on topic %.*s: %.*s\n",
+           data->topicName->lenstring.len, data->topicName->lenstring.data,
+           data->message->payloadlen, (char *)data->message->payload);
+    
+    char payload[64];
+    strncpy(payload, (char *)data->message->payload, data->message->payloadlen);
+    payload[data->message->payloadlen] = '\0';
+
+    if (strstr(payload, "ON") || strstr(payload, "1")) {
+        gpio_set({{ name }}_{{ index }}_pin);
+    } else if (strstr(payload, "OFF") || strstr(payload, "0")) {
+        gpio_clear({{ name }}_{{ index }}_pin);
+    }
+}

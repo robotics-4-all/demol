@@ -1,7 +1,7 @@
 DEVICE RpiTrackerSensor WITH description="My RaspberryPi 5 with a TCRT5000 tracker sensor", author="maria", os=raspbian;
 
 USE RaspberryPi_5_8GB;
-USE TCRT5000(MyTracker);
+USE TCRT5000[MyTracker];
 
 NETWORK[WiFi] WITH ssid="Wifi_2.4GHz", password="guest";
 
@@ -9,10 +9,10 @@ BROKER[MQTT] MyBroker WITH host="node.mqtt.local", port=1883, auth.username="sen
 
 CONNECT MyTracker WITH
     POWER
-        GND_1 -- GND,
-        power_5v_a -- VCC
+        GND -- GND_1,
+        VCC -- power_5v_a
     DATA
-        gpio[mode="input"] GPIO4 -- D0
+        gpio[mode="input"] D0 -- GPIO4
     @ "my_raspi.sensors.proximity.TCRT5000";
 
     

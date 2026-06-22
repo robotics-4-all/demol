@@ -1,0 +1,39 @@
+import board
+import busio
+import adafruit_bme280.advanced as adafruit_bme280
+from .peripheral import Sensor
+
+
+class {{ driver_class_name }}(Sensor):
+    """
+    BME280 Environmental Sensor (Temperature, Humidity, Pressure)
+    """
+    _PRIMARY_ADDRESS = {{ conn.i2c.slave_address if conn.i2c is defined else 0x76 }}
+    _FREQUENCY = {{ attributes.get('poll_period', 10) }}
+
+    def __init__(self):
+        super().__init__(
+            name="{{ instance }}",
+            connections={{ conn }},
+            attributes={{ attributes }}
+        )
+        self.sensor = None
+
+    def initialize(self):
+        """Initialize the sensor hardware"""
+        i2c = busio.I2C(board.SCL, board.SDA)
+        self.sensor = adafruit_bme280.Adafruit_BME280_I2C(i2c, address=self._PRIMARY_ADDRESS)
+        self.sensor.sea_level_pressure = 1013.25
+
+    def read(self):
+        """Read sensor data"""
+        self.update_state_data({
+            "temperature": self.sensor.temperature,
+            "humidity": self.sensor.relative_humidity,
+            "pressure": self.sensor.pressure,
+            "altitude": self.sensor.altitude
+        })
+
+    def disconnect(self):
+        """Release hardware resources"""
+        pass

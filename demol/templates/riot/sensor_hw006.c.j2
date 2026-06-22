@@ -1,0 +1,61 @@
+#include "sensor_{{ name }}_{{ index }}.h"
+#include "thread.h"
+#include "xtimer.h"
+#include "json_handler.h"
+#include "periph/gpio.h"
+
+static gpio_t {{ name }}_{{ index }}_pin;
+static {{ name }}_{{ index }}_callback {{ name }}_{{ index }}_cb;
+
+char {{ name }}_{{ index }}_json_payload[165] = "";
+char {{ name }}_{{ index }}_stack[THREAD_STACKSIZE_MAIN];
+
+void *{{ name }}_{{ index }}_thread(void *args);
+
+int init_sensor_{{ name }}_{{ index }}(void)
+{
+    {{ name }}_{{ index }}_pin = GPIO_PIN(0, {{ conn.gpio.pins.DO.id }});
+
+    printf("Initialize {{ name|upper }} sensor on pin %d ... ", {{ conn.gpio.pins.DO.id }});
+    if (gpio_init({{ name }}_{{ index }}_pin, GPIO_IN) < 0)
+    {
+        puts("failed");
+        return -1;
+    }
+    else
+    {
+        puts("OK");
+        return 0;
+    }
+}
+
+void start_sensor_{{ name }}_{{ index }}({{ name }}_{{ index }}_callback callback)
+{
+    {{ name }}_{{ index }}_cb = callback;
+    thread_create({{ name }}_{{ index }}_stack, sizeof({{ name }}_{{ index }}_stack),
+                  (THREAD_PRIORITY_MAIN + 1),
+                  THREAD_CREATE_STACKTEST,
+                  {{ name }}_{{ index }}_thread,
+                  NULL, "{{ name }}_{{ index }}_sensor");
+};
+
+void *{{ name }}_{{ index }}_thread(void *args)
+{
+    (void)args;
+
+    while (1)
+    {
+        int val = gpio_read({{ name }}_{{ index }}_pin);
+
+        printf("[{{ name|upper }}]: Value = %d\n", val);
+
+        json_dumps({{ name }}_{{ index }}_json_payload,
+                   JSON_START,
+                   JSON_KEY, "Proximity", JSON_INT, val,
+                   JSON_STOP);
+
+        {{ name }}_{{ index }}_cb({{ name }}_{{ index }}_json_payload);
+
+        xtimer_msleep(({{ name|upper }}_{{ index }}_FREQ));
+    }
+};

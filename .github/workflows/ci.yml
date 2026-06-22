@@ -1,0 +1,157 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master, devel]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ===========================================================================
+  # Lint & Format Check
+  # ===========================================================================
+  lint:
+    name: Lint & Format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install flake8 black
+      - name: Check formatting (black --check)
+        run: black --check --line-length=120 demol/ tests/ scripts/
+      - name: Lint (flake8)
+        # Mirror `make lint` (Makefile line 113).
+        run: flake8 demol/ --max-line-length=120 --exclude=__pycache__,.venv --extend-ignore=E203,E501
+
+  # ===========================================================================
+  # Type Check
+  # ===========================================================================
+  typecheck:
+    name: Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -e .
+          pip install mypy
+      - name: Run mypy
+        run: mypy demol/ --ignore-missing-imports
+
+  # ===========================================================================
+  # Tests (matrix across Python versions)
+  # ===========================================================================
+  test:
+    name: Test (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+      - name: Install dependencies
+        # Mirror `make test` install (Makefile).
+        run: |
+          pip install --upgrade pip
+          pip install -e ".[test]"
+      - name: Run tests
+        # Exclude @pytest.mark.performance — flaky on shared CI runners.
+        # Mirrors `make test`; keep in sync with the Makefile `test` target.
+        run: python -m pytest tests/ -v --tb=short -m "not performance"
+      - name: Run tests with coverage
+        run: |
+          python -m pytest tests/ --cov=demol --cov-report=xml --cov-report=term -m "not performance"
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage.xml
+
+  # ===========================================================================
+  # Validate Examples
+  # ===========================================================================
+  validate-examples:
+    name: Validate Example Models
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -e .
+      - name: Validate all example .dev models
+        run: |
+          EXIT_CODE=0
+          for file in examples/rpi/*.dev examples/esp/*.dev; do
+            [ -f "$file" ] || continue
+            echo "--- Validating $file ---"
+            if ! python -m demol.cli.cli validate "$file"; then
+              echo "FAILED: $file"
+              EXIT_CODE=1
+            fi
+          done
+          exit $EXIT_CODE
+
+  # ===========================================================================
+  # RIOT End-to-End Compile Gate
+  # Generates code from a canonical ESP example and compiles it inside the
+  # generated, self-contained Docker build environment. This catches template
+  # regressions that pure substring tests cannot detect.
+  #
+  # The compile+verify logic lives in scripts/test_riot_compile.sh so that
+  # `make test-riot` runs the same gate locally before pushing. Matrix
+  # entries here still run in parallel (one per example), each invoking
+  # the script with a single example arg.
+  # ===========================================================================
+  riot-build:
+    name: RIOT Compile Gate (${{ matrix.example }})
+    runs-on: ubuntu-latest
+    needs: validate-examples
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        example:
+          - wemos_bme680
+          - wemos_bme680_alert
+          - wemos_button
+          - wemos_srf05
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install demol
+        run: |
+          pip install --upgrade pip
+          pip install -e .
+      - name: Run RIOT compile gate
+        run: ./scripts/test_riot_compile.sh ${{ matrix.example }}

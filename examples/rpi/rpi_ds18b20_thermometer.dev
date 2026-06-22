@@ -1,0 +1,16 @@
+DEVICE RpiDs18b20Thermometer WITH description="RaspberryPi 5 with DS18B20 1-Wire digital temperature sensor on GPIO4", author="demol", os=raspbian;
+
+USE RaspberryPi_5_8GB;
+USE DS18B20[Thermometer];
+
+NETWORK[WiFi] WITH ssid="Wifi_2.4GHz", password="guest";
+
+BROKER[MQTT] MyBroker WITH host="localhost", port=1883, auth.username="guest", auth.password="guest", ssl=False;
+
+CONNECT Thermometer WITH
+    POWER
+        GND -- GND_1,
+        VCC -- power_3v3_a
+    DATA
+        gpio[mode="input"] data -- GPIO4
+    @ "my_raspi.sensors.temperature.ds18b20";

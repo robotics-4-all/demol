@@ -2,16 +2,29 @@ SENSOR[Env] BME680 WITH
     OP
         vcc=5V,
         ioVcc=3V3,
-        energy=0.01 mW, 39.6 mW, 3 mW
+        power.min=0.01 mW,
+        power.max=39.6 mW,
+        power.avg=3 mW
     PINS
         vcc[5V] @ 1,
         gnd[GND] @ 5,
         sda[sda-0] @ 2,
         scl[scl-0] @ 3
+    PROPERTIES
+        // RIOT BME680 driver stores temperature in 0.01 degC, pressure in Pa,
+        // humidity in 0.001 %RH. SCALE converts DSL literals (e.g. 38.5 celsius)
+        // into the integer raw value the driver emits.
+        temperature -> "data.temperature" : int32 SCALE 100 FOR riotos,
+        pressure    -> "data.pressure"    : uint32 FOR riotos,
+        humidity    -> "data.humidity"    : int32 SCALE 1000 FOR riotos
     TEMPLATES
-        raspbian="bme680.py.tmpl",
-        riotos="bme680.c.tmpl"
+        raspbian="bme680.py.j2",
+        riotos="bme680.c.j2"
+    DEPENDENCIES
+        raspbian=["bme680"],
+        riotos=["bme680"]
     ATTRIBUTES
+        i2c_address[int] = 118,
         poll_period[int] = 10,
         humidity_oversample[int] = 2,
         pressure_oversample[int] = 4,

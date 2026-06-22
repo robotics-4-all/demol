@@ -1,0 +1,40 @@
+from ADCDifferentialPi import ADCDifferentialPi as ADCimported
+import time
+from .peripheral import Sensor
+
+#Get the value from the device, else leave it as it is.
+PGA = {{ attributes.get('gain', 1) }}
+BIT_MODE = {{ attributes.get('resolution', 18) }}
+CHANNEL = {{ attributes.get('channel', 1) }}
+PRIMARY_SLAVE_ADDRESS = {{ conn.i2c.slave_address if conn.i2c is defined else 0x68 }}
+SECONDARY_SLAVE_ADDRESS = {{ attributes.get('secondary_slave_address', 0x69) }}
+MAX_FREQUENCY = {{ op.get('freq_max', {}).get('value', 240) }}
+
+class {{ driver_class_name }}(Sensor):
+    def __init__(self):
+        super().__init__(
+            name="{{ instance }}", 
+            connections={{ conn }}, 
+            attributes={{ attributes }}
+        )
+        self.adc = None
+        self.max_frequency = MAX_FREQUENCY
+    
+    def initialize(self):
+        self.adc = ADCimported(PRIMARY_SLAVE_ADDRESS, SECONDARY_SLAVE_ADDRESS)
+        self.adc.set_pga(PGA)
+        self.adc.set_bit_mode(BIT_MODE)
+        super().initialize()
+
+    def read(self):
+        voltage = self.adc.read_voltage(channel=CHANNEL)
+        data = {"voltage": voltage}
+        self.update_state_data(data)
+        return data
+
+    def get_max_frequency(self):
+        return self.max_frequency
+
+    def disconnect(self):
+        super().disconnect()
+

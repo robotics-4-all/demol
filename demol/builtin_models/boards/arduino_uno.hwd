@@ -1,0 +1,42 @@
+BOARD[ARDUINO] ArduinoUno WITH
+    OP
+        vcc=5V,
+        ioVcc=5V,
+        memory.flash=32 kb,
+        memory.ram=2 kb,
+        cpu.family=ATmega328P,
+        cpu.freq=16 mhz,
+        power.min=40 mW,
+        power.max=250 mW,
+        power.avg=125 mW
+    PORTS
+        spi=1,
+        i2c=1,
+        uart=1,
+        gpio=14
+    PINS
+        power_5v[5V] @ 1,
+        power_3v3[3V3] @ 2,
+        GND_1[GND] @ 3,
+        GND_2[GND] @ 4,
+        D0[gpio,rx-0] @ 5,
+        D1[gpio,tx-0] @ 6,
+        D2[gpio] @ 7,
+        D3[gpio,pwm-0] @ 8,
+        D4[gpio] @ 9,
+        D5[gpio,pwm-1] @ 10,
+        D6[gpio,pwm-2] @ 11,
+        D7[gpio] @ 12,
+        D8[gpio] @ 13,
+        D9[gpio,pwm-3] @ 14,
+        D10[gpio,cs-0,pwm-4] @ 15,
+        D11[gpio,mosi-0,pwm-5] @ 16,
+        D12[gpio,miso-0] @ 17,
+        D13[gpio,sck-0] @ 18,
+        A0[adc-0] @ 19,
+        A1[adc-1] @ 20,
+        A2[adc-2] @ 21,
+        A3[adc-3] @ 22,
+        A4[adc-4,sda-0] @ 23,
+        A5[adc-5,scl-0] @ 24
+;

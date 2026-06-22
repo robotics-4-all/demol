@@ -1,0 +1,46 @@
+#ifndef MQTT_BROKER_H
+#define MQTT_BROKER_H
+
+#include "paho_mqtt.h"
+#include "MQTTClient.h"
+
+// MQTT BROKER SETTINGS
+#define MQTT_BUF_SIZE (2048)
+#define COMMAND_TIMEOUT_MS (5000)
+#define DEFAULT_KEEPALIVE_SEC (5)
+#define IS_CLEAN_SESSION (1)
+#define IS_RETAINED_MSG (0)
+#define MQTT_VERSION_v311 (4)
+
+// CONNECTION CREDENTIALS
+#ifndef DEFAULT_MQTT_PORT
+#define DEFAULT_MQTT_PORT ({{ port }})
+#endif
+
+#ifndef DEFAULT_MQTT_CLIENT_ID
+#define DEFAULT_MQTT_CLIENT_ID ("{{ connection_conf }}")
+#endif
+
+#ifndef DEFAULT_MQTT_USER
+#define DEFAULT_MQTT_USER ("{{ broker.username }}")
+#endif
+
+#ifndef DEFAULT_MQTT_PWD
+#define DEFAULT_MQTT_PWD ("{{ broker.password }}")
+#endif
+
+#ifndef BROKER_IPV4_ADDR
+#define BROKER_IPV4_ADDR ("{{ address }}")
+#endif
+
+void init_mqtt_broker(MQTTClient *client, Network *network);
+int mqtt_connect(MQTTClient *client, Network *network);
+int mqtt_disconnect(MQTTClient *client, Network *network);
+void mqtt_publish(MQTTClient *client, Network *network, char *payload, char *topic);
+
+/* Driver-facing alert publisher. Defined in main.c so it can wrap the
+   file-static MQTTClient/Network globals. Drivers include this header to
+   emit alert payloads from their _thread without needing direct broker access. */
+void publish_alert(char *payload, char *topic);
+
+#endif

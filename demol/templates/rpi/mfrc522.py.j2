@@ -1,0 +1,37 @@
+from mfrc522 import SimpleMFRC522
+from .peripheral import Sensor
+
+
+class {{ driver_class_name }}(Sensor):
+    """
+    MFRC522 RFID Reader/Writer (SPI-based, 13.56 MHz)
+    """
+    _FREQUENCY = {{ attributes.get('poll_period', 1) }}
+
+    def __init__(self):
+        super().__init__(
+            name="{{ instance }}",
+            connections={{ conn }},
+            attributes={{ attributes }}
+        )
+        self.reader = None
+
+    def initialize(self):
+        """Initialize the RFID reader hardware"""
+        self.reader = SimpleMFRC522()
+
+    def read(self):
+        """Read RFID tag (non-blocking attempt)"""
+        try:
+            uid, text = self.reader.read_no_block()
+            if uid is not None:
+                self.update_state_data({
+                    "uid": uid,
+                    "text": text.strip() if text else ""
+                })
+        except Exception:
+            pass
+
+    def disconnect(self):
+        """Release hardware resources"""
+        pass

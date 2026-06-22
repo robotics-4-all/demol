@@ -1,0 +1,105 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1160" height="620" viewBox="0 0 1160 620" style="background-color: #FFFFFF;">
+<text x="580.0" y="30" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="24" font-weight="bold" fill="#333333" text-anchor="middle" dominant-baseline="middle">Device Diagram: MultiPeriphDevice</text><!-- Board -->
+<rect x="430" y="154.0" width="300" height="312.0" fill="#0F172A" stroke="#1E293B" stroke-width="2" rx="8" ry="8" />
+<text x="580.0" y="184.0" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="16" font-weight="bold" fill="#F8FAFC" text-anchor="middle" dominant-baseline="middle">RaspberryPi_5_8GB</text>
+<!-- Peripheral: DistanceSensor -->
+<rect x="50" y="132.5" width="180" height="160" fill="#F1F5F9" stroke="#CBD5E1" stroke-width="2" rx="8" ry="8" />
+<text x="140.0" y="157.5" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="16" font-weight="bold" fill="#0F172A" text-anchor="middle" dominant-baseline="middle">DistanceSensor</text>
+<path d="M 430 235.0 C 330.0 235.0, 330.0 172.5, 230 172.5" stroke="#3B82F6" stroke-width="2" fill="none" />
+<circle cx="430" cy="235.0" r="4" fill="#3B82F6" />
+<circle cx="230" cy="172.5" r="4" fill="#3B82F6" />
+<text x="440" y="235.0" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="normal" fill="#F8FAFC" text-anchor="start" dominant-baseline="middle">GPIO24</text>
+<text x="220" y="172.5" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="normal" fill="#64748B" text-anchor="end" dominant-baseline="middle">echo</text>
+<path d="M 430 260.0 C 330.0 260.0, 330.0 197.5, 230 197.5" stroke="#3B82F6" stroke-width="2" fill="none" />
+<circle cx="430" cy="260.0" r="4" fill="#3B82F6" />
+<circle cx="230" cy="197.5" r="4" fill="#3B82F6" />
+<text x="440" y="260.0" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="normal" fill="#F8FAFC" text-anchor="start" dominant-baseline="middle">GPIO23</text>
+<text x="220" y="197.5" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="normal" fill="#64748B" text-anchor="end" dominant-baseline="middle">trigger</text>
+<path d="M 430 285.0 C 330.0 285.0, 330.0 222.5, 230 222.5" stroke="#1E293B" stroke-width="2" fill="none" />
+<circle cx="430" cy="285.0" r="4" fill="#1E293B" />
+<circle cx="230" cy="222.5" r="4" fill="#1E293B" />
+<text x="440" y="285.0" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="normal" fill="#F8FAFC" text-anchor="start" dominant-baseline="middle">GND_2</text>
+<text x="220" y="222.5" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="normal" fill="#64748B" text-anchor="end" dominant-baseline="middle">GND</text>
+<path d="M 430 310.0 C 330.0 310.0, 330.0 247.5, 230 247.5" stroke="#EF4444" stroke-width="2" fill="none" />
+<circle cx="430" cy="310.0" r="4" fill="#EF4444" />
+<circle cx="230" cy="247.5" r="4" fill="#EF4444" />
+<text x="440" y="310.0" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="normal" fill="#F8FAFC" text-anchor="start" dominant-baseline="middle">power_5v_a</text>
+<text x="220" y="247.5" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="normal" fill="#64748B" text-anchor="end" dominant-baseline="middle">VCC</text>
+<!-- Peripheral: LineTracker -->
+<rect x="50" y="322.5" width="180" height="135" fill="#F1F5F9" stroke="#CBD5E1" stroke-width="2" rx="8" ry="8" />
+<text x="140.0" y="347.5" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="16" font-weight="bold" fill="#0F172A" text-anchor="middle" dominant-baseline="middle">LineTracker</text>
+<path d="M 430 335.0 C 330.0 335.0, 330.0 362.5, 230 362.5" stroke="#3B82F6" stroke-width="2" fill="none" />
+<circle cx="430" cy="335.0" r="4" fill="#3B82F6" />
+<circle cx="230" cy="362.5" r="4" fill="#3B82F6" />
+<text x="440" y="335.0" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="normal" fill="#F8FAFC" text-anchor="start" dominant-baseline="middle">GPIO4</text>
+<text x="220" y="362.5" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="normal" fill="#64748B" text-anchor="end" dominant-baseline="middle">D0</text>
+<path d="M 430 360.0 C 330.0 360.0, 330.0 387.5, 230 387.5" stroke="#1E293B" stroke-width="2" fill="none" />
+<circle cx="430" cy="360.0" r="4" fill="#1E293B" />
+<circle cx="230" cy="387.5" r="4" fill="#1E293B" />
+<text x="440" y="360.0" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="normal" fill="#F8FAFC" text-anchor="start" dominant-baseline="middle">GND_4</text>
+<text x="220" y="387.5" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="normal" fill="#64748B" text-anchor="end" dominant-baseline="middle">GND</text>
+<path d="M 430 385.0 C 330.0 385.0, 330.0 412.5, 230 412.5" stroke="#EF4444" stroke-width="2" fill="none" />
+<circle cx="430" cy="385.0" r="4" fill="#EF4444" />
+<circle cx="230" cy="412.5" r="4" fill="#EF4444" />
+<text x="440" y="385.0" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="normal" fill="#F8FAFC" text-anchor="start" dominant-baseline="middle">power_5v_b</text>
+<text x="220" y="412.5" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="normal" fill="#64748B" text-anchor="end" dominant-baseline="middle">VCC</text>
+<!-- Peripheral: EnvSensor -->
+<rect x="930" y="50.0" width="180" height="160" fill="#F1F5F9" stroke="#CBD5E1" stroke-width="2" rx="8" ry="8" />
+<text x="1020.0" y="75.0" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="16" font-weight="bold" fill="#0F172A" text-anchor="middle" dominant-baseline="middle">EnvSensor</text>
+<path d="M 730 197.5 C 830.0 197.5, 830.0 90.0, 930 90.0" stroke="#3B82F6" stroke-width="2" fill="none" />
+<circle cx="730" cy="197.5" r="4" fill="#3B82F6" />
+<circle cx="930" cy="90.0" r="4" fill="#3B82F6" />
+<text x="720" y="197.5" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="normal" fill="#F8FAFC" text-anchor="end" dominant-baseline="middle">GPIO2</text>
+<text x="940" y="90.0" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="normal" fill="#64748B" text-anchor="start" dominant-baseline="middle">sda</text>
+<path d="M 730 222.5 C 830.0 222.5, 830.0 115.0, 930 115.0" stroke="#3B82F6" stroke-width="2" fill="none" />
+<circle cx="730" cy="222.5" r="4" fill="#3B82F6" />
+<circle cx="930" cy="115.0" r="4" fill="#3B82F6" />
+<text x="720" y="222.5" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="normal" fill="#F8FAFC" text-anchor="end" dominant-baseline="middle">GPIO3</text>
+<text x="940" y="115.0" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="normal" fill="#64748B" text-anchor="start" dominant-baseline="middle">scl</text>
+<path d="M 730 247.5 C 830.0 247.5, 830.0 140.0, 930 140.0" stroke="#1E293B" stroke-width="2" fill="none" />
+<circle cx="730" cy="247.5" r="4" fill="#1E293B" />
+<circle cx="930" cy="140.0" r="4" fill="#1E293B" />
+<text x="720" y="247.5" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="normal" fill="#F8FAFC" text-anchor="end" dominant-baseline="middle">GND_1</text>
+<text x="940" y="140.0" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="normal" fill="#64748B" text-anchor="start" dominant-baseline="middle">gnd</text>
+<path d="M 730 272.5 C 830.0 272.5, 830.0 165.0, 930 165.0" stroke="#EF4444" stroke-width="2" fill="none" />
+<circle cx="730" cy="272.5" r="4" fill="#EF4444" />
+<circle cx="930" cy="165.0" r="4" fill="#EF4444" />
+<text x="720" y="272.5" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="normal" fill="#F8FAFC" text-anchor="end" dominant-baseline="middle">power_5v_a</text>
+<text x="940" y="165.0" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="normal" fill="#64748B" text-anchor="start" dominant-baseline="middle">vcc</text>
+<!-- Peripheral: StatusLed -->
+<rect x="930" y="240.0" width="180" height="135" fill="#F1F5F9" stroke="#CBD5E1" stroke-width="2" rx="8" ry="8" />
+<text x="1020.0" y="265.0" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="16" font-weight="bold" fill="#0F172A" text-anchor="middle" dominant-baseline="middle">StatusLed</text>
+<path d="M 730 297.5 C 830.0 297.5, 830.0 280.0, 930 280.0" stroke="#3B82F6" stroke-width="2" fill="none" />
+<circle cx="730" cy="297.5" r="4" fill="#3B82F6" />
+<circle cx="930" cy="280.0" r="4" fill="#3B82F6" />
+<text x="720" y="297.5" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="normal" fill="#F8FAFC" text-anchor="end" dominant-baseline="middle">GPIO18</text>
+<text x="940" y="280.0" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="normal" fill="#64748B" text-anchor="start" dominant-baseline="middle">DIN</text>
+<path d="M 730 322.5 C 830.0 322.5, 830.0 305.0, 930 305.0" stroke="#1E293B" stroke-width="2" fill="none" />
+<circle cx="730" cy="322.5" r="4" fill="#1E293B" />
+<circle cx="930" cy="305.0" r="4" fill="#1E293B" />
+<text x="720" y="322.5" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="normal" fill="#F8FAFC" text-anchor="end" dominant-baseline="middle">GND_3</text>
+<text x="940" y="305.0" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="normal" fill="#64748B" text-anchor="start" dominant-baseline="middle">GND</text>
+<path d="M 730 347.5 C 830.0 347.5, 830.0 330.0, 930 330.0" stroke="#EF4444" stroke-width="2" fill="none" />
+<circle cx="730" cy="347.5" r="4" fill="#EF4444" />
+<circle cx="930" cy="330.0" r="4" fill="#EF4444" />
+<text x="720" y="347.5" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="normal" fill="#F8FAFC" text-anchor="end" dominant-baseline="middle">power_5v_b</text>
+<text x="940" y="330.0" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="normal" fill="#64748B" text-anchor="start" dominant-baseline="middle">VCC</text>
+<!-- Peripheral: UserButton -->
+<rect x="930" y="405.0" width="180" height="135" fill="#F1F5F9" stroke="#CBD5E1" stroke-width="2" rx="8" ry="8" />
+<text x="1020.0" y="430.0" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="16" font-weight="bold" fill="#0F172A" text-anchor="middle" dominant-baseline="middle">UserButton</text>
+<path d="M 730 372.5 C 830.0 372.5, 830.0 445.0, 930 445.0" stroke="#3B82F6" stroke-width="2" fill="none" />
+<circle cx="730" cy="372.5" r="4" fill="#3B82F6" />
+<circle cx="930" cy="445.0" r="4" fill="#3B82F6" />
+<text x="720" y="372.5" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="normal" fill="#F8FAFC" text-anchor="end" dominant-baseline="middle">GPIO17</text>
+<text x="940" y="445.0" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="normal" fill="#64748B" text-anchor="start" dominant-baseline="middle">state</text>
+<path d="M 730 397.5 C 830.0 397.5, 830.0 470.0, 930 470.0" stroke="#1E293B" stroke-width="2" fill="none" />
+<circle cx="730" cy="397.5" r="4" fill="#1E293B" />
+<circle cx="930" cy="470.0" r="4" fill="#1E293B" />
+<text x="720" y="397.5" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="normal" fill="#F8FAFC" text-anchor="end" dominant-baseline="middle">GND_5</text>
+<text x="940" y="470.0" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="normal" fill="#64748B" text-anchor="start" dominant-baseline="middle">gnd</text>
+<path d="M 730 422.5 C 830.0 422.5, 830.0 495.0, 930 495.0" stroke="#EF4444" stroke-width="2" fill="none" />
+<circle cx="730" cy="422.5" r="4" fill="#EF4444" />
+<circle cx="930" cy="495.0" r="4" fill="#EF4444" />
+<text x="720" y="422.5" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="normal" fill="#F8FAFC" text-anchor="end" dominant-baseline="middle">power_5v_a</text>
+<text x="940" y="495.0" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="normal" fill="#64748B" text-anchor="start" dominant-baseline="middle">state</text>
+</svg>

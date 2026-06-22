@@ -1,0 +1,19 @@
+// Generic Buzzer model
+ACTUATOR[Buzzer] BuzzerGeneric WITH
+    OP
+        vcc=3V3,
+        ioVcc=3V3,
+        power.min=10 mW,
+        power.max=50 mW,
+        power.avg=25 mW,
+        freq.max=2000 hz
+    PINS
+        gnd[GND] @ 1,
+        vin[gpio] @ 2
+    TEMPLATES
+        raspbian="buzzer.py.j2"
+    DEPENDENCIES
+        raspbian=["gpiozero"]
+    ATTRIBUTES
+        initial_state[bool] = false
+;

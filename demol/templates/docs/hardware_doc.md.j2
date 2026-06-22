@@ -3,6 +3,8 @@
 **Description**: {{ model.metadata.description }}
 **Version**: {{ model.metadata.version }}
 
+
+
 ## 1. Bill of Materials (BOM)
 
 ### Main Board
@@ -10,50 +12,64 @@
 - **Type**: {{ model.components.board.type }}
 
 ### Peripherals
-| Name | Type | Subtype | Description |
-|------|------|---------|-------------|
+| Name | Model | Type | Description |
+|------|-------|------|-------------|
 {% for conn in model.connections %}
-{% set periph = conn.peripheral.ref %}
-| {{ periph.name }} | {{ periph.__class__.__name__ }} | {{ periph.type }} | {{ periph.description }} |
+{% set periph_inst = conn.peripheral %}
+{% set periph_def = periph_inst.ref %}
+| {{ periph_inst.name }} | {{ periph_def.name }} | {{ periph_def.type }} | {{ periph_def.description }} |
 {% endfor %}
 
 ## 2. Wiring Instructions
+
+![System Diagram]({{ model.metadata.name }}.svg)
 
 ### Overview
 Connect the peripherals to the main board as detailed below. Ensure all power connections are secure before powering on the device.
 
 {% for conn in model.connections %}
-{% set periph = conn.peripheral.ref %}
-### {{ periph.name }} ({{ periph.type }})
+{% set periph_inst = conn.peripheral %}
+{% set periph_def = periph_inst.ref %}
+### {{ periph_inst.name }} ({{ periph_def.name }})
 
 #### Power Connections
 {% if conn.powerConns %}
 | Board Pin | Peripheral Pin |
 |-----------|----------------|
 {% for pc in conn.powerConns %}
-| {{ pc.boardPin }} | {{ pc.peripheralPin }} |
+| {{ pc.fromPin }} | {{ pc.toPin }} |
 {% endfor %}
 {% else %}
 *No explicit power connections defined.*
 {% endif %}
 
 #### IO Connections
-{% if conn.ioConns %}
+{% if conn.dataConns %}
 | Type | Board Pin | Peripheral Pin | Function |
 |------|-----------|----------------|----------|
-{% for io in conn.ioConns %}
+{% for io in conn.dataConns %}
 {% for pin in io.pins %}
-| {{ io.type }} | {{ pin.boardPin }} | {{ pin.peripheralPin }} | {{ pin.function }} |
+| {{ io.type }} | {{ pin.fromPin }} | {{ pin.toPin }} | {{ pin.function if pin.function else 'N/A' }} |
 {% endfor %}
 {% endfor %}
 {% else %}
 *No IO connections defined.*
 {% endif %}
 
+#### Communication
+- **Topic**: `{{ conn.remote }}`
+{% if periph_def.__class__.__name__ == 'Sensor' %}
+- **Access**: Subscribe to this topic to receive sensor data.
+{% elif periph_def.__class__.__name__ == 'Actuator' %}
+- **Access**: Publish commands to this topic to control the actuator.
+{% endif %}
+
 ---
 {% endfor %}
 
 ## 3. Infrastructure Configuration
+
+![Infrastructure Diagram]({{ model.metadata.name }}_infrastructure.svg)
 
 {% if model.network %}
 ### Network

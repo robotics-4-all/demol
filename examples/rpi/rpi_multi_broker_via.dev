@@ -1,0 +1,65 @@
+// Edge-Cloud IoT Gateway — demonstrates Multiple Brokers + VIA routing
+//
+// Scenario: A factory floor sensor node that sends high-frequency data
+// to a local edge broker for real-time dashboards, and aggregated data
+// to a cloud broker for long-term analytics. Each connection specifies
+// which broker receives its data via the VIA clause.
+
+DEVICE FactoryFloorNode WITH
+    description="Factory sensor node with edge and cloud broker routing",
+    author="DeMoL",
+    os=raspbian;
+
+USE RaspberryPi_5_8GB;
+
+USE BME680[AmbientSensor],
+    HCSR04[ProximitySensor],
+    BuzzerGeneric[AlarmBuzzer],
+    LedGeneric[StatusIndicator];
+
+NETWORK[WiFi] WITH ssid="FactoryNet", password="f4ct0ry!";
+
+// Local edge broker — low latency, real-time dashboards
+BROKER[MQTT] Edge WITH
+    host="192.168.1.10", port=1883,
+    auth.username="edge", auth.password="edge_pass";
+
+// Cloud broker — analytics, long-term storage, remote monitoring
+BROKER[MQTT] Cloud WITH
+    host="mqtt.factory-cloud.io", port=8883,
+    ssl=True,
+    auth.username="device_001", auth.password="cl0ud_s3cret";
+
+// Ambient sensor → Cloud (aggregated analytics)
+CONNECT AmbientSensor WITH
+    POWER gnd -- GND_1, vcc -- power_5v_a
+    DATA i2c[slave_address=0x76] sda sda -- GPIO2, scl scl -- GPIO3
+    @ "factory/floor1/ambient"
+    VIA Cloud;
+
+// Proximity sensor → Edge (real-time safety alerts)
+CONNECT ProximitySensor WITH
+    POWER GND -- GND_2, VCC -- power_5v_b
+    DATA
+        gpio[mode="output"] trigger -- GPIO23,
+        gpio[mode="input"] echo -- GPIO24
+    @ "factory/floor1/proximity"
+    VIA Edge;
+
+// Alarm buzzer → Edge (immediate local response)
+CONNECT AlarmBuzzer WITH
+    POWER gnd -- GND_3
+    DATA gpio[mode="output"] vin -- GPIO17
+    @ "factory/floor1/alarm"
+    VIA Edge;
+
+// Status LED → Cloud (remote monitoring of device health)
+CONNECT StatusIndicator WITH
+    POWER gnd -- GND_4, vcc -- power_3v3_a
+    DATA gpio[mode="output"] vin -- GPIO27
+    @ "factory/floor1/status"
+    VIA Cloud;
+
+// Sampling: fast proximity checks locally, slow ambient to cloud
+SAMPLING AmbientSensor WITH rate = 500 mhz, mode = continuous;
+SAMPLING ProximitySensor WITH rate = 20 hz, mode = on_change, threshold = 0.1;

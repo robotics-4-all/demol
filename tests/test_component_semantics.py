@@ -1,12 +1,14 @@
-from textx.exceptions import TextXSemanticError
 import pytest
+
 
 def test_valid_sensor(component_mm):
     model_str = """
     SENSOR[Env] MySensor WITH
         OP
             vcc=3V3,
-            energy=10 mW, 20 mW, 15 mW
+            power.min=10 mW,
+            power.max=20 mW,
+            power.avg=15 mW
         PINS
             p1[3V3] @ 1,
             p2[GND] @ 2,
@@ -17,12 +19,15 @@ def test_valid_sensor(component_mm):
     assert model.component.name == "MySensor"
     assert model.component.operational.vcc == "3V3"
 
+
 def test_valid_actuator(component_mm):
     model_str = """
     ACTUATOR[Relay] MyRelay WITH
         OP
             vcc=5V,
-            energy=5 mW, 10 mW, 7 mW
+            power.min=5 mW,
+            power.max=10 mW,
+            power.avg=7 mW
         PINS
             p1[5V] @ 1,
             p2[GND] @ 2
@@ -30,6 +35,7 @@ def test_valid_actuator(component_mm):
     """
     model = component_mm.model_from_str(model_str)
     assert model.component.name == "MyRelay"
+
 
 def test_sensor_attributes(component_mm):
     model_str = """
@@ -46,9 +52,10 @@ def test_sensor_attributes(component_mm):
     """
     model = component_mm.model_from_str(model_str)
     attrs = {a.name: a.default for a in model.component.attributes}
-    assert attrs['poll_period'] == 100
-    assert attrs['name'] == "test_sensor"
-    assert attrs['enabled'] is True
+    assert attrs["poll_period"] == 100
+    assert attrs["name"] == "test_sensor"
+    assert attrs["enabled"] is True
+
 
 def test_sensor_templates(component_mm):
     model_str = """
@@ -64,8 +71,9 @@ def test_sensor_templates(component_mm):
     """
     model = component_mm.model_from_str(model_str)
     tmpls = {t.os: t.template for t in model.component.templates}
-    assert tmpls['raspbian'] == "sensor.py.tmpl"
-    assert tmpls['riotos'] == "sensor.c.tmpl"
+    assert tmpls["raspbian"] == "sensor.py.tmpl"
+    assert tmpls["riotos"] == "sensor.c.tmpl"
+
 
 def test_invalid_syntax_missing_semicolon(component_mm):
     model_str = """
@@ -73,5 +81,5 @@ def test_invalid_syntax_missing_semicolon(component_mm):
         OP vcc=3V3
         PINS p1[gpio] @ 1
     """
-    with pytest.raises(Exception): # Syntax error
+    with pytest.raises(Exception):  # Syntax error
         component_mm.model_from_str(model_str)

@@ -1,0 +1,55 @@
+from gpiozero import Motor, PWMOutputDevice
+from .peripheral import Sensor
+
+
+class {{ driver_class_name }}(Sensor):
+    """
+    L298N Dual H-Bridge DC Motor Driver (GPIO/PWM)
+    Controls two DC motors independently with speed and direction.
+    """
+    _MAX_SPEED = {{ attributes.get('max_speed', 100) }}
+    _RAMP_TIME = {{ attributes.get('ramp_time', 0.5) }}
+
+    def __init__(self):
+        super().__init__(
+            name="{{ instance }}",
+            connections={{ conn }},
+            attributes={{ attributes }}
+        )
+        self.motor_a = None
+        self.motor_b = None
+
+    def initialize(self):
+        """Initialize motor control pins"""
+        pins = {{ conn }}.get('gpio', {}).get('pins', {})
+        in1 = pins.get('IN1', 17)
+        in2 = pins.get('IN2', 18)
+        in3 = pins.get('IN3', 22)
+        in4 = pins.get('IN4', 23)
+        ena = pins.get('ENA', None)
+        enb = pins.get('ENB', None)
+        self.motor_a = Motor(forward=in1, backward=in2, enable=ena) if ena else Motor(forward=in1, backward=in2)
+        self.motor_b = Motor(forward=in3, backward=in4, enable=enb) if enb else Motor(forward=in3, backward=in4)
+
+    def read(self):
+        """No-op — motors are actuators, not sensors"""
+        pass
+
+    def forward(self, speed=1.0):
+        """Drive both motors forward at given speed (0.0–1.0)"""
+        self.motor_a.forward(speed)
+        self.motor_b.forward(speed)
+
+    def backward(self, speed=1.0):
+        """Drive both motors backward at given speed (0.0–1.0)"""
+        self.motor_a.backward(speed)
+        self.motor_b.backward(speed)
+
+    def stop(self):
+        """Stop both motors"""
+        self.motor_a.stop()
+        self.motor_b.stop()
+
+    def disconnect(self):
+        """Release hardware resources"""
+        self.stop()

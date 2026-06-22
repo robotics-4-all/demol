@@ -1,0 +1,49 @@
+import time
+import board
+import adafruit_vl53l1x
+from .peripheral import Sensor
+from .msg import DistanceMessage
+
+
+class {{ driver_class_name }}(Sensor):
+    """
+    VL53L1X Time-of-Flight distance sensor
+    """
+    _ADDRESS = {{ conn.i2c.slave_address if conn.i2c is defined else 0x29 }}
+    _DISTANCE_MODE = {{ attributes.get('distance_mode', 1) }}
+    _TIMING_BUDGET = {{ attributes.get('timing_budget', 100) }}
+    _MAX_DISTANCE = {{ attributes.get('max_distance', 200.0) }}
+    _MIN_DISTANCE = {{ attributes.get('min_distance', 0.1) }}
+    _MAX_FREQUENCY = {{ op.get('freq_max', 50.0) }}
+    _FREQUENCY = {{ attributes.get('frequency', 10.0) }}
+
+    def __init__(self):
+        super().__init__(
+            name="{{ instance }}", 
+            connections={{ conn }}, 
+            attributes={{ attributes }}
+        )
+        self.vl53 = None
+
+    def initialize(self):
+        """Initialize the sensor hardware"""
+        i2c = board.I2C()
+        self.vl53 = adafruit_vl53l1x.VL53L1X(i2c, address=self._ADDRESS)
+        self.vl53.distance_mode = self._DISTANCE_MODE
+        self.vl53.timing_budget = self._TIMING_BUDGET
+        self.vl53.start_ranging()
+
+    def read(self):
+        """Read sensor data"""
+        if self.vl53.data_ready:
+            self.update_state_data({
+                "distance": self.vl53.distance,
+                "max_distance": self._MAX_DISTANCE,
+                "min_distance": self._MIN_DISTANCE
+            })
+            self.vl53.clear_interrupt()
+
+    def disconnect(self):
+        """Release hardware resources"""
+        if self.vl53:
+            self.vl53.stop_ranging()

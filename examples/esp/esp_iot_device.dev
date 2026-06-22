@@ -5,21 +5,21 @@ NETWORK[WiFi] WITH ssid="Wifi_2.4GHz", password="guest";
 BROKER[MQTT] MyMqttBroker WITH host="node.mqtt.local", port=1885, auth.username="guest", auth.password="guest";
 
 USE ESP32Wroom32;
-USE SonarSRF04(MySonar), BME680(MyBME);
+USE HCSR04P[MySonar], BME680[MyBME];
 
 CONNECT MySonar WITH
     POWER
-        GND_1 -- gnd,
-        VCC_5V -- vcc
+        GND -- GND_1,
+        VCC -- VCC_3V3
     DATA
-        gpio GPIO13 -- trigger,
-        gpio GPIO14 -- echo
+        gpio[mode="output"] trigger -- GPIO13,
+        gpio[mode="input"] echo -- GPIO14
     @ "my_esp.sensors.distance.srf04_02";
 
 CONNECT MyBME WITH
     POWER
-        GND_1 -- gnd,
-        VCC_5V -- vcc
+        gnd -- GND_2,
+        vcc -- VCC_5V
     DATA
-        i2c[slave_address=0x76] sda GPIO21 -- sda, scl GPIO22 -- scl
+        i2c[slave_address=0x76] sda sda -- GPIO21, scl scl -- GPIO22
     @ "my_esp.sensors.env.bme680";

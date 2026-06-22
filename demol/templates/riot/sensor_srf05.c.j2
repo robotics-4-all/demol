@@ -1,0 +1,96 @@
+#include "sensor_{{ name }}_{{ index }}.h"
+#include "thread.h"
+#include "xtimer.h"
+#include "json_handler.h"
+#include "mqtt_broker.h"
+#include "srf04.h"
+#include "srf04_params.h"
+
+/* SRF05 is pin- and timing-compatible with the SRF04. We reuse the
+   in-tree RIOT srf04 driver: same trigger/echo protocol, identical
+   API. The slight pulse-width difference is absorbed by the driver. */
+
+static srf04_t {{ name }}_{{ index }}_dev;
+static {{ name }}_{{ index }}_callback {{ name }}_{{ index }}_cb;
+
+char {{ name }}_{{ index }}_json_payload[165] = "";
+char {{ name }}_{{ index }}_stack[THREAD_STACKSIZE_MAIN];
+
+void *{{ name }}_{{ index }}_thread(void *args);
+
+int init_sensor_{{ name }}_{{ index }}(void)
+{
+    srf04_params_t params;
+    params.trigger = GPIO_PIN(0, {{ conn.gpio.pins.trigger.id }});
+    params.echo = GPIO_PIN(0, {{ conn.gpio.pins.echo.id }});
+
+    printf("Initialize {{ name|upper }} sensor (via srf04 driver) ... ");
+    if (srf04_init(&{{ name }}_{{ index }}_dev, &params) != SRF04_OK)
+    {
+        puts("failed");
+        return -1;
+    }
+    else
+    {
+        puts("OK");
+        return 0;
+    }
+}
+
+void start_sensor_{{ name }}_{{ index }}({{ name }}_{{ index }}_callback callback)
+{
+    {{ name }}_{{ index }}_cb = callback;
+    thread_create({{ name }}_{{ index }}_stack, sizeof({{ name }}_{{ index }}_stack),
+                  (THREAD_PRIORITY_MAIN + 1),
+                  THREAD_CREATE_STACKTEST,
+                  {{ name }}_{{ index }}_thread,
+                  NULL, "{{ name }}_{{ index }}_sensor");
+};
+
+void *{{ name }}_{{ index }}_thread(void *args)
+{
+    (void)args;
+{% if source_alerts %}
+    /* ALERT cooldown trackers (function-scope statics persist across loop iterations) */
+{% for a in source_alerts %}
+    static uint64_t last_fire_{{ a.c_safe_name }} = 0;
+{% endfor %}
+{% endif %}
+
+    while (1)
+    {
+        int dist = srf04_get_distance(&{{ name }}_{{ index }}_dev);
+
+        if (dist >= 0)
+        {
+{% if source_alerts %}
+            /* ALERT triggers — evaluated on every successful read, independent of sampling mode */
+            uint64_t _now_sec = xtimer_now_usec64() / 1000000ULL;
+{% for a in source_alerts %}
+            if ({{ a.condition_c }}) {
+                if ((_now_sec - last_fire_{{ a.c_safe_name }}) >= {{ a.cooldown_sec }}ULL) {
+                    last_fire_{{ a.c_safe_name }} = _now_sec;
+{% for act in a.actions %}
+                    publish_alert("{{ act.payload_c }}", "{{ act.topic }}");
+{% endfor %}
+                }
+            }
+{% endfor %}
+{% endif %}
+            printf("[{{ name|upper }}]: Distance = %d mm\n", dist);
+
+            json_dumps({{ name }}_{{ index }}_json_payload,
+                       JSON_START,
+                       JSON_KEY, "Distance", JSON_INT, dist,
+                       JSON_STOP);
+
+            {{ name }}_{{ index }}_cb({{ name }}_{{ index }}_json_payload);
+        }
+        else
+        {
+            printf("[{{ name }}]: read data failed\n");
+        }
+
+        xtimer_msleep(({{ name|upper }}_{{ index }}_FREQ));
+    }
+};

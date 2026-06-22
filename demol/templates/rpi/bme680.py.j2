@@ -1,0 +1,59 @@
+import bme680
+import time
+from .peripheral import Sensor
+from .msg import EnvMessage
+
+
+class {{ driver_class_name }}(Sensor):
+    """
+    BME680 Environmental Sensor (Temperature, Humidity, Pressure, Gas)
+    """
+    _PRIMARY_ADDRESS = {{ conn.i2c.slave_address if conn.i2c is defined else 0x4c }}
+    _SECONDARY_ADDRESS = {{ attributes.get('secondary_slave_address', 0x4d) }}
+    _MAX_FREQUENCY = {{ op.get('freq_max', 180.0) }}
+    _FREQUENCY = {{ attributes.get('frequency', 10.0) }}
+
+    def __init__(self):
+        super().__init__(
+            name="{{ instance }}", 
+            connections={{ conn }}, 
+            attributes={{ attributes }}
+        )
+        self.sensor = None
+
+    def initialize(self):
+        """Initialize the sensor hardware"""
+        try:
+            self.sensor = bme680.BME680(self._PRIMARY_ADDRESS)
+        except (RuntimeError, IOError):
+            self.sensor = bme680.BME680(self._SECONDARY_ADDRESS)
+
+        # Initializing parameters
+        self.sensor.set_humidity_oversample(bme680.OS_2X)
+        self.sensor.set_pressure_oversample(bme680.OS_4X)
+        self.sensor.set_temperature_oversample(bme680.OS_8X)
+        self.sensor.set_filter(bme680.FILTER_SIZE_3)
+
+        self.sensor.set_gas_status(bme680.ENABLE_GAS_MEAS)
+        self.sensor.set_gas_heater_temperature(320)
+        self.sensor.set_gas_heater_duration(150)
+        self.sensor.select_gas_heater_profile(0)
+
+    def read(self):
+        """Read sensor data"""
+        if self.sensor.get_sensor_data():
+            data = {
+                "temperature": self.sensor.data.temperature,
+                "pressure": self.sensor.data.pressure,
+                "humidity": self.sensor.data.humidity
+            }
+            if self.sensor.data.heat_stable:
+                data["gas_resistance"] = self.sensor.data.gas_resistance
+            else:
+                data["gas_resistance"] = 0.0
+            
+            self.update_state_data(data)
+
+    def disconnect(self):
+        """Release hardware resources"""
+        pass

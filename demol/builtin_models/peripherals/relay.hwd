@@ -1,0 +1,21 @@
+ACTUATOR[Relay] RelayModule WITH
+    OP
+        vcc=5V,
+        ioVcc=3V3,
+        power.min=50 mW,
+        power.max=400 mW,
+        power.avg=150 mW,
+        freq.max=10 hz
+    PINS
+        VCC[5V] @ 1,
+        GND[GND] @ 2,
+        IN[gpio] @ 3
+    TEMPLATES
+        raspbian="relay.py.j2"
+    DEPENDENCIES
+        raspbian=["gpiozero"]
+    ATTRIBUTES
+        gpio_modes[dict] = {IN = "output"},
+        active_low[bool] = true,
+        initial_state[bool] = false
+;

@@ -1,6 +1,7 @@
 BOARD[ESP] WemosD1Mini WITH
     OP
-        vcc=3V3,
+        vcc=5V,
+        ioVcc=3V3,
         memory.flash=16 mb,
         cpu.family=ESP8266,
         cpu.freq=160 mhz,
@@ -8,7 +9,9 @@ BOARD[ESP] WemosD1Mini WITH
         wifi.name=Wemos_WiFi,
         wifi.version=4,
         wifi.bands=[2.4GHz],
-        energy=2 mW, 500 mW, 80 mW
+        power.min=2 mW,
+        power.max=500 mW,
+        power.avg=80 mW
     PORTS
         spi=1,
         i2c=1,
@@ -31,4 +34,7 @@ BOARD[ESP] WemosD1Mini WITH
         d4[gpio] @ 14,
         gnd[GND] @ 15,
         power_5v[5V] @ 16
+    PLATFORMS
+        riotos.board = "esp8266-esp-12x"
+
 ;

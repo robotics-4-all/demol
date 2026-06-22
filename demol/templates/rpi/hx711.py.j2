@@ -1,0 +1,48 @@
+import hx711
+from .peripheral import Sensor
+
+
+class {{ driver_class_name }}(Sensor):
+    """
+    HX711 24-bit ADC for load cells / weight scales (GPIO-based)
+    """
+    _GAIN = {{ attributes.get('gain', 128) }}
+    _REFERENCE_UNIT = {{ attributes.get('reference_unit', 1.0) }}
+    _TARE_OFFSET = {{ attributes.get('tare_offset', 0.0) }}
+    _FREQUENCY = {{ attributes.get('poll_period', 1) }}
+
+    def __init__(self):
+        super().__init__(
+            name="{{ instance }}",
+            connections={{ conn }},
+            attributes={{ attributes }}
+        )
+        self.scale = None
+        self._dt_pin = None
+        self._sck_pin = None
+
+    def initialize(self):
+        """Initialize the HX711 load cell amplifier"""
+        # Resolve GPIO pin numbers from connection config
+        pins = {{ conn }}.get('gpio', {}).get('pins', {})
+        self._dt_pin = pins.get('DT', 5)
+        self._sck_pin = pins.get('SCK', 6)
+        self.scale = hx711.HX711(self._dt_pin, self._sck_pin)
+        self.scale.set_reading_format("MSB", "MSB")
+        self.scale.set_reference_unit(self._REFERENCE_UNIT)
+        self.scale.reset()
+        self.scale.tare()
+
+    def read(self):
+        """Read weight measurement from load cell"""
+        val = self.scale.get_weight(5)
+        self.scale.power_down()
+        self.scale.power_up()
+        self.update_state_data({
+            "weight_grams": round(val, 2)
+        })
+
+    def disconnect(self):
+        """Release hardware resources"""
+        if self.scale:
+            self.scale.power_down()

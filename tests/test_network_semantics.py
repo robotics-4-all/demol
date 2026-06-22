@@ -1,0 +1,88 @@
+from textx.exceptions import TextXSemanticError
+import pytest
+
+
+def test_mandatory_network_and_broker(device_mm):
+    # Model without network and without broker should now fail
+    model_str = """
+    DEVICE TestDevice WITH description="Test", author="Test", os=raspbian;
+    USE RaspberryPi_4B_4GB;
+    USE LedGeneric[MyLED];
+    
+    CONNECT MyLED WITH
+        POWER
+            vcc -- power_3v3_a,
+            gnd -- GND_1
+        DATA
+            gpio[mode="output"] vin -- GPIO17;
+    """
+    with pytest.raises(TextXSemanticError) as excinfo:
+        device_mm.model_from_str(model_str)
+
+    # It should fail on either Broker or Network requirements
+    assert "WF-Broker-Requirements" in str(excinfo.value) or "WF-Network-Requirements" in str(excinfo.value)
+
+
+def test_missing_network_with_broker(device_mm):
+    # Model without network but with broker should fail
+    model_str = """
+    DEVICE TestDevice WITH description="Test", author="Test", os=raspbian;
+    USE RaspberryPi_4B_4GB;
+    USE LedGeneric[MyLED];
+    
+    BROKER[MQTT] MyBroker WITH host="localhost", port=1883;
+    
+    CONNECT MyLED WITH
+        POWER
+            vcc -- power_3v3_a,
+            gnd -- GND_1
+        DATA
+            gpio[mode="output"] vin -- GPIO17;
+    """
+    with pytest.raises(TextXSemanticError, match=r".*WF-Network-Requirements.*"):
+        device_mm.model_from_str(model_str)
+
+
+def test_missing_network_with_remote(device_mm):
+    # Model without network but with remote endpoint should fail
+    model_str = """
+    DEVICE TestDevice WITH description="Test", author="Test", os=raspbian;
+    USE RaspberryPi_4B_4GB;
+    USE LedGeneric[MyLED];
+    
+    CONNECT MyLED WITH
+        POWER
+            vcc -- power_3v3_a,
+            gnd -- GND_1
+        DATA
+            gpio[mode="output"] vin -- GPIO17
+        @ "led/control";
+    """
+    # Note: validate_broker_requirements will also fail here because no broker is defined
+    # but validate_network_requirements is called after it.
+
+    with pytest.raises(TextXSemanticError) as excinfo:
+        device_mm.model_from_str(model_str)
+
+    assert "WF-Broker-Requirements" in str(excinfo.value) or "WF-Network-Requirements" in str(excinfo.value)
+
+
+def test_network_with_broker_valid(device_mm):
+    # Model with network and broker is valid
+    model_str = """
+    DEVICE TestDevice WITH description="Test", author="Test", os=raspbian;
+    USE RaspberryPi_4B_4GB;
+    USE LedGeneric[MyLED];
+    
+    NETWORK[WiFi] WITH ssid="test", password="test";
+    BROKER[MQTT] MyBroker WITH host="localhost", port=1883;
+    
+    CONNECT MyLED WITH
+        POWER
+            vcc -- power_3v3_a,
+            gnd -- GND_1
+        DATA
+            gpio[mode="output"] vin -- GPIO17
+        @ "led/control";
+    """
+    device_mm.model_from_str(model_str)

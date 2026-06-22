@@ -1,6 +1,6 @@
 BOARD[ESP] ESP32Wroom32 WITH
     OP
-        vcc=3V3,
+        vcc=5V,
         ioVcc=3V3,
         memory.flash=4 mb,
         cpu.family=ESP32,
@@ -10,7 +10,9 @@ BOARD[ESP] ESP32Wroom32 WITH
         wifi.version=4,
         wifi.bands=[2.4GHz],
         bluetooth=BT4,
-        energy=2.64 mW, 792 mW, 100 mW
+        power.min=2.64 mW,
+        power.max=792 mW,
+        power.avg=100 mW
     PORTS
         spi=2,
         i2c=1,
@@ -55,4 +57,7 @@ BOARD[ESP] ESP32Wroom32 WITH
         GPIO8[gpio] @ 36,
         GPIO7[gpio] @ 37,
         GPIO6[gpio] @ 38
+    PLATFORMS
+        riotos.board = "esp32-wroom-32"
+
 ;

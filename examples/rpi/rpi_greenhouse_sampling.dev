@@ -1,0 +1,61 @@
+// Greenhouse Monitoring System — demonstrates all SAMPLING modes
+//
+// Scenario: A greenhouse with environment monitoring (continuous),
+// proximity detection (on_change), and on-demand status checks.
+
+DEVICE GreenhouseMonitor WITH
+    description="Greenhouse monitoring with diverse sampling strategies",
+    author="DeMoL",
+    os=raspbian;
+
+USE RaspberryPi_5_8GB;
+
+USE BME680[AirQuality],
+    HCSR04[PlantHeight],
+    SRF04[WaterLevel],
+    LedGeneric[GrowLight];
+
+NETWORK[WiFi] WITH ssid="GreenNet", password="gr33nh0use";
+
+BROKER[MQTT] Broker WITH
+    host="localhost", port=1883,
+    auth.username="greenhouse", auth.password="monitor";
+
+// Environment sensor — I2C wiring
+CONNECT AirQuality WITH
+    POWER gnd -- GND_1, vcc -- power_5v_a
+    DATA i2c[slave_address=0x76] sda sda -- GPIO2, scl scl -- GPIO3
+    @ "greenhouse/air";
+
+// Ultrasonic sensor for plant height — GPIO wiring
+CONNECT PlantHeight WITH
+    POWER GND -- GND_2, VCC -- power_5v_b
+    DATA
+        gpio[mode="output"] trigger -- GPIO23,
+        gpio[mode="input"] echo -- GPIO24
+    @ "greenhouse/plant_height";
+
+// Ultrasonic sensor for water reservoir level
+CONNECT WaterLevel WITH
+    POWER gnd -- GND_3, vcc -- power_5v_b
+    DATA
+        gpio[mode="output"] trigger -- GPIO17,
+        gpio[mode="input"] echo -- GPIO27
+    @ "greenhouse/water_level";
+
+// Grow light indicator
+CONNECT GrowLight WITH
+    POWER gnd -- GND_4, vcc -- power_3v3_b
+    DATA gpio[mode="output"] vin -- GPIO22
+    @ "greenhouse/grow_light";
+
+// ── Sampling Configurations ──────────────────────────────────────────
+
+// Continuous: steady stream of air quality readings at 1 Hz
+SAMPLING AirQuality WITH rate = 1 hz, mode = continuous;
+
+// On-change: only publish when plant height changes by > 0.5 cm
+SAMPLING PlantHeight WITH rate = 5 hz, mode = on_change, threshold = 0.5;
+
+// Batch: collect 20 water level readings, then publish as a batch
+SAMPLING WaterLevel WITH rate = 2 hz, mode = batch, buffer = 20;

@@ -1,0 +1,33 @@
+from gpiozero import MotionSensor
+from gpiozero.pins.pigpio import PiGPIOFactory
+from .peripheral import Sensor
+from .msg import ProximityMessage
+
+
+class {{ driver_class_name }}(Sensor):
+    _PIN = "{{ conn.gpio.pins.get('OUT', {}).get('name', 'GPIO17') }}"
+    _HOLD_TIME = {{ attributes.get('hold_time', 1.0) }}
+    _FREQUENCY = {{ attributes.get('frequency', 10.0) }}
+
+    def __init__(self):
+        super().__init__(
+            name="{{ instance }}",
+            connections={{ conn }},
+            attributes={{ attributes }}
+        )
+        self.sensor = None
+
+    def initialize(self):
+        self.sensor = MotionSensor(
+            self._PIN,
+            pin_factory=PiGPIOFactory()
+        )
+
+    def read(self):
+        self.update_state_data({
+            "motion_detected": self.sensor.motion_detected
+        })
+
+    def disconnect(self):
+        if self.sensor:
+            self.sensor.close()

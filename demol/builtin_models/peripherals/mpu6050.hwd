@@ -1,0 +1,26 @@
+SENSOR[IMU] MPU6050 WITH
+    OP
+        vcc=3V3,
+        ioVcc=3V3,
+        power.min=5 mW,
+        power.max=20 mW,
+        power.avg=12 mW,
+        freq.max=1000 hz
+    PINS
+        VCC[3V3] @ 1,
+        GND[GND] @ 2,
+        sda[sda-0] @ 3,
+        scl[scl-0] @ 4,
+        ?INT[gpio] @ 5
+    TEMPLATES
+        raspbian="mpu6050.py.j2"
+    DEPENDENCIES
+        raspbian=[
+            {package="mpu6050-raspberrypi", source="pip"}
+        ]
+    ATTRIBUTES
+        i2c_address[int] = 104,
+        frequency[float] = 100.0,
+        accel_range[int] = 2,
+        gyro_range[int] = 250
+;

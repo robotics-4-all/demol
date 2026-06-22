@@ -1,0 +1,16 @@
+DEVICE RpiSoilMoistureGarden WITH description="RaspberryPi 5 with capacitive soil moisture probe on a digital threshold output", author="demol", os=raspbian;
+
+USE RaspberryPi_5_8GB;
+USE SoilMoisture[SoilProbe];
+
+NETWORK[WiFi] WITH ssid="Wifi_2.4GHz", password="guest";
+
+BROKER[MQTT] MyBroker WITH host="localhost", port=1883, auth.username="guest", auth.password="guest", ssl=False;
+
+CONNECT SoilProbe WITH
+    POWER
+        GND -- GND_1,
+        VCC -- power_3v3_a
+    DATA
+        gpio[mode="input"] DO -- GPIO4
+    @ "my_raspi.sensors.humidity.soil";

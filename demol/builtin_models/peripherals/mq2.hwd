@@ -1,0 +1,22 @@
+SENSOR[Gas] MQ2 WITH
+    OP
+        vcc=5V,
+        ioVcc=5V,
+        power.min=600 mW,
+        power.max=900 mW,
+        power.avg=800 mW,
+        freq.max=10 hz
+    PINS
+        VCC[5V] @ 1,
+        GND[GND] @ 2,
+        DO[gpio] @ 3,
+        ?AO[adc] @ 4
+    TEMPLATES
+        raspbian="mq2.py.j2"
+    DEPENDENCIES
+        raspbian=["gpiozero"]
+    ATTRIBUTES
+        gpio_modes[dict] = {DO = "input"},
+        frequency[float] = 1.0,
+        threshold_ppm[float] = 300.0
+;

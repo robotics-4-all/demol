@@ -1,0 +1,24 @@
+DEVICE MixedConnectionDevice WITH
+    description="Device mixing manual CONNECT and SMARTCONNECT",
+    author="DeMoL",
+    os=raspbian;
+
+USE RaspberryPi_5_8GB;
+
+USE BME680[EnvSensor],
+    HCSR04[DistanceSensor];
+
+NETWORK[WiFi] WITH ssid="MyWifi", password="pass";
+
+BROKER[MQTT] Broker WITH
+    host="localhost", port=1883,
+    auth.username="user", auth.password="pass";
+
+// Manual CONNECT for precise control
+CONNECT EnvSensor WITH
+    POWER gnd -- GND_1, vcc -- power_5v_a
+    DATA i2c[slave_address=0x76] sda sda -- GPIO2, scl scl -- GPIO3
+    @ "sensors/env";
+
+// SmartConnect for the rest — automatically avoids GPIO2/GPIO3
+SMARTCONNECT DistanceSensor @ "sensors/distance";

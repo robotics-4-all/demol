@@ -1,0 +1,51 @@
+from commlib.node import Node
+from commlib.transports.mqtt import ConnectionParameters
+from commlib.utils import Rate
+from .msg import {{class}}Message
+from .{{ driver_module_name }} import {{ driver_class_name }}
+
+
+class {{ peripheral.name }}Node:
+    _FREQUENCY = {{ attributes.get("frequency", 100.0) }}
+
+    def __init__(self):
+        self.actuator = {{ driver_class_name }}()
+        self.actuator.initialize()
+        self.conn_params = ConnectionParameters(
+            host="{{ broker.host }}",
+            port={{ broker.port }}{% if broker.ssl is defined %},
+            ssl={{ broker.ssl }}{% endif %}{% if broker.username is defined and broker.username %},
+            username="{{ broker.username }}"{% endif %}{% if broker.password is defined and broker.password %},
+            password="{{ broker.password }}"{% endif %}
+        )
+
+    def _initialize(self):
+        self.sub = self.node.create_subscriber(
+            msg_type={{ class }}Message,
+            topic="{{ topic }}",
+            on_message=self._on_message)
+        self.node = Node(
+            node_name='actuators.{{ class | lower }}.{{ instance | lower }}',
+            connection_params=self.conn_params,
+            heartbeats=False)
+
+    def _on_message(self, msg):
+        try:
+            self.actuator.write(msg)
+        except Exception as e:
+            print(f"Error writing actuator data: {e}")
+
+    def run(self):
+        try:
+            self._initialize()
+            self.node.run_forever(sleep_rate=self._FREQUENCY)
+        except KeyboardInterrupt:
+            self.disconnect()
+
+    def disconnect(self):
+        self.actuator.disconnect()
+
+
+if __name__ == "__main__":
+    node = {{ peripheral.name }}Node()
+    node.run()

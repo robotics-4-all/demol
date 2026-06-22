@@ -1,0 +1,88 @@
+import subprocess
+import os
+from .peripheral import Actuator
+from .msg import SpeakerMessage
+
+
+class {{ driver_class_name }}(Actuator):
+    """
+    Lightweight Text-to-Speech Actuator using espeak-ng/espeak.
+    Designed for low-resource devices like Raspberry Pi.
+    """
+    _RATE = {{ attributes.get('rate', 160) }}
+    _VOLUME = {{ attributes.get('volume', 100) }}  # 0-200 for espeak
+    _PITCH = {{ attributes.get('pitch', 50) }}     # 0-99
+    _VOICE = "{{ attributes.get('voice', 'en') }}"
+
+    def __init__(self):
+        super().__init__(
+            name="{{ instance }}", 
+            connections={{ conn }}, 
+            attributes={{ attributes }}
+        )
+        self._command_exists = False
+        self._executable = None
+
+    def initialize(self):
+        """Check if espeak or espeak-ng is installed"""
+        try:
+            # Check for espeak-ng first, then espeak
+            if subprocess.run(["which", "espeak-ng"], capture_output=True).returncode == 0:
+                self._executable = "espeak-ng"
+                self._command_exists = True
+            elif subprocess.run(["which", "espeak"], capture_output=True).returncode == 0:
+                self._executable = "espeak"
+                self._command_exists = True
+            else:
+                print("Warning: Neither 'espeak-ng' nor 'espeak' found. TTS will not work.")
+        except Exception as e:
+            print(f"Error checking for TTS engine: {e}")
+
+    def write(self, msg):
+        """Speak the provided text using a subprocess call
+        
+        Args:
+            msg (SpeakerMessage): Speaker control message
+        """
+        if not self._command_exists:
+            return
+
+        text = ""
+        volume = self._VOLUME
+        
+        if hasattr(msg, 'text'):
+            text = msg.text
+            # Map 0.0-1.0 volume to 0-200 for espeak
+            vol_float = getattr(msg, 'volume', 1.0)
+            volume = int(vol_float * 200)
+        elif isinstance(msg, dict):
+            text = msg.get('text', "")
+            vol_float = msg.get('volume', 1.0)
+            volume = int(vol_float * 200)
+            
+        if text:
+            # Build the command
+            cmd = [
+                self._executable,
+                "-s", str(self._RATE),
+                "-a", str(volume),
+                "-p", str(self._PITCH),
+                "-v", self._VOICE,
+                text
+            ]
+            try:
+                subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            except Exception as e:
+                print(f"Error executing TTS command: {e}")
+
+    def disconnect(self):
+        """No specific resources to release for subprocess-based TTS"""
+        pass
+
+
+if __name__ == "__main__":
+    tts = {{ driver_class_name }}()
+    tts.initialize()
+    test_text = "System initialized. Low resource text to speech is ready."
+    print(f"Speaking: {test_text}")
+    tts.write({"text": test_text, "volume": 0.8})

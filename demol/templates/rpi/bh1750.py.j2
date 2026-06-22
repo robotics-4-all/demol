@@ -1,0 +1,31 @@
+import adafruit_bh1750
+import busio
+import board as adafruit_board
+from .peripheral import Sensor
+from .msg import LightMessage
+
+
+class {{ driver_class_name }}(Sensor):
+    _ADDRESS = {{ conn.i2c.slave_address if conn.i2c is defined else 35 }}
+    _FREQUENCY = {{ attributes.get('frequency', 1.0) }}
+
+    def __init__(self):
+        super().__init__(
+            name="{{ instance }}",
+            connections={{ conn }},
+            attributes={{ attributes }}
+        )
+        self.sensor = None
+
+    def initialize(self):
+        i2c = busio.I2C(adafruit_board.SCL, adafruit_board.SDA)
+        self.sensor = adafruit_bh1750.BH1750(i2c, address=self._ADDRESS)
+
+    def read(self):
+        lux = self.sensor.lux
+        self.update_state_data({
+            "lux": lux
+        })
+
+    def disconnect(self):
+        pass

@@ -1,0 +1,31 @@
+// Weather Station v1 — initial deployment
+//
+// Use with `demol diff` to compare against v2:
+//   demol diff examples/rpi/rpi_weather_station_v1.dev examples/rpi/rpi_weather_station_v2.dev
+
+DEVICE WeatherStation WITH description="Rooftop weather monitor v1", author="DeMoL", os=raspbian;
+
+USE RaspberryPi_5_8GB;
+USE BME680[Climate];
+USE BuzzerGeneric[StormAlarm];
+
+NETWORK[WiFi] WITH ssid="WeatherNet", password="w3ather!";
+BROKER[MQTT] Cloud WITH host="mqtt.weather.io", port=1883,
+    auth.username="station01", auth.password="s3cure";
+
+CONNECT Climate WITH
+    POWER gnd -- GND_1, vcc -- power_5v_a
+    DATA i2c[slave_address=0x76] sda sda -- GPIO2, scl scl -- GPIO3
+    @ "weather/climate"
+    VIA Cloud;
+
+CONNECT StormAlarm WITH
+    POWER gnd -- GND_2
+    DATA gpio[mode="output"] vin -- GPIO22
+    @ "weather/alarm"
+    VIA Cloud;
+
+SAMPLING Climate WITH rate = 1 hz, mode = continuous;
+
+CONSTRAINT has_sensor: count(SENSOR) >= 1
+    MESSAGE "At least one sensor required";

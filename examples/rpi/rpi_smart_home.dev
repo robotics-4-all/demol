@@ -1,0 +1,54 @@
+DEVICE SmartHomeNode WITH 
+    description="Smart home node with environment monitoring and voice feedback", 
+    author="Antigravity", 
+    os=raspbian;
+
+USE RaspberryPi_5_8GB;
+
+// Peripherals
+USE BME680[EnvSensor];
+USE TactileButton[UserButton];
+USE LedGeneric[StatusLed];
+USE TTSSpeaker[VoiceFeedback] WITH 
+    rate = 140,
+    voice = "english-us"
+;
+
+NETWORK[WiFi] WITH 
+    ssid="HomeWiFi", 
+    password="home_password";
+
+BROKER[MQTT] HomeBroker WITH 
+    host="192.168.1.50", 
+    port=1883,
+    auth.username="home",
+    auth.password="home_pass";
+
+// Connections
+CONNECT EnvSensor WITH
+    POWER 
+        gnd -- GND_1, 
+        vcc -- power_5v_a
+    DATA 
+        i2c[slave_address=0x76] sda sda -- GPIO2, scl scl -- GPIO3
+    @ "home/living_room/env";
+
+CONNECT UserButton WITH
+    POWER 
+        gnd -- GND_2
+    DATA 
+        gpio[mode="input", pullup=true] state -- GPIO17
+    @ "home/living_room/button";
+
+CONNECT StatusLed WITH
+    POWER 
+        gnd -- GND_3,
+        vcc -- power_3v3_a
+    DATA 
+        gpio[mode="output"] vin -- GPIO27
+    @ "home/living_room/led";
+
+CONNECT VoiceFeedback WITH
+    POWER
+        gnd -- GND_4
+    @ "home/living_room/tts";

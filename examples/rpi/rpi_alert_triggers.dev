@@ -1,0 +1,68 @@
+// DeMoL Example: ALERT Triggers
+// Demonstrates threshold-based alert conditions with actions.
+//
+// Features:
+//   - Single and compound ALERT conditions (&&, ||)
+//   - PUBLISH actions with VIA broker routing
+//   - ACTIVATE actions targeting actuators
+//   - COOLDOWN to prevent alert flooding
+
+DEVICE AlertDemo WITH description="Alert trigger demo", author="DeMoL", os=raspbian;
+
+USE RaspberryPi_5_8GB;
+USE BME680[EnvSensor];
+USE BuzzerGeneric[AlarmBuzzer];
+USE LedGeneric[StatusLed];
+
+NETWORK[WiFi] WITH ssid="IoT_Net", password="secure123";
+BROKER[MQTT] Cloud WITH host="mqtt.example.com", port=1883,
+    auth.username="user", auth.password="pass";
+BROKER[MQTT] Local WITH host="localhost", port=1883;
+
+CONNECT EnvSensor WITH
+    POWER gnd -- GND_1, vcc -- power_5v_a
+    DATA i2c[slave_address=0x76] sda sda -- GPIO2, scl scl -- GPIO3
+    @ "sensors/environment"
+    VIA Cloud;
+
+CONNECT AlarmBuzzer WITH
+    POWER gnd -- GND_2
+    DATA gpio[mode="output"] vin -- GPIO22
+    @ "actuators/alarm"
+    VIA Local;
+
+CONNECT StatusLed WITH
+    POWER gnd -- GND_3, vcc -- power_3v3_a
+    DATA gpio[mode="output"] vin -- GPIO17
+    @ "actuators/status"
+    VIA Local;
+
+// Simple alert: frost warning when temperature drops below 2 degrees
+ALERT frost_warning ON EnvSensor WHEN
+    temperature < 2
+    THEN
+    PUBLISH "alerts/frost" VIA Cloud
+    ACTIVATE AlarmBuzzer
+    COOLDOWN 300 hz;
+
+// Compound alert: heat + dry conditions (both must be true)
+ALERT heat_dry ON EnvSensor WHEN
+    temperature > 40 && humidity < 20
+    THEN
+    PUBLISH "alerts/heat-dry" VIA Cloud
+    ACTIVATE StatusLed;
+
+// Triple condition: uncomfortable indoor environment
+ALERT uncomfortable ON EnvSensor WHEN
+    temperature > 28 && humidity > 70 || pressure < 980
+    THEN
+    PUBLISH "alerts/comfort" VIA Local;
+
+// Gas leak alert with fast cooldown
+ALERT gas_leak ON EnvSensor WHEN
+    gas_resistance < 5000
+    THEN
+    PUBLISH "alerts/gas-leak" VIA Cloud
+    ACTIVATE AlarmBuzzer
+    ACTIVATE StatusLed
+    COOLDOWN 10 hz;

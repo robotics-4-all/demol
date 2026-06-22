@@ -1,0 +1,60 @@
+BOARD[ARDUINO] RPiPico WITH
+    OP
+        vcc=5V,
+        ioVcc=3V3,
+        memory.flash=2 mb,
+        // cpu.family=RP2040,
+        cpu.freq=133 mhz,
+        cpu.fpu=false,
+        power.min=1.2 mW,
+        power.max=300 mW,
+        power.avg=50 mW
+    PORTS
+        spi=2,
+        i2c=2,
+        uart=1,
+        gpio=26
+    PINS
+        GP0[gpio,tx-0,sda-0] @ 1,
+        GP1[gpio,rx-0,scl-0] @ 2,
+        GND_1[GND] @ 3,
+        GP2[gpio,sck-0,sda-1] @ 4,
+        GP3[gpio,mosi-0,scl-1] @ 5,
+        GP4[gpio,miso-0,sda-0] @ 6,
+        GP5[gpio,cs-0,scl-0] @ 7,
+        GND_2[GND] @ 8,
+        GP6[gpio,sck-0,sda-1] @ 9,
+        GP7[gpio,mosi-0,scl-1] @ 10,
+        GP8[gpio,miso-1,sda-0] @ 11,
+        GP9[gpio,cs-1,scl-0] @ 12,
+        GND_3[GND] @ 13,
+        GP10[gpio,sck-1,sda-1] @ 14,
+        GP11[gpio,mosi-1,scl-1] @ 15,
+        GP12[gpio,miso-1,sda-0] @ 16,
+        GP13[gpio,cs-1,scl-0] @ 17,
+        GND_4[GND] @ 18,
+        GP14[gpio,sck-1,sda-1] @ 19,
+        GP15[gpio,mosi-1,scl-1] @ 20,
+        GP16[gpio,miso-0,sda-0] @ 21,
+        GP17[gpio,cs-0,scl-0] @ 22,
+        GND_5[GND] @ 23,
+        GP18[gpio,sck-0,sda-1] @ 24,
+        GP19[gpio,mosi-0,scl-1] @ 25,
+        GP20[gpio,miso-0,sda-0] @ 26,
+        GP21[gpio,cs-0,scl-0] @ 27,
+        GP22[gpio] @ 28,
+        RUN[gpio] @ 29,
+        GP26[gpio,adc,sda-1] @ 31,
+        GP27[gpio,adc,scl-1] @ 32,
+        AGND[GND] @ 33,
+        GP28[gpio,adc,sda-0] @ 34,
+        ADC_VREF[3V3] @ 35,
+        VCC_3V3[3V3] @ 36,
+        VCC_3V3_EN[gpio] @ 37,
+        GND_6[GND] @ 38,
+        VSYS[5V] @ 39,
+        VBUS[5V] @ 40
+    PLATFORMS
+        riotos.board = "rpi-pico"
+
+;

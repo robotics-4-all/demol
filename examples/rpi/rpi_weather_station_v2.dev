@@ -1,0 +1,70 @@
+// Weather Station v2 — upgraded deployment
+//
+// Changes from v1:
+//   + Added VL53L1X snow-depth sensor
+//   + Added LedGeneric status indicator (replaced buzzer with LED)
+//   - Removed BuzzerGeneric storm alarm
+//   ~ Upgraded to dual-broker (Cloud + Local edge)
+//   ~ Changed sampling to on_change with threshold
+//   ~ Tightened constraint to require 2 sensors
+//   + Added ALERT triggers for frost and heat
+//   + Added battery power source
+//
+// Compare with:
+//   demol diff examples/rpi/rpi_weather_station_v1.dev examples/rpi/rpi_weather_station_v2.dev
+
+DEVICE WeatherStation WITH description="Rooftop weather monitor v2", author="DeMoL", os=raspbian;
+
+USE RaspberryPi_5_8GB;
+USE BME680[Climate];
+USE VL53L1X[SnowDepth];
+USE LedGeneric[StatusLed];
+USE usb_power_bank[SolarBank];
+
+NETWORK[WiFi] WITH ssid="WeatherNet", password="w3ather!";
+BROKER[MQTT] Cloud WITH host="mqtt.weather.io", port=8883,
+    ssl=True,
+    auth.username="station01", auth.password="s3cure_v2";
+BROKER[MQTT] Edge WITH host="localhost", port=1883;
+
+CONNECT SolarBank WITH
+    POWER vcc -- power_5v_a, gnd -- GND_1;
+
+CONNECT Climate WITH
+    POWER gnd -- GND_2, vcc -- power_5v_b
+    DATA i2c[slave_address=0x76] sda sda -- GPIO2, scl scl -- GPIO3
+    @ "weather/climate"
+    VIA Cloud;
+
+CONNECT SnowDepth WITH
+    POWER GND -- GND_3, VIN -- power_3v3_a
+    DATA i2c[slave_address=0x29] sda SDA -- GPIO2, scl SCL -- GPIO3
+    @ "weather/snow"
+    VIA Edge;
+
+CONNECT StatusLed WITH
+    POWER gnd -- GND_4, vcc -- power_3v3_b
+    DATA gpio[mode="output"] vin -- GPIO17
+    @ "weather/status"
+    VIA Edge;
+
+SAMPLING Climate WITH rate = 5 hz, mode = on_change, threshold = 0.5;
+SAMPLING SnowDepth WITH rate = 1 hz, mode = continuous;
+
+CONSTRAINT has_sensors: count(SENSOR) >= 2
+    MESSAGE "Redundant sensors required for v2";
+
+CONSTRAINT power_budget: sum_power(PERIPHERAL) < 200 mW
+    MESSAGE "Must fit within solar power budget";
+
+ALERT frost_warning ON Climate WHEN
+    temperature < 0
+    THEN
+    PUBLISH "weather/alerts/frost" VIA Cloud
+    ACTIVATE StatusLed
+    COOLDOWN 600 hz;
+
+ALERT heat_wave ON Climate WHEN
+    temperature > 42 && humidity < 15
+    THEN
+    PUBLISH "weather/alerts/heat" VIA Cloud;

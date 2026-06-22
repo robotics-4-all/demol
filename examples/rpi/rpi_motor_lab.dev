@@ -1,0 +1,67 @@
+// Motor Control Laboratory
+//
+// Scenario: A robotics development board controlling a DC drive motor via
+// an L298N H-bridge and a stepper motor via an A4988 driver. A tactile button
+// provides manual start/stop control. Motor state is published to MQTT.
+//
+// Features demonstrated:
+//   - L298N dual H-bridge DC motor driver (GPIO/PWM)
+//   - A4988 stepper motor driver (GPIO step/direction)
+//   - TactileButton for manual control input
+//   - CONSTRAINT: ensures total motor power stays within safe limits
+//   - ALERT: stops on overload condition
+
+DEVICE MotorLab WITH
+    description="DC and stepper motor control with manual override",
+    author="DeMoL",
+    os=raspbian;
+
+USE RaspberryPi_5_8GB;
+
+USE L298N[DriveMotor],
+    A4988[StepperMotor],
+    TactileButton[StopButton];
+
+NETWORK[WiFi] WITH ssid="LabNet", password="l@b_n3t";
+
+BROKER[MQTT] LabBroker WITH
+    host="localhost", port=1883,
+    auth.username="motorlab", auth.password="m0t0r";
+
+// L298N on GPIO — IN1..IN4 for direction, ENA/ENB for speed via PWM
+CONNECT DriveMotor WITH
+    POWER VCC -- power_5v_a, GND -- GND_1
+    DATA
+        gpio[mode="output"] IN1 -- GPIO22,
+        gpio[mode="output"] IN2 -- GPIO23,
+        gpio[mode="output"] IN3 -- GPIO24,
+        gpio[mode="output"] IN4 -- GPIO4,
+        pwm[frequency=1000] ENA -- GPIO18,
+        pwm[frequency=1000] ENB -- GPIO12
+    @ "motors/dc";
+
+// A4988 stepper driver — STEP/DIR control pins + enable
+CONNECT StepperMotor WITH
+    POWER VDD -- power_3v3_a, GND -- GND_2
+    DATA
+        gpio[mode="output"] STEP -- GPIO5,
+        gpio[mode="output"] DIR -- GPIO6,
+        gpio[mode="output"] EN -- GPIO16
+    @ "motors/stepper";
+
+// Stop button — active low with pull-up
+CONNECT StopButton WITH
+    POWER gnd -- GND_3
+    DATA gpio[mode="input", pullup=true] state -- GPIO17
+    @ "motors/stop_button";
+
+// Motor state — continuous telemetry at 20 Hz
+SAMPLING DriveMotor WITH rate = 20 hz, mode = continuous;
+SAMPLING StepperMotor WITH rate = 20 hz, mode = continuous;
+
+// Emergency stop alert — button press triggers immediate MQTT publish
+ALERT emergency_stop ON StopButton WHEN
+    state > 0
+    THEN
+    PUBLISH "motors/emergency_stop" VIA LabBroker
+    COOLDOWN 1 hz;

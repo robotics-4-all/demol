@@ -1,0 +1,26 @@
+SENSOR[RFID] MFRC522 WITH
+    OP
+        vcc=3V3,
+        ioVcc=3V3,
+        power.min=10 mW,
+        power.max=100 mW,
+        power.avg=40 mW
+    PINS
+        VCC[3V3] @ 1,
+        GND[GND] @ 2,
+        mosi[mosi-0] @ 3,
+        miso[miso-0] @ 4,
+        sck[sck-0] @ 5,
+        cs[cs-0] @ 6,
+        RST[gpio] @ 7,
+        ? IRQ[gpio] @ 8
+    TEMPLATES
+        raspbian="mfrc522.py.j2"
+    DEPENDENCIES
+        raspbian=[
+            {package="mfrc522", source="pip"}
+        ]
+    ATTRIBUTES
+        spi_bus[int] = 0,
+        poll_period[int] = 1
+;

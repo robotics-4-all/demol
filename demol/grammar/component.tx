@@ -6,7 +6,7 @@ ComponentModel:
 ;
 
 Component:
-    Board | Peripheral
+    Board | Peripheral | PowerSource
 ;
 
 BoardType:
@@ -20,6 +20,7 @@ Board:
 	  'OP' operational=OperationalBoard
       ('PORTS' ports*=Port[','])?
 	  'PINS' pins*=Pin[',']
+      ('PLATFORMS' platforms*=PlatformMapping[','])?
     ';'
 ;
 
@@ -34,26 +35,88 @@ Actuator:
     'ACTUATOR' '[' type=ActuatorType ']' name=ID 'WITH'
 	  'OP' operational=OperationalActuator
 	  'PINS' pins*=Pin[',']
+	  ('PROPERTIES' properties*=PeripheralProperty[','])?
 	  ('TEMPLATES' templates*=TemplateMapping[','])?
+      ('DEPENDENCIES' dependencies*=DependencyMapping[','])?
       ('ATTRIBUTES' attributes*=Attribute[','])?
     ';'
+;
+
+PowerSource:
+    'POWERSOURCE' '[' type=PowerSourceType ']' name=ID 'WITH'
+	  'OP' operational=OperationalPowerSource
+	  'PINS' pins*=Pin[',']
+    ';'
+;
+
+PowerSourceType:
+    'Battery' | 'DC' | 'USB' | 'Solar'
 ;
 
 Sensor:
     'SENSOR' '[' type=SensorType ']' name=ID 'WITH'
 	  'OP' operational=OperationalSensor
 	  'PINS' pins*=Pin[',']
+	  ('PROPERTIES' properties*=PeripheralProperty[','])?
 	  ('TEMPLATES' templates*=TemplateMapping[','])?
+      ('DEPENDENCIES' dependencies*=DependencyMapping[','])?
       ('ATTRIBUTES' attributes*=Attribute[','])?
     ';'
 ;
+
+// Per-platform property mapping for ALERT codegen.
+// Maps DSL-visible property name to the underlying expression used by the
+// generated runtime, with optional integer-scaling for fixed-point drivers.
+//
+//   PROPERTIES
+//       temperature -> "data.temperature" : int32 SCALE 100,
+//       pressure    -> "data.pressure"    : uint32,
+//       humidity    -> "data.humidity"    : int32
+//
+// `expr`  - target expression (e.g. C struct access, Python dict key)
+// `ptype` - storage type (informational; used for cast/format selection)
+// `scale` - optional integer multiplier; the generator multiplies the DSL
+//           literal by this factor when emitting the comparison so that
+//           DSL `> 38.5 celsius` becomes `> 3850` for an int32 driver
+//           that stores 0.01 celsius units.
+// `target` - optional platform tag ("riotos" | "raspbian"); when omitted
+//            the mapping applies to every platform that has no specific
+//            override.
+PeripheralProperty:
+    name=ID '->' expr=STRING ':' ptype=PropertyType
+    ('SCALE' scale=INT)?
+    ('FOR' target=OperatingSystem)?
+;
+
+PropertyType:
+    'int8' | 'uint8' | 'int16' | 'uint16' |
+    'int32' | 'uint32' | 'int64' | 'uint64' |
+    'float' | 'double' | 'bool' | 'string'
+;
+
+DependencyMapping:
+    target=OperatingSystem '=' '[' items+=DependencyItem[','] ']'
+;
+
+DependencyItem:
+    DependencyObject | STRING
+;
+
+DependencyObject:
+    '{'
+        'package' '=' name=STRING ','?
+        ('version' '=' version=STRING ','?)?
+        ('source' '=' source=STRING)?
+    '}'
+;
+
 
 Pin:
 	PowerPin | IOPin
 ;
 
 PowerPin:
-	name=ID '[' ptype=PowerType ']' '@' number=INT
+	(optional='?')? name=ID '[' ptype=PowerType ']' '@' number=INT
 ;
 
 PowerType:
@@ -69,7 +132,7 @@ Custom:
 ;
 
 IOPin:
-	name=ID '[' funcs*=PinFunction[","] ']' '@' number=INT
+	(optional='?')? name=ID '[' funcs*=PinFunction[","] ']' '@' number=INT
 ;
 
 PinFunction:
@@ -126,7 +189,7 @@ PCMType:
 
 
 CPUFamilyType:
-	("ESP32" | "ESP8266" | "PiArmCortex")
+	("ESP32" | "ESP8266" | "PiArmCortex" | "ATmega328P" | "ATmega2560")
 ;
 
 Bluetooth:
@@ -138,7 +201,10 @@ Bluetooth:
 
 
 SensorType:
-    // Environmental Sensors
+    EnvSensor | MotionSensor | OtherSensor
+;
+
+EnvSensor:
     "Temperature"   |
     "Humidity"      |
     "Gas"           |
@@ -147,44 +213,65 @@ SensorType:
     "AirQuality"    |
     "Light"         |
     "UV"            |
-    "Sound"         |
-    
-    // Motion & Position Sensors
+    "Sound"
+;
+
+MotionSensor:
     "Distance"      |
     "DistanceMatrix"|
     "Acceleration"  |
     "Gyroscope"     |
     "Magnetometer"  |
     "IMU"           |
-    "Tracker"	    |
+    "Tracker"
+;
+
+OtherSensor:
     "ADC"           |
     "Proximity"     |
-    "NeoPixel"
+    "Button"        |
+    "GPS"           |
+    "RTC"           |
+    "Weight"        |
+    "RFID"          |
+    "Bio"           |
+    "Power"
 ;
 
 ActuatorType:
-	"MotorController"   |
+    MotorActuator | DisplayActuator | SoundActuator | AdvancedActuator
+;
+
+MotorActuator:
+    "MotorController"   |
     "ServoController"   |
     "Relay"             |
-    "Switch"            |
-    "Button"            |
-    
-    // Display & Light Actuators
+    "Switch"
+;
+
+DisplayActuator:
     "LedArray"          |
-    "Led"
-    
-    // Sound Actuators
+    "Led"               |
+    "NeoPixel"
+;
+
+SoundActuator:
     "Buzzer"            |
-    "Speaker"           |
-    
-    // Advanced Actuators
+    "Speaker"
+;
+
+AdvancedActuator:
+    "StepperDriver"     |
+    "MotorDriver"       |
     "Stepper"           |
     "DCMotor"           |
     "Pump"              |
     "Valve"             |
     "Heater"            |
     "Cooler"            |
-    "Fan"
+    "Fan"               |
+    "Display"           |
+    "Wireless"
 ;
 
 
@@ -210,9 +297,10 @@ OperationalBoard:
         ("ethernet.name" "=" ethernet_name=ID ","?)?
         
         ("bluetooth" "=" bluetooth=Bluetooth ","?)?
-        ("riotName" "=" riotName=STRING ","?)?
         
-        ("energy" "=" min=PowerConsumption ',' max=PowerConsumption ',' avg=PowerConsumption ","?)?
+        ("power.min" "=" min=PowerConsumption ","?)?
+        ("power.max" "=" max=PowerConsumption ","?)?
+        ("power.avg" "=" avg=PowerConsumption ","?)?
     )#
 ;
 
@@ -224,23 +312,28 @@ WifiBand:
     '2.4GHz' | '5GHz' | '2.4Ghz' | '5Ghz'
 ;
 
-OperationalSensor:
+OperationalSensor: OperationalPeripheral;
+
+OperationalActuator: OperationalPeripheral;
+
+OperationalPeripheral:
     (
         ("vcc" "=" vcc=PowerType ","?)
         ("ioVcc" "=" iovcc=PowerType ","?)?
-        ("energy" "=" min=PowerConsumption ',' max=PowerConsumption ',' avg=PowerConsumption ","?)?
+        ("power.min" "=" min=PowerConsumption ","?)?
+        ("power.max" "=" max=PowerConsumption ","?)?
+        ("power.avg" "=" avg=PowerConsumption ","?)?
+        ("freq.max" "=" freq_max=Frequency ","?)?
         ("riotTpl" "=" riotTpl=STRING ","?)?
         ("piTpl" "=" piTpl=STRING ","?)?
     )#
 ;
 
-OperationalActuator:
+OperationalPowerSource:
     (
-        ("vcc" "=" vcc=PowerType ","?)
-        ("ioVcc" "=" iovcc=PowerType ","?)?
-        ("energy" "=" min=PowerConsumption ',' max=PowerConsumption ',' avg=PowerConsumption ","?)?
-        ("riotTpl" "=" riotTpl=STRING ","?)?
-        ("piTpl" "=" piTpl=STRING ","?)?
+        ("voltage" "=" voltage=PowerType ","?)
+        ("capacity" "=" capacity=NUMBER capacity_unit=CapacityUnit ","?)?
+        ("max_current" "=" max_current=NUMBER max_current_unit=CurrentUnit ","?)?
     )#
 ;
 
@@ -248,7 +341,19 @@ PowerConsumption:
     value=NUMBER unit=PowerUnit
 ;
 
+Frequency:
+    value=NUMBER unit=FrequencyUnit
+;
+
 TemplateMapping:
     os=OperatingSystem '=' template=STRING
 ;
+
+PlatformMapping:
+    os=OperatingSystem (
+        '{' attributes*=AttributeSet[','] '}' |
+        '.' attributes+=AttributeSet
+    )
+;
+
 

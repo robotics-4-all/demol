@@ -1,0 +1,42 @@
+import board
+import busio
+import adafruit_ds3231
+from .peripheral import Sensor
+
+
+class {{ driver_class_name }}(Sensor):
+    """
+    DS3231 Real-Time Clock (RTC) with temperature compensation
+    """
+    _PRIMARY_ADDRESS = {{ conn.i2c.slave_address if conn.i2c is defined else 0x68 }}
+    _FREQUENCY = {{ attributes.get('poll_period', 1) }}
+
+    def __init__(self):
+        super().__init__(
+            name="{{ instance }}",
+            connections={{ conn }},
+            attributes={{ attributes }}
+        )
+        self.rtc = None
+
+    def initialize(self):
+        """Initialize the RTC hardware"""
+        i2c = busio.I2C(board.SCL, board.SDA)
+        self.rtc = adafruit_ds3231.DS3231(i2c)
+
+    def read(self):
+        """Read current time and temperature from RTC"""
+        t = self.rtc.datetime
+        self.update_state_data({
+            "year": t.tm_year,
+            "month": t.tm_mon,
+            "day": t.tm_mday,
+            "hour": t.tm_hour,
+            "minute": t.tm_min,
+            "second": t.tm_sec,
+            "temperature": self.rtc.temperature
+        })
+
+    def disconnect(self):
+        """Release hardware resources"""
+        pass

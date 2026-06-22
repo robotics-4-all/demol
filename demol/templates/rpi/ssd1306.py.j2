@@ -1,0 +1,54 @@
+import board
+import busio
+import adafruit_ssd1306
+from PIL import Image, ImageDraw, ImageFont
+from .peripheral import Sensor
+
+
+class {{ driver_class_name }}(Sensor):
+    """
+    SSD1306 OLED Display (I2C, 128x64 or 128x32)
+    """
+    _PRIMARY_ADDRESS = {{ conn.i2c.slave_address if conn.i2c is defined else 0x3C }}
+    _WIDTH = {{ attributes.get('width', 128) }}
+    _HEIGHT = {{ attributes.get('height', 64) }}
+
+    def __init__(self):
+        super().__init__(
+            name="{{ instance }}",
+            connections={{ conn }},
+            attributes={{ attributes }}
+        )
+        self.display = None
+        self.image = None
+        self.draw = None
+
+    def initialize(self):
+        """Initialize the OLED display"""
+        i2c = busio.I2C(board.SCL, board.SDA)
+        self.display = adafruit_ssd1306.SSD1306_I2C(
+            self._WIDTH, self._HEIGHT, i2c, addr=self._PRIMARY_ADDRESS
+        )
+        self.display.fill(0)
+        self.display.show()
+        self.image = Image.new("1", (self._WIDTH, self._HEIGHT))
+        self.draw = ImageDraw.Draw(self.image)
+
+    def read(self):
+        """No-op for display actuator — use write_text() to render content"""
+        pass
+
+    def write_text(self, text, x=0, y=0, clear=True):
+        """Render text on the OLED display"""
+        if clear:
+            self.draw.rectangle((0, 0, self._WIDTH, self._HEIGHT), outline=0, fill=0)
+        font = ImageFont.load_default()
+        self.draw.text((x, y), text, font=font, fill=255)
+        self.display.image(self.image)
+        self.display.show()
+
+    def disconnect(self):
+        """Clear display and release hardware resources"""
+        if self.display:
+            self.display.fill(0)
+            self.display.show()

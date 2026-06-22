@@ -1,0 +1,9 @@
+POWERSOURCE [DC] usb_power_bank WITH
+  OP
+    voltage = 5V,
+    capacity = 10000 mAh,
+    max_current = 2.4 A
+  PINS
+    vcc [5V] @ 1,
+    gnd [GND] @ 2
+;

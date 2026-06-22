@@ -1,0 +1,24 @@
+DEVICE RPi_SRF04_Battery WITH description="RPi with SRF04 and Battery", author="User", os=raspbian;
+
+USE RaspberryPi_4B_4GB;
+USE SRF04[MySonar];
+USE usb_power_bank[MyBattery];
+
+NETWORK[WiFi] WITH ssid="MyWiFi", password="password123";
+BROKER[MQTT] MyBroker WITH host="localhost", port=1883;
+
+// Connect Battery to RPi
+CONNECT MyBattery WITH
+    POWER
+        vcc -- power_5v_a,
+        gnd -- GND_1;
+
+// Connect SRF04 to RPi
+CONNECT MySonar WITH
+    POWER
+        vcc -- power_5v_b,
+        gnd -- GND_2
+    DATA
+        gpio[mode="output"] trigger -- GPIO23,
+        gpio[mode="input"] echo -- GPIO24
+    @ "sensors/sonar";

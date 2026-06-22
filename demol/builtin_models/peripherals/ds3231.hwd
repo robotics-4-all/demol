@@ -1,0 +1,24 @@
+SENSOR[RTC] DS3231 WITH
+    OP
+        vcc=3V3,
+        ioVcc=3V3,
+        power.min=0.5 mW,
+        power.max=8.5 mW,
+        power.avg=1.5 mW
+    PINS
+        VCC[3V3] @ 1,
+        GND[GND] @ 2,
+        sda[sda-0] @ 3,
+        scl[scl-0] @ 4,
+        ? SQW[gpio] @ 5,
+        ? CLK32[gpio] @ 6
+    TEMPLATES
+        raspbian="ds3231.py.j2"
+    DEPENDENCIES
+        raspbian=[
+            {package="adafruit-circuitpython-ds3231", source="pip"}
+        ]
+    ATTRIBUTES
+        i2c_address[int] = 104,
+        poll_period[int] = 1
+;

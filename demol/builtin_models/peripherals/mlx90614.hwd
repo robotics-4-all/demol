@@ -1,0 +1,22 @@
+SENSOR[Temperature] MLX90614 WITH
+    OP
+        vcc=3V3,
+        ioVcc=3V3,
+        power.min=2.6 mW,
+        power.max=23 mW,
+        power.avg=12 mW
+    PINS
+        VCC[3V3] @ 1,
+        GND[GND] @ 2,
+        sda[sda-0] @ 3,
+        scl[scl-0] @ 4
+    TEMPLATES
+        raspbian="mlx90614.py.j2"
+    DEPENDENCIES
+        raspbian=[
+            {package="adafruit-circuitpython-mlx90614", source="pip"}
+        ]
+    ATTRIBUTES
+        i2c_address[int] = 90,
+        poll_period[int] = 1
+;

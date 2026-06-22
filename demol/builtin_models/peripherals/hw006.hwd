@@ -1,14 +1,21 @@
 SENSOR[Proximity] HW006 WITH
     OP
         vcc=5V,
-        energy=0 mW, 5 mW, 2 mW
+        power.min=0 mW,
+        power.max=5 mW,
+        power.avg=2 mW
     PINS
         DO[gpio] @ 1,
-        VCC[5V] @ 2,
-        GND[GND] @ 3
+        vcc[5V] @ 2,
+        gnd[GND] @ 3
+    PROPERTIES
+        // HW006 RIOT template reads gpio into local `val` (0/1).
+        proximity -> "val" : int32 FOR riotos
     TEMPLATES
-        raspbian="hw006.py.tmpl",
-        riotos="hw006.c.tmpl"
+        raspbian="hw006.py.j2",
+        riotos="hw006.c.j2"
+    DEPENDENCIES
+        raspbian=["gpiozero"]
     ATTRIBUTES
         frequency[int] = 100
 ;

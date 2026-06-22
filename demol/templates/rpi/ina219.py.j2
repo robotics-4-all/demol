@@ -1,0 +1,41 @@
+import board
+import busio
+from adafruit_ina219 import INA219, ADCResolution, BusVoltageRange
+from .peripheral import Sensor
+
+
+class {{ driver_class_name }}(Sensor):
+    """
+    INA219 Current/Power Monitor (I2C)
+    Measures bus voltage, shunt voltage, current, and power.
+    """
+    _PRIMARY_ADDRESS = {{ conn.i2c.slave_address if conn.i2c is defined else 0x40 }}
+    _SHUNT_OHMS = {{ attributes.get('shunt_ohms', 0.1) }}
+    _FREQUENCY = {{ attributes.get('poll_period', 1) }}
+
+    def __init__(self):
+        super().__init__(
+            name="{{ instance }}",
+            connections={{ conn }},
+            attributes={{ attributes }}
+        )
+        self.sensor = None
+
+    def initialize(self):
+        """Initialize the power monitor"""
+        i2c = busio.I2C(board.SCL, board.SDA)
+        self.sensor = INA219(i2c, addr=self._PRIMARY_ADDRESS)
+        self.sensor.set_calibration_32V_2A()
+
+    def read(self):
+        """Read bus voltage, current, and power"""
+        self.update_state_data({
+            "bus_voltage": self.sensor.bus_voltage,
+            "shunt_voltage": self.sensor.shunt_voltage,
+            "current": self.sensor.current,
+            "power": self.sensor.power
+        })
+
+    def disconnect(self):
+        """Release hardware resources"""
+        pass

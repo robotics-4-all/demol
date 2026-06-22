@@ -1,0 +1,28 @@
+DEVICE UartLidarNode WITH 
+    description="LiDAR distance sensor using UART interface", 
+    author="Antigravity", 
+    os=raspbian;
+
+USE RaspberryPi_5_8GB;
+
+// Peripherals
+USE TFMini[LidarSensor];
+
+NETWORK[WiFi] WITH 
+    ssid="LidarNet", 
+    password="lidar_password";
+
+BROKER[MQTT] LidarBroker WITH 
+    host="192.168.1.100", 
+    port=1883,
+    auth.username="lidar",
+    auth.password="lidar_pass";
+
+// Connections
+CONNECT LidarSensor WITH
+    POWER 
+        GND -- GND_1, 
+        VCC -- power_5v_a
+    DATA 
+        uart[baudrate=115200] tx RXD -- GPIO14, rx TXD -- GPIO15
+    @ "sensors/lidar";

@@ -1,0 +1,65 @@
+// RFID Access Control System
+//
+// Scenario: An RFID-based door access system. An MFRC522 reader scans cards;
+// a green LED and the SSD1306 OLED confirm access, a red LED and buzzer
+// signal rejection. Card events are published to MQTT for audit logging.
+//
+// Features demonstrated:
+//   - SPI peripheral (MFRC522) alongside I2C (SSD1306) and GPIO (LED, Buzzer)
+//   - ALERT triggers for unauthorized card detection
+//   - Multi-purpose actuator activation on conditions
+
+DEVICE AccessControl WITH
+    description="RFID access control with OLED feedback and MQTT audit log",
+    author="DeMoL",
+    os=raspbian;
+
+USE RaspberryPi_5_8GB;
+
+USE MFRC522[RFIDReader],
+    SSD1306[StatusDisplay],
+    LedGeneric[AccessLed],
+    BuzzerGeneric[AlertBuzzer];
+
+NETWORK[WiFi] WITH ssid="OfficeNet", password="0ff1c3_s3cure";
+
+BROKER[MQTT] AuditBroker WITH
+    host="mqtt.office.local", port=1883,
+    auth.username="access", auth.password="c0ntr0l";
+
+// MFRC522 via SPI bus 0 — CS on GPIO7, RST on GPIO25
+CONNECT RFIDReader WITH
+    POWER VCC -- power_3v3_a, GND -- GND_1
+    DATA
+        spi[bus_speed=10000000] mosi mosi -- GPIO10, miso miso -- GPIO9, sck sck -- GPIO11, cs cs -- GPIO7,
+        gpio[mode="output"] RST -- GPIO25
+    @ "access/card_scan";
+
+// SSD1306 OLED on I2C — address 0x3C
+CONNECT StatusDisplay WITH
+    POWER VCC -- power_3v3_b, GND -- GND_2
+    DATA i2c[slave_address=0x3C] sda sda -- GPIO2, scl scl -- GPIO3
+    @ "access/display";
+
+// Green LED — signals access granted
+CONNECT AccessLed WITH
+    POWER gnd -- GND_3, vcc -- power_3v3_b
+    DATA gpio[mode="output"] vin -- GPIO17
+    @ "access/led";
+
+// Piezo buzzer — signals access denied
+CONNECT AlertBuzzer WITH
+    POWER gnd -- GND_4
+    DATA gpio[mode="output"] vin -- GPIO27
+    @ "access/buzzer";
+
+// Poll RFID reader continuously at 10 Hz
+SAMPLING RFIDReader WITH rate = 10 hz, mode = continuous;
+
+// Alert when card scan events occur — cooldown 2s to prevent flooding
+ALERT card_event ON RFIDReader WHEN
+    uid > 0
+    THEN
+    PUBLISH "access/events" VIA AuditBroker
+    ACTIVATE AccessLed
+    COOLDOWN 2 hz;

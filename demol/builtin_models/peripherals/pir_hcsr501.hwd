@@ -1,0 +1,21 @@
+SENSOR[Proximity] PIR_HCSR501 WITH
+    OP
+        vcc=5V,
+        ioVcc=3V3,
+        power.min=30 mW,
+        power.max=75 mW,
+        power.avg=50 mW,
+        freq.max=10 hz
+    PINS
+        VCC[5V] @ 1,
+        OUT[gpio] @ 2,
+        GND[GND] @ 3
+    TEMPLATES
+        raspbian="pir_hcsr501.py.j2"
+    DEPENDENCIES
+        raspbian=["gpiozero"]
+    ATTRIBUTES
+        gpio_modes[dict] = {OUT = "input"},
+        frequency[float] = 10.0,
+        hold_time[float] = 1.0
+;

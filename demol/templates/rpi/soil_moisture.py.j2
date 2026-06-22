@@ -1,0 +1,35 @@
+from gpiozero import InputDevice
+from gpiozero.pins.pigpio import PiGPIOFactory
+from .peripheral import Sensor
+from .msg import HumidityMessage
+
+
+class {{ driver_class_name }}(Sensor):
+    _PIN = "{{ conn.gpio.pins.get('DO', {}).get('name', 'GPIO17') }}"
+    _DRY_THRESHOLD = {{ attributes.get('dry_threshold', 500.0) }}
+    _WET_THRESHOLD = {{ attributes.get('wet_threshold', 200.0) }}
+    _FREQUENCY = {{ attributes.get('frequency', 0.5) }}
+
+    def __init__(self):
+        super().__init__(
+            name="{{ instance }}",
+            connections={{ conn }},
+            attributes={{ attributes }}
+        )
+        self.sensor = None
+
+    def initialize(self):
+        self.sensor = InputDevice(
+            self._PIN,
+            pin_factory=PiGPIOFactory()
+        )
+
+    def read(self):
+        self.update_state_data({
+            "moisture_detected": self.sensor.is_active,
+            "digital_value": self.sensor.value
+        })
+
+    def disconnect(self):
+        if self.sensor:
+            self.sensor.close()

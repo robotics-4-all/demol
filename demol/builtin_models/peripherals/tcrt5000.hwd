@@ -2,15 +2,19 @@ SENSOR[Proximity] TCRT5000 WITH
     OP
         vcc=5V,
         ioVcc=5V,
-        energy=10 mW, 100 mW, 50 mW
+        power.min=10 mW,
+        power.max=100 mW,
+        power.avg=50 mW,
+        freq.max=1000 hz
     PINS
         VCC[5V] @ 1,
         GND[GND] @ 2,
         D0[gpio] @ 3,
-        A0[gpio] @ 4
+        ?A0[gpio] @ 4
     TEMPLATES
-        raspbian="tcrt5000.py.tmpl",
-        riotos="tcrt5000.c.tmpl"
+        raspbian="tcrt5000.py.j2"
+    DEPENDENCIES
+        raspbian=["gpiozero"]
     ATTRIBUTES
         frequency[int] = 100
 ;

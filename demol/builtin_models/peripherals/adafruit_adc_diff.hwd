@@ -1,32 +1,36 @@
 SENSOR[ADC] ADCDifferentialPi WITH
     OP
         vcc=5V,
-        energy=5 mW, 50 mW, 20 mW
+        power.min=5 mW,
+        power.max=50 mW,
+        power.avg=20 mW
     PINS
         VCC[5V] @ 1,
         GND[GND] @ 2,
         SDA[sda-1] @ 3,
         SCL[scl-1] @ 4,
-        CH1_PLUS[adc-0] @ 5,
-        CH1_MINUS[adc-0] @ 6,
-        CH2_PLUS[adc-1] @ 7,
-        CH2_MINUS[adc-1] @ 8,
-        CH3_PLUS[adc-2] @ 9,
-        CH3_MINUS[adc-2] @ 10,
-        CH4_PLUS[adc-3] @ 11,
-        CH4_MINUS[adc-3] @ 12,
-        CH5_PLUS[adc-4] @ 13,
-        CH5_MINUS[adc-4] @ 14,
-        CH6_PLUS[adc-5] @ 15,
-        CH6_MINUS[adc-5] @ 16,
-        CH7_PLUS[adc-6] @ 17,
-        CH7_MINUS[adc-6] @ 18,
-        CH8_PLUS[adc-7] @ 19,
-        CH8_MINUS[adc-7] @ 20
+        ?CH1_PLUS[adc-0] @ 5,
+        ?CH1_MINUS[adc-0] @ 6,
+        ?CH2_PLUS[adc-1] @ 7,
+        ?CH2_MINUS[adc-1] @ 8,
+        ?CH3_PLUS[adc-2] @ 9,
+        ?CH3_MINUS[adc-2] @ 10,
+        ?CH4_PLUS[adc-3] @ 11,
+        ?CH4_MINUS[adc-3] @ 12,
+        ?CH5_PLUS[adc-4] @ 13,
+        ?CH5_MINUS[adc-4] @ 14,
+        ?CH6_PLUS[adc-5] @ 15,
+        ?CH6_MINUS[adc-5] @ 16,
+        ?CH7_PLUS[adc-6] @ 17,
+        ?CH7_MINUS[adc-6] @ 18,
+        ?CH8_PLUS[adc-7] @ 19,
+        ?CH8_MINUS[adc-7] @ 20
     TEMPLATES
-        raspbian="adafruit_adc_diff.py.tmpl",
-        riotos="adafruit_adc_diff.c.tmpl"
+        raspbian="adafruit_adc_diff.py.j2"
+    DEPENDENCIES
+        raspbian=["ADCDifferentialPi"]
     ATTRIBUTES
+        i2c_address[int] = 104,
         num_channels[int] = 8,
         resolution[list] = [12, 14, 16, 18],
         gain[list] = [1, 2, 4, 8],

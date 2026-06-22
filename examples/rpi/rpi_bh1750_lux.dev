@@ -1,0 +1,16 @@
+DEVICE RpiBh1750Lux WITH description="RaspberryPi 5 with BH1750 ambient light (lux) sensor over I2C", author="demol", os=raspbian;
+
+USE RaspberryPi_5_8GB;
+USE BH1750[LuxMeter];
+
+NETWORK[WiFi] WITH ssid="Wifi_2.4GHz", password="guest";
+
+BROKER[MQTT] MyBroker WITH host="localhost", port=1883, auth.username="guest", auth.password="guest", ssl=False;
+
+CONNECT LuxMeter WITH
+    POWER
+        GND -- GND_1,
+        VCC -- power_3v3_a
+    DATA
+        i2c[slave_address=0x23] sda sda -- GPIO2, scl scl -- GPIO3
+    @ "my_raspi.sensors.light.bh1750";

@@ -1,0 +1,16 @@
+DEVICE RpiDht22Climate WITH description="RaspberryPi 5 with DHT22 temperature and humidity sensor over a single GPIO data line", author="demol", os=raspbian;
+
+USE RaspberryPi_5_8GB;
+USE DHT22[ClimateProbe];
+
+NETWORK[WiFi] WITH ssid="Wifi_2.4GHz", password="guest";
+
+BROKER[MQTT] MyBroker WITH host="localhost", port=1883, auth.username="guest", auth.password="guest", ssl=False;
+
+CONNECT ClimateProbe WITH
+    POWER
+        GND -- GND_1,
+        VCC -- power_3v3_a
+    DATA
+        gpio[mode="input"] data -- GPIO4
+    @ "my_raspi.sensors.env.dht22";

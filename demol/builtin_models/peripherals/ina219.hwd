@@ -1,0 +1,27 @@
+SENSOR[Power] INA219 WITH
+    OP
+        vcc=3V3,
+        ioVcc=3V3,
+        power.min=0.3 mW,
+        power.max=4.0 mW,
+        power.avg=1.0 mW
+    PINS
+        VCC[3V3] @ 1,
+        GND[GND] @ 2,
+        sda[sda-0] @ 3,
+        scl[scl-0] @ 4,
+        ? VINP[gpio] @ 5,
+        ? VINM[gpio] @ 6
+    TEMPLATES
+        raspbian="ina219.py.j2"
+    DEPENDENCIES
+        raspbian=[
+            {package="adafruit-circuitpython-ina219", source="pip"}
+        ]
+    ATTRIBUTES
+        i2c_address[int] = 64,
+        max_voltage[float] = 26.0,
+        max_current[float] = 3.2,
+        shunt_ohms[float] = 0.1,
+        poll_period[int] = 1
+;

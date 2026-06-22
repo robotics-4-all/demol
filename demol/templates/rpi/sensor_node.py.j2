@@ -1,0 +1,172 @@
+from commlib.node import Node
+from commlib.utils import get_timestamp_ns, Rate
+from commlib.transports.mqtt import ConnectionParameters
+from .msg import {{class}}Message
+from .{{ driver_module_name }} import {{ driver_class_name }}
+{% if source_alerts %}
+from .alerts import AlertTrigger
+{% endif %}
+
+
+class {{ peripheral.name }}Node:
+{% if sampling %}
+    _FREQUENCY = {{ sampling.rate_hz }}
+    _SAMPLING_MODE = "{{ sampling.mode }}"
+{% if sampling.mode == "on_change" %}
+    _THRESHOLD = {{ sampling.threshold }}
+{% endif %}
+{% if sampling.mode == "batch" %}
+    _BATCH_SIZE = {{ sampling.buffer }}
+{% endif %}
+{% else %}
+    _FREQUENCY = {{ attributes.get('frequency', 10.0) }}
+    _SAMPLING_MODE = "continuous"
+{% endif %}
+    _MAX_FREQUENCY = {{ op.get('freq_max', {}).get('value', 100.0) }}
+
+    def __init__(self):
+        self.sensor = {{ driver_class_name }}()
+        self.sensor.initialize()
+        self.rate = Rate(self._FREQUENCY)
+{% if sampling and sampling.mode == "on_change" %}
+        self._last_data = None
+{% endif %}
+{% if sampling and sampling.mode == "batch" %}
+        self._batch = []
+{% endif %}
+        conn_params = ConnectionParameters(
+            host="{{ broker.host }}",
+            port={{ broker.port }}{% if broker.ssl is defined %},
+            ssl={{ broker.ssl }}{% endif %}{% if broker.username is defined and broker.username %},
+            username="{{ broker.username }}"{% endif %}{% if broker.password is defined and broker.password %},
+            password="{{ broker.password}}"{% endif %}
+        )
+        self.node = Node(
+            node_name='sensors.{{ class | lower }}.{{ instance | lower }}',
+            connection_params=conn_params, heartbeats=False)
+{% if source_alerts %}
+        self._alert_brokers = {}
+        self._alert_pubs = {}
+{% for broker_name, broker_cfg in alert_brokers.items() %}
+        self._alert_brokers["{{ broker_name }}"] = Node(
+            node_name='alerts.{{ instance | lower }}.{{ broker_name | lower }}',
+            connection_params=ConnectionParameters(
+                host="{{ broker_cfg.host }}",
+                port={{ broker_cfg.port }},
+                ssl={{ broker_cfg.ssl }},
+                username="{{ broker_cfg.username }}",
+                password="{{ broker_cfg.password }}",
+            ),
+            heartbeats=False,
+        )
+{% endfor %}
+        self.alerts = []
+{% endif %}
+
+    def _initialize(self):
+        self.sensor.initialize()
+        self.pub = self.node.create_publisher(msg_type={{ class }}Message, topic="{{ topic }}")
+        self.node.run()
+{% if source_alerts %}
+        for _broker_node in self._alert_brokers.values():
+            _broker_node.run()
+{% for alert in source_alerts %}
+{% for act in alert.action_specs %}
+        self._alert_pubs[("{{ alert.name }}", {{ loop.index0 }})] = (
+            self._alert_brokers["{{ act.broker_name }}"].create_publisher(
+                msg_type=None, topic="{{ act.topic }}"
+            )
+        )
+{% endfor %}
+{% endfor %}
+        self._build_alerts()
+
+    def _build_alerts(self):
+{% for alert in source_alerts %}
+        def _cond_{{ alert.name }}(data):
+            return {{ alert.condition_expr }}
+        _actions_{{ alert.name }} = [
+{% for act in alert.action_specs %}
+            lambda _pub=self._alert_pubs[("{{ alert.name }}", {{ loop.index0 }})], _payload={{ act.payload_expr }}: _pub.publish(_payload),
+{% endfor %}
+        ]
+        self.alerts.append(AlertTrigger(
+            name="{{ alert.name }}",
+            condition=_cond_{{ alert.name }},
+            actions=_actions_{{ alert.name }},
+            cooldown_sec={{ alert.cooldown_sec }},
+        ))
+{% endfor %}
+{% endif %}
+
+    def _send(self):
+        msg = {{class}}Message(**self.sensor.current_state['data'])
+        msg.header.stamp = get_timestamp_ns()
+        self.pub.send(msg)
+
+{% if sampling and sampling.mode == "batch" %}
+    def _send_batch(self):
+        for data in self._batch:
+            msg = {{class}}Message(**data)
+            msg.header.stamp = get_timestamp_ns()
+            self.pub.send(msg)
+        self._batch.clear()
+
+{% endif %}
+    def _read(self):
+        try:
+            self.sensor.read()
+        except Exception as e:
+            print(f"Error reading sensor data: {e}")
+
+{% if sampling and sampling.mode == "on_change" %}
+    def _has_changed(self):
+        current = self.sensor.current_state.get('data', {})
+        if self._last_data is None:
+            self._last_data = current.copy()
+            return True
+        for key in current:
+            try:
+                if abs(float(current[key]) - float(self._last_data.get(key, 0))) > self._THRESHOLD:
+                    self._last_data = current.copy()
+                    return True
+            except (TypeError, ValueError):
+                if current[key] != self._last_data.get(key):
+                    self._last_data = current.copy()
+                    return True
+        return False
+
+{% endif %}
+    def disconnect(self):
+        self.sensor.disconnect()
+
+    def run(self):
+        try:
+            self._initialize()
+            while True:
+                self._read()
+{% if source_alerts %}
+                _data = self.sensor.current_state.get('data', {})
+                for _alert in self.alerts:
+                    _alert.evaluate(_data)
+{% endif %}
+{% if sampling and sampling.mode == "on_change" %}
+                if self._has_changed():
+                    self._send()
+{% elif sampling and sampling.mode == "batch" %}
+                self._batch.append(self.sensor.current_state.get('data', {}).copy())
+                if len(self._batch) >= self._BATCH_SIZE:
+                    self._send_batch()
+{% elif sampling and sampling.mode == "on_demand" %}
+                pass  # on_demand: data is read but only published on external request
+{% else %}
+                self._send()
+{% endif %}
+                self.rate.sleep()
+        except KeyboardInterrupt:
+            self.disconnect()
+
+
+if __name__ == "__main__":
+    node = {{ peripheral.name }}Node()
+    node.run()

@@ -1,0 +1,58 @@
+import time
+import numpy as np
+import board
+from adafruit_motor import servo
+from adafruit_pca9685 import PCA9685 as PCA
+from .peripheral import Actuator
+
+
+class {{ driver_class_name }}(Actuator):
+    """
+    PCA9685 PWM/Servo Controller
+    """
+    _FREQUENCY = {{ attributes.get('frequency', 50) }}
+    _CHANNEL = {{ attributes.get('channel', 0) }}
+    _INITIAL_ANGLE = {{ attributes.get('initial_angle', 0) }}
+    _FINAL_ANGLE = {{ attributes.get('final_angle', 180) }}
+    _ANGULAR_SPEED = {{ attributes.get('angular_speed', 0.1) }}
+    _ANGULAR_STEP = {{ attributes.get('angular_step', 1) }}
+    _MAX_FREQUENCY = {{ op.get('freq_max', 1000) }}
+    _MIN_PULSE = {{ attributes.get('min_pulse', 500) }}
+    _MAX_PULSE = {{ attributes.get('max_pulse', 2500) }}
+    _ADDRESS = {{ conn.i2c.slave_address if conn.i2c is defined else 0x40 }}
+
+    def __init__(self):
+        super().__init__(
+            name="{{ instance }}", 
+            connections={{ conn }}, 
+            attributes={{ attributes }}
+        )
+        self.pca = None
+        self.servo = None
+
+    def initialize(self):
+        """Initialize the actuator hardware"""
+        i2c = board.I2C()
+        self.pca = PCA(i2c, address=self._ADDRESS)
+        self.pca.frequency = self._FREQUENCY
+        self.servo = servo.Servo(
+            self.pca.channels[self._CHANNEL], 
+            min_pulse=self._MIN_PULSE, 
+            max_pulse=self._MAX_PULSE
+        )
+
+    def write(self, msg):
+        """Write command to the actuator"""
+        # msg is expected to have 'angle'
+        angle = 0
+        if hasattr(msg, 'angle'):
+            angle = msg.angle
+        elif isinstance(msg, dict) and 'angle' in msg:
+            angle = msg['angle']
+        
+        self.servo.angle = angle
+
+    def disconnect(self):
+        """Release hardware resources"""
+        if self.pca:
+            self.pca.deinit()

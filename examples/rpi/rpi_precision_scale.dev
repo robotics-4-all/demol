@@ -1,0 +1,67 @@
+// Precision Smart Scale
+//
+// Scenario: A laboratory/kitchen smart scale using an HX711 load cell
+// amplifier for weight measurement, a DS3231 RTC to timestamp readings,
+// and an SSD1306 OLED to display live weight. Measurements are published
+// to MQTT for recipe tracking or inventory management.
+//
+// Features demonstrated:
+//   - HX711 GPIO-based 24-bit ADC for load cells
+//   - DS3231 RTC (I2C) for timestamped logs
+//   - SSD1306 OLED display (I2C)
+//   - SAMPLING batch mode: buffer 10 readings, publish average
+//   - CONSTRAINT: minimum sensor count
+
+DEVICE SmartScale WITH
+    description="Precision smart scale with RTC timestamping and OLED display",
+    author="DeMoL",
+    os=raspbian;
+
+USE RaspberryPi_5_8GB;
+
+USE HX711[LoadCell],
+    DS3231[RealTimeClock],
+    SSD1306[WeightDisplay];
+
+NETWORK[WiFi] WITH ssid="KitchenNet", password="k1tch3n_w1f1";
+
+BROKER[MQTT] KitchenBroker WITH
+    host="localhost", port=1883,
+    auth.username="scale", auth.password="sc@le_s3cr3t";
+
+// HX711 — GPIO data and clock pins
+CONNECT LoadCell WITH
+    POWER VCC -- power_5v_a, GND -- GND_1
+    DATA
+        gpio[mode="input"] DT -- GPIO5,
+        gpio[mode="output"] SCK -- GPIO6
+    @ "scale/weight";
+
+// DS3231 RTC on I2C — address 0x68
+CONNECT RealTimeClock WITH
+    POWER VCC -- power_3v3_a, GND -- GND_2
+    DATA i2c[slave_address=0x68] sda sda -- GPIO2, scl scl -- GPIO3
+    @ "scale/time";
+
+// SSD1306 OLED on I2C — address 0x3C
+CONNECT WeightDisplay WITH
+    POWER VCC -- power_3v3_b, GND -- GND_3
+    DATA i2c[slave_address=0x3C] sda sda -- GPIO2, scl scl -- GPIO3
+    @ "scale/display";
+
+// Buffer 10 readings (at 10 Hz = 1 second window), then publish
+SAMPLING LoadCell WITH rate = 10 hz, mode = batch, buffer = 10;
+
+// RTC polled once per second for timestamps
+SAMPLING RealTimeClock WITH rate = 1 hz, mode = continuous;
+
+// Enforce at least 1 sensor in system
+CONSTRAINT has_scale: count(SENSOR) >= 1
+    MESSAGE "Scale requires at least one sensor";
+
+// Overload alert: weight exceeds 5 kg (5000 g)
+ALERT overload ON LoadCell WHEN
+    weight_grams > 5000
+    THEN
+    PUBLISH "scale/alerts/overload" VIA KitchenBroker
+    COOLDOWN 5 hz;

@@ -1,0 +1,9 @@
+POWERSOURCE [Battery] li_ion_3v7 WITH
+  OP
+    voltage = 3.7V,
+    capacity = 2500 mAh,
+    max_current = 2 A
+  PINS
+    vcc [3.7V] @ 1,
+    gnd [GND] @ 2
+;

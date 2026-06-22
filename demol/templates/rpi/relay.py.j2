@@ -1,0 +1,41 @@
+from gpiozero import OutputDevice
+from gpiozero.pins.pigpio import PiGPIOFactory
+from .peripheral import Actuator
+from .msg import RelayMessage
+
+
+class {{ driver_class_name }}(Actuator):
+    _PIN = "{{ conn.gpio.pins.get('IN', {}).get('name', 'GPIO17') }}"
+    _ACTIVE_HIGH = {{ 'false' if attributes.get('active_low', True) else 'true' }}
+
+    def __init__(self):
+        super().__init__(
+            name="{{ instance }}",
+            connections={{ conn }},
+            attributes={{ attributes }}
+        )
+        self.relay = None
+
+    def initialize(self):
+        self.relay = OutputDevice(
+            self._PIN,
+            active_high=self._ACTIVE_HIGH,
+            initial_value={{ attributes.get('initial_state', False) | lower }},
+            pin_factory=PiGPIOFactory()
+        )
+
+    def write(self, msg):
+        state = False
+        if hasattr(msg, 'state'):
+            state = msg.state
+        elif isinstance(msg, dict):
+            state = msg.get('state', False)
+
+        if state:
+            self.relay.on()
+        else:
+            self.relay.off()
+
+    def disconnect(self):
+        if self.relay:
+            self.relay.close()

@@ -1,0 +1,50 @@
+import board
+import busio
+import adafruit_apds9960.apds9960 as APDS9960
+from .peripheral import Sensor
+
+
+class {{ driver_class_name }}(Sensor):
+    """
+    APDS-9960 Gesture, Proximity, RGB Color and Ambient Light Sensor (I2C)
+    """
+    _PRIMARY_ADDRESS = {{ conn.i2c.slave_address if conn.i2c is defined else 0x39 }}
+    _FREQUENCY = {{ attributes.get('poll_period', 10) }}
+    _ENABLE_GESTURE = {{ attributes.get('enable_gesture', False) }}
+    _ENABLE_COLOR = {{ attributes.get('enable_color', True) }}
+    _ENABLE_PROXIMITY = {{ attributes.get('enable_proximity', True) }}
+
+    def __init__(self):
+        super().__init__(
+            name="{{ instance }}",
+            connections={{ conn }},
+            attributes={{ attributes }}
+        )
+        self.sensor = None
+
+    def initialize(self):
+        """Initialize the APDS-9960 sensor"""
+        i2c = busio.I2C(board.SCL, board.SDA)
+        self.sensor = APDS9960.APDS9960(i2c)
+        if self._ENABLE_GESTURE:
+            self.sensor.enable_gesture = True
+        if self._ENABLE_COLOR:
+            self.sensor.enable_color = True
+        if self._ENABLE_PROXIMITY:
+            self.sensor.enable_proximity = True
+
+    def read(self):
+        """Read sensor data based on enabled features"""
+        data = {}
+        if self._ENABLE_PROXIMITY:
+            data["proximity"] = self.sensor.proximity
+        if self._ENABLE_COLOR and self.sensor.color_data_ready:
+            r, g, b, c = self.sensor.color_data
+            data.update({"red": r, "green": g, "blue": b, "clear": c})
+        if self._ENABLE_GESTURE and self.sensor.gesture_available():
+            data["gesture"] = self.sensor.gesture()
+        self.update_state_data(data)
+
+    def disconnect(self):
+        """Release hardware resources"""
+        pass

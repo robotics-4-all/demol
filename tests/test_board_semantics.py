@@ -1,6 +1,7 @@
 from textx.exceptions import TextXSemanticError
 import pytest
 
+
 def test_board_ports_validation_valid(component_mm):
     model_str = """
     BOARD[ESP] ValidBoard WITH
@@ -16,6 +17,7 @@ def test_board_ports_validation_valid(component_mm):
     model = component_mm.model_from_str(model_str)
     assert model.component.name == "ValidBoard"
 
+
 def test_board_ports_validation_invalid_gpio_count(component_mm):
     model_str = """
     BOARD[ESP] InvalidBoard WITH
@@ -30,6 +32,7 @@ def test_board_ports_validation_invalid_gpio_count(component_mm):
     """
     with pytest.raises(TextXSemanticError, match="Declared 3 GPIO pins, but only found 2"):
         component_mm.model_from_str(model_str)
+
 
 def test_board_ports_validation_invalid_spi_count(component_mm):
     model_str = """
@@ -47,6 +50,7 @@ def test_board_ports_validation_invalid_spi_count(component_mm):
     # Only bus 0 is defined, but we asked for 2 SPI interfaces
     with pytest.raises(TextXSemanticError, match="Declared 2 SPI interfaces, but only found pins for 1 buses"):
         component_mm.model_from_str(model_str)
+
 
 def test_board_nested_properties(component_mm):
     model_str = """
@@ -66,6 +70,7 @@ def test_board_nested_properties(component_mm):
     assert "2.4GHz" in op.wifi_bands
     assert "5GHz" in op.wifi_bands
     assert op.cpu_freq == 240.0
+
 
 def test_unique_pin_numbers(component_mm):
     model_str = """

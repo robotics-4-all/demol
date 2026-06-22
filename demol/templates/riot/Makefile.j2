@@ -1,0 +1,89 @@
+# application name
+APPLICATION = {{ connection_conf }}
+
+BOARD ?= {{ board_name }}
+PORT ?= /dev/ttyUSB0
+BAUDRATE ?= 115200
+
+DEVELHELP ?= 1
+QUIET ?= 1
+
+################## Common #################
+
+USEMODULE += xtimer
+USEMODULE += pthread
+USEMODULE += posix_headers
+USEMODULE += ps
+USEMODULE += netdev_default
+
+
+################## Hardware Drivers ##################
+
+{% for dep in dependencies -%}
+USEMODULE += {{ dep }}
+{% endfor %}
+
+################## MQTT Broker ##################
+
+# USEMODULE += mqtt_broker
+
+ifeq ($(BOARD), {{ board_name }})
+USEMODULE += esp_wifi
+WIFI_SSID={{ wifi_ssid }}
+WIFI_PASS={{ wifi_passwd }}
+
+CFLAGS += '-DESP_WIFI_SSID="$(WIFI_SSID)"'
+CFLAGS += '-DESP_WIFI_PASS="$(WIFI_PASS)"'
+endif
+
+# network module dependencies
+
+CFLAGS += -DDEFAULT_MQTT_CLIENT_ID=\"{{ connection_conf }}\"
+CFLAGS += -DDEFAULT_MQTT_PORT={{ port }}
+CFLAGS += -DBROKER_IPV4_ADDR=\"{{ address }}\"
+{% if broker.username -%}
+CFLAGS += -DDEFAULT_MQTT_USER=\"{{ broker.username }}\"
+{% endif -%}
+{% if broker.password -%}
+CFLAGS += -DDEFAULT_MQTT_PWD=\"{{ broker.password }}\"
+{% endif -%}
+
+USEPKG += paho-mqtt
+
+LWIP_IPV4 ?= 1
+
+ifneq (0, $(LWIP_IPV4))
+USEMODULE += ipv4_addr
+USEMODULE += lwip_arp
+USEMODULE += lwip_ipv4
+USEMODULE += lwip_dhcp_auto
+CFLAGS += -DETHARP_SUPPORT_STATIC_ENTRIES=1
+LWIP_IPV6 ?= 0
+else
+# use IPv6 as default IP protocol when IPv4 is not explicitly selected
+LWIP_IPV6 ?= 1
+endif
+
+ifneq (0, $(LWIP_IPV6))
+USEMODULE += ipv6_addr
+USEMODULE += lwip_ipv6
+USEMODULE += lwip_ipv6_autoconfig
+endif
+
+USEMODULE += lwip_netdev
+USEMODULE += lwip
+
+# DISABLE_MODULE += auto_init_lwip
+
+USEMODULE += sock_async_event
+USEMODULE += sock_ip
+USEMODULE += sock_udp
+USEMODULE += sock_tcp
+
+USEPKG += jsmn
+
+CFLAGS += -Wno-error=unused-variable -Wno-error=unused-function -Wno-error=type-limits
+
+CONTINUE_ON_EXPECTED_ERRORS=1
+
+include $(RIOTBASE)/Makefile.include

@@ -1,0 +1,15 @@
+DEVICE PiperVoiceAssistant WITH description="Neural text-to-speech assistant using Piper", author="demol", os=raspbian;
+
+USE RaspberryPi_5_8GB;
+USE PiperTTSSpeaker[NeuralVoice] WITH
+    model = "en_US-lessac-medium",
+    length_scale = 1.0
+;
+
+NETWORK[WiFi] WITH ssid="HomeWiFi", password="changeme";
+BROKER[MQTT] HomeBroker WITH host="localhost", port=1883, auth.username="guest", auth.password="guest", ssl=False;
+
+CONNECT NeuralVoice WITH
+    POWER
+        gnd -- GND_4
+    @ "home/voice/piper";

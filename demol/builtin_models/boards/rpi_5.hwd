@@ -1,6 +1,7 @@
 BOARD[RPI] RaspberryPi_5_8GB WITH
     OP
         vcc=5V,
+        ioVcc=3V3,
         memory.flash=16 gb,
         memory.ram=8 gb,
         cpu.family=PiArmCortex,
@@ -9,9 +10,11 @@ BOARD[RPI] RaspberryPi_5_8GB WITH
         wifi.name=RPi5_WiFi,
         wifi.version=5,
         wifi.bands=[2.4GHz, 5GHz],
-        energy=3.0 W, 8.0 W, 4.5 W
+        power.min=3.0 W,
+        power.max=8.0 W,
+        power.avg=4.5 W
     PORTS
-        spi=1,
+        spi=2,
         i2c=1,
         uart=1,
         gpio=28
@@ -27,7 +30,7 @@ BOARD[RPI] RaspberryPi_5_8GB WITH
         GND_2[GND] @ 9,
         GPIO15[gpio,rx-0] @ 10,
         GPIO17[gpio] @ 11,
-        GPIO18[gpio] @ 12,
+        GPIO18[gpio,pwm-0] @ 12,
         GPIO27[gpio] @ 13,
         GND_3[GND] @ 14,
         GPIO22[gpio] @ 15,
@@ -47,10 +50,10 @@ BOARD[RPI] RaspberryPi_5_8GB WITH
         GPIO5[gpio] @ 29,
         GND_6[GND] @ 30,
         GPIO6[gpio] @ 31,
-        GPIO12[gpio] @ 32,
-        GPIO13[gpio] @ 33,
+        GPIO12[gpio,pwm-0] @ 32,
+        GPIO13[gpio,pwm-1] @ 33,
         GND_7[GND] @ 34,
-        GPIO19[gpio,fs] @ 35,
+        GPIO19[gpio,pwm-1,fs] @ 35,
         GPIO16[gpio] @ 36,
         GPIO26[gpio] @ 37,
         GPIO20[gpio,din] @ 38,

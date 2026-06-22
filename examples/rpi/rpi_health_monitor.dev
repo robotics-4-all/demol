@@ -1,0 +1,81 @@
+// Health Monitoring Station
+//
+// Scenario: A wearable-adjacent health station that reads heart rate and SpO2
+// from a MAX30102, measures skin/ambient temperature via an MLX90614 IR
+// thermometer, and monitors ambient air quality (CO2, TVOC) with a CCS811.
+// Critical readings trigger alerts sent to a health gateway.
+//
+// Features demonstrated:
+//   - Multiple I2C biosensors sharing the bus
+//   - ALERT triggers for health threshold violations
+//   - SAMPLING with high-frequency biometric polling
+
+DEVICE HealthMonitor WITH
+    description="Heart rate, SpO2, temperature, and air quality monitor",
+    author="DeMoL",
+    os=raspbian;
+
+USE RaspberryPi_5_8GB;
+
+USE MAX30102[HeartRateSensor],
+    MLX90614[IRThermometer],
+    CCS811[AirQualitySensor],
+    LedGeneric[StatusLed];
+
+NETWORK[WiFi] WITH ssid="HealthNet", password="h34lth_n3t";
+
+BROKER[MQTT] HealthGateway WITH
+    host="health-gateway.local", port=1883,
+    auth.username="monitor", auth.password="h34lth_s3cr3t";
+
+// MAX30102 — I2C address 0x57
+CONNECT HeartRateSensor WITH
+    POWER VIN -- power_3v3_a, GND -- GND_1
+    DATA i2c[slave_address=0x57] sda sda -- GPIO2, scl scl -- GPIO3
+    @ "health/cardiac";
+
+// MLX90614 — I2C address 0x5A (SMBus-compatible at 100 kHz)
+CONNECT IRThermometer WITH
+    POWER VCC -- power_3v3_b, GND -- GND_2
+    DATA i2c[slave_address=0x5A] sda sda -- GPIO2, scl scl -- GPIO3
+    @ "health/temperature";
+
+// CCS811 — I2C address 0x5B (ADDR pin HIGH → alt address to avoid collision)
+CONNECT AirQualitySensor WITH
+    POWER VCC -- power_3v3_b, GND -- GND_3
+    DATA i2c[slave_address=0x5B] sda sda -- GPIO2, scl scl -- GPIO3
+    @ "health/air_quality";
+
+// Status LED
+CONNECT StatusLed WITH
+    POWER gnd -- GND_4, vcc -- power_3v3_b
+    DATA gpio[mode="output"] vin -- GPIO17
+    @ "health/status";
+
+// Biometric sensors — high frequency for accurate readings
+SAMPLING HeartRateSensor WITH rate = 100 hz, mode = continuous;
+SAMPLING IRThermometer WITH rate = 2 hz, mode = continuous;
+SAMPLING AirQualitySensor WITH rate = 1 hz, mode = continuous;
+
+// Alert: elevated temperature (possible fever)
+ALERT fever_alert ON IRThermometer WHEN
+    object_temperature > 37.5
+    THEN
+    PUBLISH "health/alerts/fever" VIA HealthGateway
+    ACTIVATE StatusLed
+    COOLDOWN 60 hz;
+
+// Alert: poor air quality — high CO2 levels
+ALERT co2_alert ON AirQualitySensor WHEN
+    eco2_ppm > 1000
+    THEN
+    PUBLISH "health/alerts/co2" VIA HealthGateway
+    COOLDOWN 30 hz;
+
+// Alert: dangerously low SpO2 (below 90%)
+ALERT spo2_low ON HeartRateSensor WHEN
+    heart_rate_bpm < 40
+    THEN
+    PUBLISH "health/alerts/low_hr" VIA HealthGateway
+    ACTIVATE StatusLed
+    COOLDOWN 10 hz;

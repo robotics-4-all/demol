@@ -1,0 +1,26 @@
+// Generic LED model
+ACTUATOR[Led] LedGeneric WITH
+    OP
+        vcc=3V3,
+        ioVcc=3V3,
+        power.min=5 mW,
+        power.max=20 mW,
+        power.avg=10 mW,
+        freq.max=1000 hz
+    PINS
+        gnd[GND] @ 1,
+        vin[pwm,gpio] @ 2,
+        vcc[3V3] @ 3
+    PROPERTIES
+        // Actuators do not currently emit sampling-time alerts; the `value` mapping
+        // is reserved for future driver-level state read-back.
+        value -> "led_value" : int32 FOR riotos
+    TEMPLATES
+        raspbian="led.py.j2",
+        riotos="led.c.j2"
+    DEPENDENCIES
+        raspbian=["gpiozero"]
+    ATTRIBUTES
+        active_high[bool] = true,
+        initial_value[bool] = false
+;

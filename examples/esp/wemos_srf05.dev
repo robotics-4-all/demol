@@ -1,0 +1,17 @@
+DEVICE WemosSRF05 WITH description="Wemos D1 Mini with SRF05 distance sensor (RIOT)", author="demol";
+
+NETWORK[WiFi] WITH ssid="Wifi_2.4GHz", password="guest";
+
+BROKER[MQTT] MyMqttBroker WITH host="node.mqtt.local", port=1883, auth.username="guest", auth.password="guest";
+
+USE WemosD1Mini;
+USE SRF05[Range];
+
+CONNECT Range WITH
+    POWER
+        GND -- gnd,
+        VCC -- power_5v
+    DATA
+        gpio[mode="output"] trigger -- d3,
+        gpio[mode="input"] echo -- d4
+    @ "my_wemos.sensors.distance.srf05";

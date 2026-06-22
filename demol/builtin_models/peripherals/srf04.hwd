@@ -1,16 +1,18 @@
-SENSOR[Distance] SonarSRF04 WITH
+SENSOR[Distance] SRF04 WITH
     OP
         vcc=5V,
         ioVcc=5V,
-        piTpl="srf04",
-        riotTpl="srf04",
-        energy=10 mW, 100 mW, 75 mW
+        power.min=10 mW,
+        power.max=100 mW,
+        power.avg=75 mW
     PINS
         vcc[5V] @ 1,
         gnd[GND] @ 4,
         trigger[gpio] @ 2,
         echo[gpio] @ 3
     TEMPLATES
-        raspbian="srf04.py.tmpl",
-        riotos="srf04_riot.c.tmpl"
+        raspbian="srf04.py.j2",
+        riotos="srf04_riot.c.j2"
+    ATTRIBUTES
+        gpio_modes[dict] = {trigger = "output", echo = "input"}
 ;

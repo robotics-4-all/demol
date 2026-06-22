@@ -3,13 +3,22 @@
 SENSOR[Env] Mpl3115a2 WITH
     OP
         vcc=3V3,
-        energy=0.01 mW, 10 mW, 2 mW
+        power.min=0.01 mW,
+        power.max=10 mW,
+        power.avg=2 mW
     PINS
         vcc[3V3] @ 1,
         gnd[GND] @ 2,
         scl[scl-0] @ 5,
         sda[sda-0] @ 6
+    PROPERTIES
+        // RIOT mpl3115a2 driver reads pressure directly into local `pressure` (Pa).
+        pressure -> "pressure" : int32 FOR riotos
     TEMPLATES
-        raspbian="mpl3115a2.py.tmpl",
-        riotos="mpl3115a2_riot.c.tmpl"
+        raspbian="mpl3115a2.py.j2",
+        riotos="mpl3115a2_riot.c.j2"
+    DEPENDENCIES
+        riotos=["mpl3115a2"]
+    ATTRIBUTES
+        i2c_address[int] = 96
 ;

@@ -1,0 +1,30 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install git (needed to install tx-lsp from GitHub)
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends git && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install DeMoL DSL (makes it discoverable by textX)
+COPY . /app/demol
+RUN pip install --no-cache-dir /app/demol
+
+# Install tx-lsp with REST API support from GitHub (public repo)
+RUN pip install --no-cache-dir \
+    "tx-lsp[api] @ git+https://github.com/robotics-4-all/tx-lsp.git"
+
+# Entrypoint script runs both LSP (TCP) and REST API
+COPY docker/entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
+
+# LSP (TCP): 2087, REST API: 8080
+EXPOSE 2087 8080
+
+ENV TX_LSP_API_PORT=8080 \
+    TX_LSP_LSP_PORT=2087 \
+    TX_LSP_HOST=0.0.0.0 \
+    TX_LSP_LOG_LEVEL=INFO
+
+ENTRYPOINT ["/app/entrypoint.sh"]

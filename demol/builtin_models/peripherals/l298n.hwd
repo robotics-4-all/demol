@@ -1,0 +1,26 @@
+ACTUATOR[MotorDriver] L298N WITH
+    OP
+        vcc=5V,
+        ioVcc=5V,
+        power.min=0 mW,
+        power.max=25000 mW,
+        power.avg=5000 mW
+    PINS
+        VCC[5V] @ 1,
+        GND[GND] @ 2,
+        IN1[gpio] @ 3,
+        IN2[gpio] @ 4,
+        IN3[gpio] @ 5,
+        IN4[gpio] @ 6,
+        ? ENA[pwm] @ 7,
+        ? ENB[pwm] @ 8
+    TEMPLATES
+        raspbian="l298n.py.j2"
+    DEPENDENCIES
+        raspbian=[
+            {package="gpiozero", version=">=2.0", source="pip"}
+        ]
+    ATTRIBUTES
+        max_speed[int] = 100,
+        ramp_time[float] = 0.5
+;

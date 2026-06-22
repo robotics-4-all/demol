@@ -1,0 +1,11 @@
+#ifndef {{ name|upper }}_{{ index }}_DRIVER_H
+#define {{ name|upper }}_{{ index }}_DRIVER_H
+
+#define {{ name|upper }}_{{ index }}_FREQ {{ freq }}
+
+typedef void (*{{ name }}_{{ index }}_callback)(char *);
+
+int init_sensor_{{ name }}_{{ index }}(void);
+void start_sensor_{{ name }}_{{ index }}({{ name }}_{{ index }}_callback callback);
+
+#endif

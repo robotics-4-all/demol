@@ -1,0 +1,24 @@
+ACTUATOR[Display] SSD1306 WITH
+    OP
+        vcc=3V3,
+        ioVcc=3V3,
+        power.min=1.0 mW,
+        power.max=60 mW,
+        power.avg=20 mW
+    PINS
+        VCC[3V3] @ 1,
+        GND[GND] @ 2,
+        sda[sda-0] @ 3,
+        scl[scl-0] @ 4
+    TEMPLATES
+        raspbian="ssd1306.py.j2"
+    DEPENDENCIES
+        raspbian=[
+            {package="adafruit-circuitpython-ssd1306", source="pip"},
+            {package="Pillow", source="pip"}
+        ]
+    ATTRIBUTES
+        i2c_address[int] = 60,
+        width[int] = 128,
+        height[int] = 64
+;

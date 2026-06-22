@@ -1,0 +1,25 @@
+SENSOR[Env] DHT22 WITH
+    OP
+        vcc=3V3,
+        ioVcc=3V3,
+        power.min=1 mW,
+        power.max=15 mW,
+        power.avg=5 mW,
+        freq.max=2 hz
+    PINS
+        VCC[3V3] @ 1,
+        data[gpio] @ 2,
+        GND[GND] @ 4
+    TEMPLATES
+        raspbian="dht22.py.j2"
+    DEPENDENCIES
+        raspbian=[
+            {package="adafruit-circuitpython-dht", source="pip"},
+            {package="libgpiod2", source="apt"}
+        ]
+    ATTRIBUTES
+        gpio_modes[dict] = {data = "input"},
+        frequency[float] = 0.5,
+        temperature_offset[float] = 0.0,
+        humidity_offset[float] = 0.0
+;

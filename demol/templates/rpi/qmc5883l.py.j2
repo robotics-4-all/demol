@@ -1,0 +1,61 @@
+import smbus2
+import math
+from .peripheral import Sensor
+
+# QMC5883L register map
+_QMC5883L_ADDR = {{ conn.i2c.slave_address if conn.i2c is defined else 0x0D }}
+_REG_XOUT_L = 0x00
+_REG_CONTROL_1 = 0x09
+_REG_CONTROL_2 = 0x0A
+_REG_SET_RESET = 0x0B
+
+
+class {{ driver_class_name }}(Sensor):
+    """
+    QMC5883L 3-Axis Magnetometer / Compass (I2C)
+    Provides magnetic field measurements for heading computation.
+    """
+    _OUTPUT_DATA_RATE = {{ attributes.get('output_data_rate', 10) }}
+    _OVERSAMPLING = {{ attributes.get('oversampling_rate', 512) }}
+    _FULL_SCALE = {{ attributes.get('full_scale', 2) }}
+    _FREQUENCY = {{ attributes.get('poll_period', 10) }}
+
+    def __init__(self):
+        super().__init__(
+            name="{{ instance }}",
+            connections={{ conn }},
+            attributes={{ attributes }}
+        )
+        self.bus = None
+
+    def initialize(self):
+        """Initialize QMC5883L magnetometer"""
+        self.bus = smbus2.SMBus(1)
+        # Continuous mode, 10 Hz, 2G range, 512 oversampling
+        self.bus.write_byte_data(_QMC5883L_ADDR, _REG_CONTROL_1, 0x1D)
+        self.bus.write_byte_data(_QMC5883L_ADDR, _REG_SET_RESET, 0x01)
+
+    def read(self):
+        """Read 3-axis magnetic field and compute heading"""
+        data = self.bus.read_i2c_block_data(_QMC5883L_ADDR, _REG_XOUT_L, 6)
+        x = self._to_signed(data[1] << 8 | data[0])
+        y = self._to_signed(data[3] << 8 | data[2])
+        z = self._to_signed(data[5] << 8 | data[4])
+        heading = math.degrees(math.atan2(y, x))
+        if heading < 0:
+            heading += 360
+        self.update_state_data({
+            "x": x,
+            "y": y,
+            "z": z,
+            "heading_degrees": round(heading, 2)
+        })
+
+    @staticmethod
+    def _to_signed(val):
+        return val - 65536 if val > 32767 else val
+
+    def disconnect(self):
+        """Release hardware resources"""
+        if self.bus:
+            self.bus.close()

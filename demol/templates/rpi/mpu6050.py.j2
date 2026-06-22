@@ -1,0 +1,36 @@
+from mpu6050 import mpu6050 as MPU6050Driver
+from .peripheral import Sensor
+from .msg import IMUMessage
+
+
+class {{ driver_class_name }}(Sensor):
+    _ADDRESS = {{ conn.i2c.slave_address if conn.i2c is defined else 104 }}
+    _FREQUENCY = {{ attributes.get('frequency', 100.0) }}
+
+    def __init__(self):
+        super().__init__(
+            name="{{ instance }}",
+            connections={{ conn }},
+            attributes={{ attributes }}
+        )
+        self.sensor = None
+
+    def initialize(self):
+        self.sensor = MPU6050Driver(self._ADDRESS)
+
+    def read(self):
+        accel = self.sensor.get_accel_data()
+        gyro = self.sensor.get_gyro_data()
+        temp = self.sensor.get_temp()
+        self.update_state_data({
+            "accel_x": accel['x'],
+            "accel_y": accel['y'],
+            "accel_z": accel['z'],
+            "gyro_x": gyro['x'],
+            "gyro_y": gyro['y'],
+            "gyro_z": gyro['z'],
+            "temperature": temp
+        })
+
+    def disconnect(self):
+        pass

@@ -11,7 +11,9 @@ BOARD[RPI] RaspberryPi_3A_Plus WITH
         wifi.bands=[2.4GHz, 5GHz],
         bluetooth=BT4,
         ioVcc=3V3,
-        energy=1.5 W, 4.5 W, 2.5 W
+        power.min=1.5 W,
+        power.max=4.5 W,
+        power.avg=2.5 W
     PORTS
         spi=1,
         i2c=2,

@@ -1,15 +1,19 @@
 SENSOR[Distance] TFMini WITH
     OP
         vcc=5V,
-        energy=50 mW, 800 mW, 400 mW
+        power.min=50 mW,
+        power.max=800 mW,
+        power.avg=400 mW
     PINS
         GND[GND] @ 1,
         VCC[5V] @ 2,
         RXD[rx-0] @ 3,
         TXD[tx-0] @ 4
     TEMPLATES
-        raspbian="tfmini.py.tmpl",
-        riotos="tfmini_riot.c.tmpl"
+        raspbian="tfmini.py.j2"
+    DEPENDENCIES
+        raspbian=["pyserial"]
     ATTRIBUTES
+        uart_baudrate[int] = 115200,
         serial_port[str] = "/dev/ttyAMA0"
 ;

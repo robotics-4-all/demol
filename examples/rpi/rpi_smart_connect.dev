@@ -1,0 +1,20 @@
+DEVICE SmartSensorHub WITH
+    description="Sensor hub using SmartConnect for automatic wiring",
+    author="DeMoL",
+    os=raspbian;
+
+USE RaspberryPi_5_8GB;
+
+USE BME680[EnvSensor],
+    HCSR04[DistanceSensor],
+    BuzzerGeneric[AlertBuzz];
+
+NETWORK[WiFi] WITH ssid="IoTNetwork", password="password";
+
+BROKER[MQTT] CloudBroker WITH
+    host="mqtt.example.com", port=1883,
+    auth.username="device", auth.password="secret";
+
+SMARTCONNECT EnvSensor @ "sensors/environment";
+SMARTCONNECT DistanceSensor @ "sensors/distance";
+SMARTCONNECT AlertBuzz @ "actuators/buzzer";

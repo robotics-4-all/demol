@@ -1,7 +1,7 @@
 DEVICE ParkingLeds WITH description="Device with warning lights", author="maria", os=raspbian;
 
 USE RaspberryPi_5_8GB;
-USE WS2812(WarningLights);
+USE WS2812[WarningLights];
 
 NETWORK[WiFi] WITH ssid="Wifi_2.4GHz", password="guest";
 
@@ -9,8 +9,8 @@ BROKER[MQTT] locsys_broker WITH host="locsys.issel.ee.auth.gr", port=1883, auth.
 
 CONNECT WarningLights WITH
     POWER
-        GND_2 -- GND,
-        power_5v_b -- VCC
+        GND -- GND_2,
+        VCC -- power_5v_b
     DATA
-        gpio[mode="output"] GPIO18 -- DIN
+        gpio[mode="output"] DIN -- GPIO18
 ;
