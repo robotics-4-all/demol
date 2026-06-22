@@ -23,22 +23,17 @@ def _run(script: Path, *args: str) -> subprocess.CompletedProcess:
 def test_verify_doc_paths_succeeds():
     result = _run(VERIFY, str(DOC))
     assert result.returncode == 0, (
-        f"verify_doc_paths.sh failed (rc={result.returncode})\n"
-        f"stdout:\n{result.stdout}\nstderr:\n{result.stderr}"
+        f"verify_doc_paths.sh failed (rc={result.returncode})\n" f"stdout:\n{result.stdout}\nstderr:\n{result.stderr}"
     )
 
 
 def test_extract_doc_rules_returns_enough():
     result = _run(EXTRACT, str(DOC))
-    assert result.returncode == 0, (
-        f"extract_doc_rules.sh failed (rc={result.returncode})\n"
-        f"stderr:\n{result.stderr}"
-    )
+    assert result.returncode == 0, f"extract_doc_rules.sh failed (rc={result.returncode})\n" f"stderr:\n{result.stderr}"
     lines = [ln for ln in result.stdout.splitlines() if ln.strip()]
     min_rules = int(os.environ.get("DOC_RULE_MIN", "5"))
-    assert len(lines) >= min_rules, (
-        f"expected >= {min_rules} rule labels in {DOC}, got {len(lines)}:\n"
-        + "\n".join(lines)
+    assert len(lines) >= min_rules, f"expected >= {min_rules} rule labels in {DOC}, got {len(lines)}:\n" + "\n".join(
+        lines
     )
 
 
