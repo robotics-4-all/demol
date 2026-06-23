@@ -1,8 +1,8 @@
 # PROJECT KNOWLEDGE BASE
 
-**Generated:** 2026-05-04
-**Commit:** e6985fb
-**Branch:** devel
+**Generated:** 2026-06-23
+**Commit:** e73ecef
+**Branch:** feat/code_cleanup
 
 ## OVERVIEW
 
@@ -14,14 +14,13 @@ DeMoL (Device Modeling Language) — a textX-based Python DSL for hardware-aware
 demol/                  # Core DSL package (grammar, semantics, codegen)
 ├── grammar/            # 4 textX grammar files (.tx)
 ├── lang/               # Language engine: parsing, validation, semantics
-│   ├── semantics.py    # LEGACY validator monolith (1727 lines) — DO NOT EXTEND
-│   ├── semantics/      # NEW modular validator framework (21 validator classes across 14 files)
+│   ├── semantics/      # Modular validator framework (33 validator classes across 15 files)
 │   └── smart_connection.py  # SMARTCONNECT auto-wiring resolution (712 lines)
 ├── transformations/    # M2T/M2M generators (rpi, riot, svg, docs, pinmap, smauto, json)
 ├── builtin_models/     # Hardware library: boards (.hwd), peripherals (.hwd), power
 ├── templates/          # Jinja2 templates per platform (rpi/, riot/, docs/, smauto/)
 └── cli/                # Click CLI: validate, generate, analyze, fix, diff
-tests/                  # pytest suite: 31 test files + models/valid/ + models/invalid/
+tests/                  # pytest suite: 42 test files + models/valid/ + models/invalid/
 examples/               # Device models: rpi/ (40), esp/ (5), smauto/ (5)
 scripts/                # Automation: validation, generation, evaluation
 docker/                 # Dockerfile.tests + CI container
@@ -58,7 +57,7 @@ build/                  # Generated output (RIOT firmware projects)
 | `BaseCodeGenerator` | class | `demol/transformations/base_generator.py` | Abstract code generator with model querying |
 | `RPiCodeGenerator` | class | `demol/transformations/m2t_rpi.py` | Raspberry Pi Python generator |
 | `RiotCodeGenerator` | class | `demol/transformations/m2t_riot.py` | RiotOS C generator |
-| `validate_power_connection` | function | `demol/lang/semantics.py` | Power validation (voltage compat, GND rules) — legacy |
+| `validate_power_connection` | function | `demol/lang/semantics/validators/power.py` | Power validation (voltage compat, GND rules) |
 | `ValidationReporter` | class | `demol/lang/validation.py` | Rich console validation output |
 | `ValidationResult` | class | `demol/lang/validation.py` | Dataclass: status, errors, warnings, passed_rules |
 | `enrich_model` | function | `demol/lang/device.py` | Resolves refs, SmartConnect, VIA routing, auto-topics |
@@ -66,7 +65,7 @@ build/                  # Generated output (RIOT firmware projects)
 
 ## CONVENTIONS
 
-- **Line length**: flake8=120 (`.flake8` + Makefile both use 120), ignores E203/E501; `demol/lang/semantics.py` excluded from flake8
+- **Line length**: flake8=120 (`.flake8` + Makefile both use 120), ignores E203/E501
 - **Grammar files**: `.tx` extension, textX syntax. 4 modular files; `common.tx` imported by all
 - **Model files**: `.dev` (device definitions), `.hwd` (hardware components)
 - **Templates**: `.j2` Jinja2, named `<component>.<ext>.j2` (e.g., `bme680.py.j2`)
@@ -83,7 +82,7 @@ build/                  # Generated output (RIOT firmware projects)
 - **NEVER** connect GND to VCC or vice versa (PC-NO-MIX rule)
 - **NEVER** use I2C addresses outside 0x00-0x7F range
 - Voltage tolerance is 0.5V — connections exceeding this are errors, not warnings
-- `semantics.py` (1727 lines) is the legacy monolith; new validators go in `semantics/validators/` — do NOT add to the monolith
+- `semantics.py` (1727 lines) has been fully deleted — all validators are in `semantics/validators/`
 - **NEVER** raise `TextXSemanticError` directly — use `raise_validation_error()` from `semantics/core.py`
 
 ## UNIQUE STYLES
@@ -147,11 +146,11 @@ make docker-test                    # Tests in container
 - `RIOT/` is a full OS checkout (~40k files) — exclude from searches/analysis
 - `build/` contains generated output — do not edit manually
 - `venv/` and `.venv/` are virtual environments — exclude from searches
-- `demol/lang/semantics.py` and `demol/lang/semantics/` coexist — migration in progress (see `semantics/README.md`)
+- `demol/lang/semantics.py` has been fully deleted — all validators are in `semantics/validators/`
 - Build: `pyproject.toml` only (PEP 517/518); `setup.py` and `setup.cfg` removed (commit e6985fb)
 - Visual designer is in the separate `demol-designer` repo
-- `demol/definitions.py` paths use `os.getenv()` for overridable model repos (BOARD_MODEL_REPO_PATH, etc.)
-- 31 test files covering ~290 test cases; CI runs across Python 3.9–3.13 matrix
+- `demol/definitions.py` paths use `os.getenv()` for overridable model repos (DEVICES_MODEL_REPO_PATH)
+- 42 test files covering ~290 test cases; CI runs across Python 3.9–3.13 matrix
 - `demol/lang/smart_connection.py` (712 lines) handles SMARTCONNECT auto-wiring resolution
 - RIOT mapper is **fail-fast on missing templates** — set `DEMOL_RIOT_SKIP_MISSING=1` only if intentional skipping is required
 - RIOT codegen ships **8 driver pairs** (bme680, hw006, mpl3115a2, srf04, srf05, led, ws281x, button); CI matrix compiles 3 ESP examples per push (wemos_bme680, wemos_button, wemos_srf05)
