@@ -19,7 +19,7 @@ and the Zephyr board name is resolved via :class:`BoardNameRegistry`.
 
 import logging
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 import jinja2
 
