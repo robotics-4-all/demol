@@ -13,13 +13,15 @@ SENSOR[Distance] HCSR04 WITH
         VCC[5V] @ 4
     TEMPLATES
         raspbian = "hcsr04.py.j2",
-        riotos = "srf04.c.j2"
+        riotos = "srf04.c.j2",
+        zephyr = "hcsr04.c.j2"
     DEPENDENCIES
         raspbian = [
             {package="gpiozero", version=">=2.0", source="pip"},
             {package="pigpio", source="apt"}
         ],
-        riotos = ["srf04"]
+        riotos = ["srf04"],
+        zephyr = ["gpio"]
     ATTRIBUTES
         gpio_modes[dict] = {trigger = "output", echo = "input"},
         frequency[float] = 10,
