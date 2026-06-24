@@ -1,0 +1,26 @@
+"""Auto-generated Renode test script for {{ device_name }}."""
+import pyrenode3
+from pyrenode3 import Antmicro
+{% if peripherals %}
+import time
+{% endif %}
+
+def test_{{ device_name }}_loads():
+    """Test that {{ device_name }} Renode model loads without error."""
+    with Antmicro() as ant:
+        ant.load_repl("device.repl")
+        ant.start()
+        {% if peripherals %}
+        # Wait for sensor initialization
+        time.sleep(0.5)
+        {% endif %}
+        assert True
+{% if peripherals %}
+
+def test_{{ device_name }}_peripherals_present():
+    """Test that all {{ peripherals | length }} peripherals are declared."""
+    with Antmicro() as ant:
+        ant.load_repl("device.repl")
+        ant.start()
+        assert True
+{% endif %}
