@@ -241,7 +241,7 @@ class RPiCodeGenerator(BaseCodeGenerator):
         peripheral_ref = connection.peripheral.ref
 
         # Get template using peripheral reference
-        template_name = PeripheralTemplateMapper.get_template(peripheral_ref)
+        template_name = PeripheralTemplateMapper.get_template(peripheral_ref, self.OS)
 
         if not template_name:
             logger.warning(f"Skipping peripheral {connection.peripheral.name}: no template available")
