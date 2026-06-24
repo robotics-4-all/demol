@@ -14,6 +14,7 @@ import jinja2
 
 from demol.definitions import TEMPLATES
 from .base_generator import BaseCodeGenerator
+from .docker_mixin import DockerBuildMixin
 from ._template_mapper import PeripheralTemplateMapper
 
 # Backward-compat re-export — prefer importing from demol.transformations._template_mapper
@@ -41,7 +42,7 @@ def _strip_riot_template_suffix(template: str) -> str:
     return base
 
 
-class RiotCodeGenerator(BaseCodeGenerator):
+class RiotCodeGenerator(BaseCodeGenerator, DockerBuildMixin):
     """Generates RiotOS C code from device model."""
 
     OS = "riotos"
@@ -282,6 +283,10 @@ class RiotCodeGenerator(BaseCodeGenerator):
                 raise FileNotFoundError(msg) from exc
 
         logger.info("RiotOS code generation complete!")
+
+    def _build_docker_context(self) -> Dict[str, Any]:
+        """Return the global Jinja context for RIOT Docker templates."""
+        return getattr(self, "_global_context", self.build_global_context())
 
     def _build_riot_alert_context(self, instance, pref) -> List[Dict[str, Any]]:
         """Build per-source alert specs for inline injection into RIOT driver C templates.
