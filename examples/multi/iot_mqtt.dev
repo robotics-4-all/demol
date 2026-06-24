@@ -1,0 +1,42 @@
+// IoT over MQTT example — board + 1 sensor + 1 network + 1 alert.
+//
+// Full IoT scenario: a BME680 environmental sensor is read continuously
+// and an ALERT publishes a high-temperature event over MQTT when the
+// temperature exceeds the threshold. The generated artifacts for every
+// backend (rpi, riot, zephyr, wokwi, renode) implement the same alert
+// flow: emit a payload to the configured broker topic with a cooldown
+// gate to avoid alert storms.
+
+DEVICE IotMqttDevice WITH
+    description="ESP32 + BME680 with MQTT temperature alert (all 5 backends)",
+    author="demol",
+    os=riotos;
+
+NETWORK[WiFi] WITH
+    ssid="DemoWifi",
+    password="demopass";
+
+BROKER[MQTT] LocalBroker WITH
+    host="broker.local",
+    port=1883,
+    auth.username="demo",
+    auth.password="demopass";
+
+USE ESP32Wroom32;
+
+USE BME680[EnvSensor];
+
+SAMPLING EnvSensor WITH rate=10 hz, mode=continuous;
+
+CONNECT EnvSensor WITH
+    POWER
+        gnd -- GND_1,
+        vcc -- VCC_5V
+    DATA
+        i2c[slave_address=0x76] sda sda -- GPIO21, scl scl -- GPIO22
+    @ "sensors.environment.bme680";
+
+ALERT hi_temp ON EnvSensor WHEN temperature > 30.0
+    THEN
+        PUBLISH "alerts.environment.hi_temp" VIA LocalBroker
+    COOLDOWN 60 hz;
