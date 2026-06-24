@@ -155,7 +155,7 @@ class ZephyrCodeGenerator(BaseCodeGenerator):
         board = self.get_board()
         platform_attrs = self.get_platform_attributes(board, self.OS)
         if "board" in platform_attrs:
-            return platform_attrs["board"]
+            return str(platform_attrs["board"])
         return self._registry.resolve(board.name, self.OS)
 
     def _collect_kconfig(self) -> Dict[str, str]:

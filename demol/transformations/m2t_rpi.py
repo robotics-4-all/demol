@@ -6,7 +6,7 @@ publisher/subscriber processes.
 """
 
 from pathlib import Path
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 import logging
 
 import jinja2
@@ -323,14 +323,14 @@ class RPiCodeGenerator(BaseCodeGenerator, DockerBuildMixin):
 
         return {"pip": sorted(list(pip_deps)), "apt": sorted(list(apt_deps))}
 
-    def generate_docker_files(self) -> None:
+    def generate_docker_files(self, output_dir: Optional[Path] = None) -> None:
         """Render all Docker artifacts for the RPi backend.
 
         Thin delegating wrapper preserved on the class for the public API
         (``generator.generate_docker_files()``); actual rendering is in
         :class:`DockerBuildMixin`.
         """
-        DockerBuildMixin.generate_docker_files(self)
+        DockerBuildMixin.generate_docker_files(self, output_dir)
 
     def _build_docker_context(self) -> Dict[str, Any]:
         """Return the combined Jinja context for all RPi Docker templates.

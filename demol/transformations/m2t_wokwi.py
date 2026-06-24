@@ -162,8 +162,8 @@ class WokwiCodeGenerator(BaseCodeGenerator):
         ``USE`` statements still get a unique identifier.
         """
         if getattr(peripheral_ref, "name", None):
-            return peripheral_ref.name
-        return type(peripheral_ref.ref).__name__.lower()
+            return str(peripheral_ref.name)
+        return str(type(peripheral_ref.ref).__name__).lower()
 
     @staticmethod
     def _map_data_pin_name(pin_name: str) -> str:

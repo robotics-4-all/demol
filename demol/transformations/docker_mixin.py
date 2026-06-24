@@ -28,7 +28,11 @@ it to return the dict their templates expect.
 
 import os
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
+
+if TYPE_CHECKING:
+    import jinja2
+
 
 __all__ = ["DockerBuildMixin"]
 
@@ -52,6 +56,18 @@ class DockerBuildMixin:
     * implement :meth:`_build_docker_context` returning the Jinja context
       dictionary expected by their templates.
     """
+
+    if TYPE_CHECKING:
+        output_dir: Path
+        env: "jinja2.Environment"
+        OS: str
+
+        def _write_template(
+            self,
+            template: "jinja2.Template",
+            context: Dict[str, Any],
+            output_path: Path,
+        ) -> None: ...
 
     #: Map from ``OS`` identifier to the primary Dockerfile template name.
     #: Subclasses may extend this to register new backends.
