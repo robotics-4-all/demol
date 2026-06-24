@@ -12,6 +12,8 @@ class SvgGenerator(BaseCodeGenerator):
     Layout: Schematic style with Board in center, Peripherals on Left/Right.
     """
 
+    OS = ""
+
     # --- Configuration ---
     # Colors
     COLOR_BG = "#FFFFFF"
@@ -184,10 +186,7 @@ class SvgGenerator(BaseCodeGenerator):
         # Render Template
         try:
             template = self.env.get_template("device.svg.j2")
-            output = template.render(**template_data)
-
-            with open(self.output_file, "w") as f:
-                f.write(output)
+            self._write_template(template, template_data, self.output_file)
             print(f"Successfully generated SVG: {self.output_file}")
         except Exception as e:
             print(f"Error generating SVG: {e}")

@@ -10,6 +10,8 @@ class InfrastructureSvgGenerator(BaseCodeGenerator):
     Shows: Peripherals -> Board -> Network -> Broker -> Application Layer
     """
 
+    OS = ""
+
     # --- Configuration ---
     COLOR_BG = "#FFFFFF"
     COLOR_BOARD = "#0F172A"  # Slate 900
@@ -129,10 +131,7 @@ class InfrastructureSvgGenerator(BaseCodeGenerator):
         # Render Template
         try:
             template = self.env.get_template("infrastructure.svg.j2")
-            output = template.render(**template_data)
-
-            with open(self.output_file, "w") as f:
-                f.write(output)
+            self._write_template(template, template_data, self.output_file)
             print(f"Successfully generated Infrastructure SVG: {self.output_file}")
         except Exception as e:
             print(f"Error generating Infrastructure SVG: {e}")

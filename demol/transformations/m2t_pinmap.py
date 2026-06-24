@@ -8,8 +8,12 @@ SmartConnect auto-assigned pins that are not visible in the model source.
 
 import json
 import logging
-import os
+from pathlib import Path
 from typing import Any, Dict, List, Tuple
+
+import jinja2
+
+from .base_generator import BaseCodeGenerator
 
 logger = logging.getLogger(__name__)
 
@@ -225,6 +229,38 @@ def _generate_json(model, connections_data: List[Dict[str, Any]]) -> Dict[str, A
     }
 
 
+class PinmapGenerator(BaseCodeGenerator):
+    """Generates pin-mapping reports (Markdown + JSON) from a device model."""
+
+    OS = ""
+
+    def __init__(self, device_model, output_dir="."):
+        self.output_dir = Path(output_dir)
+        super().__init__(device_model, self.output_dir)
+        self.generated_files: List[str] = []
+
+    def setup_template_environment(self) -> jinja2.Environment:
+        return jinja2.Environment(loader=jinja2.BaseLoader())
+
+    def generate(self) -> None:
+        device_name = self.device_model.metadata.name
+        connections_data = _build_connection_data(self.device_model)
+
+        md_content = _generate_markdown(self.device_model, connections_data)
+        md_path = self.output_dir / f"{device_name}_pinmap.md"
+        with open(md_path, "w", encoding="utf-8") as f:
+            f.write(md_content)
+        logger.info(f"Generated pin-mapping report: {md_path}")
+        self.generated_files.append(str(md_path))
+
+        json_data = _generate_json(self.device_model, connections_data)
+        json_path = self.output_dir / f"{device_name}_pinmap.json"
+        with open(json_path, "w", encoding="utf-8") as f:
+            json.dump(json_data, f, indent=2, default=str)
+        logger.info(f"Generated pin-mapping JSON: {json_path}")
+        self.generated_files.append(str(json_path))
+
+
 def generate_pinmap(model, output_dir="."):
     """Generate pin-mapping report (Markdown + JSON) from device model.
 
@@ -239,28 +275,10 @@ def generate_pinmap(model, output_dir="."):
     Returns:
         List of generated file paths
     """
-    if output_dir != "." and not os.path.exists(output_dir):
-        os.makedirs(output_dir, exist_ok=True)
+    output_dir_path = Path(output_dir)
+    if str(output_dir_path) != "." and not output_dir_path.exists():
+        output_dir_path.mkdir(parents=True, exist_ok=True)
 
-    device_name = model.metadata.name
-    connections_data = _build_connection_data(model)
-
-    generated_files = []
-
-    # Markdown report
-    md_content = _generate_markdown(model, connections_data)
-    md_path = os.path.join(output_dir, f"{device_name}_pinmap.md")
-    with open(md_path, "w", encoding="utf-8") as f:
-        f.write(md_content)
-    logger.info(f"Generated pin-mapping report: {md_path}")
-    generated_files.append(md_path)
-
-    # JSON report
-    json_data = _generate_json(model, connections_data)
-    json_path = os.path.join(output_dir, f"{device_name}_pinmap.json")
-    with open(json_path, "w", encoding="utf-8") as f:
-        json.dump(json_data, f, indent=2, default=str)
-    logger.info(f"Generated pin-mapping JSON: {json_path}")
-    generated_files.append(json_path)
-
-    return generated_files
+    generator = PinmapGenerator(model, output_dir_path)
+    generator.generate()
+    return generator.generated_files
