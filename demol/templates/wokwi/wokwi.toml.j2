@@ -1,0 +1,7 @@
+[wokwi]
+version = 1
+
+[net]
+{% for net in nets %}
+{{ net.name }} = "{{ net.value }}"
+{% endfor %}
