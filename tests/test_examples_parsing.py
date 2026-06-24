@@ -75,20 +75,13 @@ def test_example_model_parses(device_mm, example_path):
     """
     model = device_mm.model_from_file(str(example_path))
     assert model is not None, f"model_from_file returned None for {example_path}"
-    assert getattr(model, "metadata", None) is not None, (
-        f"{example_path} did not produce a device model with metadata"
-    )
-    assert getattr(model.metadata, "name", None), (
-        f"{example_path} parsed but produced no device name"
-    )
+    assert getattr(model, "metadata", None) is not None, f"{example_path} did not produce a device model with metadata"
+    assert getattr(model.metadata, "name", None), f"{example_path} parsed but produced no device name"
 
 
 def test_example_gallery_is_not_empty():
     """Guard against a silent example-discovery regression."""
-    assert EXAMPLE_MODELS, (
-        "no .dev example models discovered under examples/; "
-        f"checked subdirs: {_EXAMPLE_SUBDIRS}"
-    )
+    assert EXAMPLE_MODELS, "no .dev example models discovered under examples/; " f"checked subdirs: {_EXAMPLE_SUBDIRS}"
 
 
 def test_example_gallery_includes_multi_suite():
@@ -98,7 +91,4 @@ def test_example_gallery_includes_multi_suite():
     multi_models = sorted(p.stem for p in multi_dir.glob("*.dev"))
     expected = {"simple_sensor", "actuator_switch", "iot_mqtt"}
     missing = expected - set(multi_models)
-    assert not missing, (
-        f"examples/multi/ is missing the showcase files {sorted(missing)}; "
-        f"found: {multi_models}"
-    )
+    assert not missing, f"examples/multi/ is missing the showcase files {sorted(missing)}; " f"found: {multi_models}"

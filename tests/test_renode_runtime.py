@@ -38,7 +38,6 @@ import pytest
 from demol.lang import get_device_mm
 from demol.transformations.m2t_renode import m2t_renode
 
-
 REPO_ROOT = Path(__file__).resolve().parent.parent
 EXAMPLES_DIR = REPO_ROOT / "examples" / "esp"
 
@@ -65,10 +64,7 @@ pytestmark = [
     pytest.mark.filterwarnings("ignore::UserWarning"),
     pytest.mark.skipif(
         _RENODE_BIN is None,
-        reason=(
-            "renode binary not on PATH; install Renode to enable "
-            "runtime tests (https://renode.io)"
-        ),
+        reason=("renode binary not on PATH; install Renode to enable " "runtime tests (https://renode.io)"),
     ),
 ]
 
@@ -90,9 +86,7 @@ def renode_runtime_outputs(renode_runtime_device_mm, tmp_path_factory):
     out_root = tmp_path_factory.mktemp("renode_runtime")
     outputs: dict[str, Path] = {}
     for example in ESP_EXAMPLES:
-        model = renode_runtime_device_mm.model_from_file(
-            str(EXAMPLES_DIR / example)
-        )
+        model = renode_runtime_device_mm.model_from_file(str(EXAMPLES_DIR / example))
         out_dir = out_root / example
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", UserWarning)
@@ -114,8 +108,7 @@ def test_renode_binary_on_path():
     runs and fails here, the skipif logic has regressed.
     """
     assert shutil.which("renode") is not None, (
-        "renode binary not on PATH — module-level skipif should "
-        "have short-circuited this test"
+        "renode binary not on PATH — module-level skipif should " "have short-circuited this test"
     )
 
 
@@ -132,9 +125,7 @@ def test_renode_binary_reports_version():
         timeout=30,
     )
     assert proc.returncode == 0, (
-        f"`renode --version` exited {proc.returncode}:\n"
-        f"stdout: {proc.stdout}\n"
-        f"stderr: {proc.stderr}"
+        f"`renode --version` exited {proc.returncode}:\n" f"stdout: {proc.stdout}\n" f"stderr: {proc.stderr}"
     )
 
 
@@ -157,9 +148,7 @@ def test_test_script_is_valid_python(renode_runtime_outputs):
         try:
             ast.parse(body, filename=str(test_script_path))
         except SyntaxError as exc:
-            pytest.fail(
-                f"test_device.py for {example} is not valid Python: {exc}"
-            )
+            pytest.fail(f"test_device.py for {example} is not valid Python: {exc}")
 
 
 # ---------------------------------------------------------------------
@@ -194,8 +183,10 @@ def test_renode_parses_generated_repl(renode_runtime_outputs, example):
             "renode",
             "--disable-xwt",
             "--console",
-            "-e", f"include @{repl_path}",
-            "-e", "quit",
+            "-e",
+            f"include @{repl_path}",
+            "-e",
+            "quit",
         ],
         capture_output=True,
         text=True,
@@ -219,6 +210,5 @@ def test_examples_directory_not_empty():
     silently pass; the floor guard keeps the suite honest.
     """
     assert ESP_EXAMPLES, (
-        f"No ESP examples found under {EXAMPLES_DIR}; "
-        "parametrized runtime tests would silently pass."
+        f"No ESP examples found under {EXAMPLES_DIR}; " "parametrized runtime tests would silently pass."
     )

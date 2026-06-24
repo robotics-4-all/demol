@@ -286,9 +286,7 @@ class ZephyrCodeGenerator(BaseCodeGenerator):
             except AttributeError:
                 continue
             templates = getattr(peripheral, "templates", None) or []
-            has_zephyr = any(
-                str(getattr(t, "target", "")).lower() == self.OS for t in templates
-            )
+            has_zephyr = any(str(getattr(t, "target", "")).lower() == self.OS for t in templates)
             if not has_zephyr:
                 continue
             name = getattr(peripheral, "name", None)

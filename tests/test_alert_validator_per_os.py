@@ -27,7 +27,6 @@ from demol.lang.semantics.validators.alert import (
     _supports_multi_broker,
 )
 
-
 # Two brokers declared in source-order: ``Local`` is the default (first
 # in source), ``Cloud`` is non-default. Using ``VIA Cloud`` therefore
 # always exercises the non-default-VIA branch of AlertValidator.
@@ -71,9 +70,7 @@ def test_alert_validator_per_os_multi_broker_warning(device_mm, os_key, expects_
         with warnings.catch_warnings(record=True) as caught:
             warnings.simplefilter("always")
             device_mm.model_from_str(model_str)
-        rule_warnings = [
-            w for w in caught if "Safety-Alert-RiotMultiBroker" in str(w.message)
-        ]
+        rule_warnings = [w for w in caught if "Safety-Alert-RiotMultiBroker" in str(w.message)]
         assert rule_warnings == [], (
             f"[{os_key}] expected no [Safety-Alert-RiotMultiBroker] warning, "
             f"got: {[str(w.message) for w in rule_warnings]}"

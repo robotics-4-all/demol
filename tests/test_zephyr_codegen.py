@@ -21,8 +21,7 @@ ESP_EXAMPLES_DIR = PROJECT_ROOT / "examples" / "esp"
 ZEPHYR_STUBS_DIR = PROJECT_ROOT / "tests" / "fixtures" / "zephyr_stubs"
 ESP_EXAMPLES = sorted(ESP_EXAMPLES_DIR.glob("*.dev"))
 
-SYNTHETIC_BME680_MODEL = dedent(
-    """\
+SYNTHETIC_BME680_MODEL = dedent("""\
     DEVICE SyntheticBme680 WITH description="bme680 codegen test", author="demol-tests";
 
     NETWORK[WiFi] WITH ssid="test", password="test";
@@ -35,8 +34,7 @@ SYNTHETIC_BME680_MODEL = dedent(
         POWER gnd -- gnd, vcc -- power_5v
         DATA i2c[slave_address=0x76] sda sda -- d2, scl scl -- d1
         @ "test.bme680";
-    """
-)
+    """)
 
 
 def _has_cpp() -> bool:
@@ -77,8 +75,7 @@ def _validate_c_syntax(c_file: Path) -> tuple:
         return (
             "clang-format",
             False,
-            f"clang-format failed to lex {c_file.name}: "
-            f"{proc.stderr.strip()[:200]}",
+            f"clang-format failed to lex {c_file.name}: " f"{proc.stderr.strip()[:200]}",
         )
     return ("", False, "no C toolchain available")
 
@@ -138,10 +135,7 @@ def test_generated_c_passes_syntax_check(device_mm, tmp_path, example_path):
         if not ok:
             failures.append(f"{c_file.name} ({tool}): {msg}")
 
-    assert not failures, (
-        f"Generated C from {example_path.name} failed syntax check:\n  "
-        + "\n  ".join(failures)
-    )
+    assert not failures, f"Generated C from {example_path.name} failed syntax check:\n  " + "\n  ".join(failures)
 
 
 @pytest.mark.parametrize(
@@ -159,12 +153,8 @@ def test_bme680_driver_uses_zephyr_sensor_api(device_mm, tmp_path, example_path)
         pytest.skip(f"{example_path.name} has no bme680.c (different peripheral set)")
 
     body = bme680.read_text(encoding="utf-8")
-    assert "sensor_sample_fetch" in body, (
-        f"{example_path.name}: bme680.c missing sensor_sample_fetch"
-    )
-    assert "DEVICE_DT_GET" in body, (
-        f"{example_path.name}: bme680.c missing DEVICE_DT_GET"
-    )
+    assert "sensor_sample_fetch" in body, f"{example_path.name}: bme680.c missing sensor_sample_fetch"
+    assert "DEVICE_DT_GET" in body, f"{example_path.name}: bme680.c missing DEVICE_DT_GET"
 
 
 def test_synthetic_bme680_driver_emits_sensor_api(synthetic_bme680_dir):
@@ -182,8 +172,7 @@ def test_trigger_echo_macro_is_emitted(device_mm, tmp_path):
     # (only HCSR04P, which has no Zephyr template), so we build the
     # model inline. The shared trigger_echo_init_<trig>_<echo> function
     # comes from demol/templates/zephyr/_macros.j2.
-    model_str = dedent(
-        """\
+    model_str = dedent("""\
         DEVICE TriggerEcho WITH description="trigger-echo codegen test", author="demol-tests";
 
         NETWORK[WiFi] WITH ssid="test", password="test";
@@ -196,8 +185,7 @@ def test_trigger_echo_macro_is_emitted(device_mm, tmp_path):
             POWER GND -- gnd, VCC -- power_5v
             DATA gpio[mode="output"] trigger -- d3, gpio[mode="input"] echo -- d4
             @ "test.distance";
-        """
-    )
+        """)
     model = device_mm.model_from_str(model_str)
     out = tmp_path / "trigger_echo"
     m2t_zephyr(model, output_dir=str(out))
@@ -210,6 +198,5 @@ def test_trigger_echo_macro_is_emitted(device_mm, tmp_path):
 
 def test_examples_directory_not_empty():
     assert ESP_EXAMPLES, (
-        f"No .dev examples found under {ESP_EXAMPLES_DIR}; "
-        "parametrized syntax test would silently pass."
+        f"No .dev examples found under {ESP_EXAMPLES_DIR}; " "parametrized syntax test would silently pass."
     )

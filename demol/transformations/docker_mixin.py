@@ -127,8 +127,7 @@ class DockerBuildMixin:
         ``riot_repo`` / ``board_name``).
         """
         raise NotImplementedError(
-            f"{type(self).__name__} must implement _build_docker_context() "
-            "to use DockerBuildMixin"
+            f"{type(self).__name__} must implement _build_docker_context() " "to use DockerBuildMixin"
         )
 
     def _render_dockerfile(self, output_dir: Optional[Path] = None) -> None:

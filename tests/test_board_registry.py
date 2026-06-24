@@ -18,7 +18,6 @@ import pytest
 from demol.transformations.board_registry import BoardNameRegistry
 from demol.transformations.m2t_zephyr import ZephyrCodeGenerator, m2t_zephyr
 
-
 # ---------------------------------------------------------------------------
 # BoardNameRegistry unit tests
 # ---------------------------------------------------------------------------
@@ -124,9 +123,7 @@ def test_registry_mutation_is_isolated_between_instances():
 
 def test_zephyr_codegen_emits_kconfig_with_bme680(tmp_path, device_mm):
     """``prj.conf`` for the ESP IoT example contains ``CONFIG_BME680=y``."""
-    model = device_mm.model_from_file(
-        str(Path("examples/esp/esp_iot_device.dev").resolve())
-    )
+    model = device_mm.model_from_file(str(Path("examples/esp/esp_iot_device.dev").resolve()))
     gen = ZephyrCodeGenerator(model, tmp_path)
     gen.generate()
 
@@ -136,9 +133,7 @@ def test_zephyr_codegen_emits_kconfig_with_bme680(tmp_path, device_mm):
 
 def test_zephyr_codegen_emits_devicetree_i2c_node(tmp_path, device_mm):
     """The devicetree overlay contains the BME680 I2C node at ``0x76``."""
-    model = device_mm.model_from_file(
-        str(Path("examples/esp/esp_iot_device.dev").resolve())
-    )
+    model = device_mm.model_from_file(str(Path("examples/esp/esp_iot_device.dev").resolve()))
     gen = ZephyrCodeGenerator(model, tmp_path)
     gen.generate()
 
@@ -152,18 +147,14 @@ def test_zephyr_codegen_emits_devicetree_i2c_node(tmp_path, device_mm):
 
 def test_zephyr_codegen_resolves_esp32_to_devkitc(tmp_path, device_mm):
     """The ESP32Wroom32 board resolves to the Zephyr ``esp32_devkitc`` target."""
-    model = device_mm.model_from_file(
-        str(Path("examples/esp/esp_iot_device.dev").resolve())
-    )
+    model = device_mm.model_from_file(str(Path("examples/esp/esp_iot_device.dev").resolve()))
     gen = ZephyrCodeGenerator(model, tmp_path)
     assert gen._resolve_board_name() == "esp32_devkitc"
 
 
 def test_zephyr_codegen_emits_cmakelists(tmp_path, device_mm):
     """The CMakeLists.txt references the resolved board name and src/main.c."""
-    model = device_mm.model_from_file(
-        str(Path("examples/esp/esp_iot_device.dev").resolve())
-    )
+    model = device_mm.model_from_file(str(Path("examples/esp/esp_iot_device.dev").resolve()))
     gen = ZephyrCodeGenerator(model, tmp_path)
     gen.generate()
 
@@ -175,20 +166,14 @@ def test_zephyr_codegen_emits_cmakelists(tmp_path, device_mm):
 
 def test_zephyr_codegen_board_override_takes_precedence(tmp_path, device_mm):
     """``board_override`` overrides both the registry and the .hwd block."""
-    model = device_mm.model_from_file(
-        str(Path("examples/esp/esp_iot_device.dev").resolve())
-    )
-    gen = ZephyrCodeGenerator(
-        model, tmp_path, board_override="my_custom_board"
-    )
+    model = device_mm.model_from_file(str(Path("examples/esp/esp_iot_device.dev").resolve()))
+    gen = ZephyrCodeGenerator(model, tmp_path, board_override="my_custom_board")
     assert gen._resolve_board_name() == "my_custom_board"
 
 
 def test_zephyr_codegen_emits_main_c_skeleton(tmp_path, device_mm):
     """The main.c skeleton is emitted with the Zephyr include."""
-    model = device_mm.model_from_file(
-        str(Path("examples/esp/esp_iot_device.dev").resolve())
-    )
+    model = device_mm.model_from_file(str(Path("examples/esp/esp_iot_device.dev").resolve()))
     gen = ZephyrCodeGenerator(model, tmp_path)
     gen.generate()
 
@@ -204,9 +189,7 @@ def test_zephyr_codegen_emits_main_c_skeleton(tmp_path, device_mm):
 
 def test_m2t_zephyr_function_accepts_board_override(tmp_path, device_mm):
     """The module-level ``m2t_zephyr`` accepts a ``board_override`` keyword."""
-    model = device_mm.model_from_file(
-        str(Path("examples/esp/esp_iot_device.dev").resolve())
-    )
+    model = device_mm.model_from_file(str(Path("examples/esp/esp_iot_device.dev").resolve()))
     m2t_zephyr(model, output_dir=tmp_path, board_override="custom_target")
     cmake = (tmp_path / "app" / "CMakeLists.txt").read_text(encoding="utf-8")
     assert "project(custom_target)" in cmake

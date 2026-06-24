@@ -40,7 +40,6 @@ from demol.transformations import (
     m2t_zephyr,
 )
 
-
 REPO_ROOT = Path(__file__).resolve().parent.parent
 ESP_EXAMPLES_DIR = REPO_ROOT / "examples" / "esp"
 RPI_EXAMPLES_DIR = REPO_ROOT / "examples" / "rpi"
@@ -68,13 +67,11 @@ ALL_BACKENDS: Dict[str, Callable] = {
 }
 
 # Three-model x five-backend matrix. 15 (model, backend) pairs.
-MODEL_BACKEND_MATRIX: List[Tuple[Path, str]] = [
-    (ESP_BME680_MODEL, name) for name in ALL_BACKENDS
-] + [
-    (ESP_IOT_MODEL, name) for name in ALL_BACKENDS
-] + [
-    (MULTI_PERIPH_MODEL, name) for name in ALL_BACKENDS
-]
+MODEL_BACKEND_MATRIX: List[Tuple[Path, str]] = (
+    [(ESP_BME680_MODEL, name) for name in ALL_BACKENDS]
+    + [(ESP_IOT_MODEL, name) for name in ALL_BACKENDS]
+    + [(MULTI_PERIPH_MODEL, name) for name in ALL_BACKENDS]
+)
 
 # Cross-backend pairs that are known to be incomplete at the time of
 # writing. ``multi_periph.dev`` ships TCRT5000 (no RIOT template) and a
@@ -121,9 +118,7 @@ def cross_backend_device_mm():
     return get_device_mm(skip_semantics=True)
 
 
-def _generate_one(
-    model_path: Path, backend: str, output_dir: Path
-) -> None:
+def _generate_one(model_path: Path, backend: str, output_dir: Path) -> None:
     """Run a single (model, backend) codegen invocation.
 
     Extracted as a helper so each test can wrap it in a ``try/except``
@@ -158,6 +153,7 @@ def generate_pair(cross_backend_device_mm, tmp_path):
     module-scoped fixture that could abort the whole session on the
     first error.
     """
+
     def _gen(model_path: Path, backend: str) -> Path:
         out_dir = tmp_path / model_path.stem / backend
         out_dir.mkdir(parents=True, exist_ok=True)
@@ -244,14 +240,10 @@ def test_all_3_models_generate_for_5_backends(generate_pair, model_backend_pair)
 
     output_dir = generate_pair(model_path, backend)
     assert output_dir.is_dir(), (
-        f"backend '{backend}' for model '{model_path.name}' did not "
-        f"create an output directory"
+        f"backend '{backend}' for model '{model_path.name}' did not " f"create an output directory"
     )
     produced = [p for p in output_dir.rglob("*") if p.is_file()]
-    assert produced, (
-        f"backend '{backend}' for model '{model_path.name}' produced "
-        f"no files under {output_dir}"
-    )
+    assert produced, f"backend '{backend}' for model '{model_path.name}' produced " f"no files under {output_dir}"
 
 
 # ---------------------------------------------------------------------
@@ -298,23 +290,17 @@ def test_i2c_address_consistency(generate_pair):
     # the consistency check meaningful. If the RPi backend ever stops
     # emitting the decimal form, this assertion will surface that.
     assert dec_hits, (
-        "expected at least one backend to emit the I2C address in "
-        "decimal form (e.g. 'slave_address: 118')"
+        "expected at least one backend to emit the I2C address in " "decimal form (e.g. 'slave_address: 118')"
     )
-    assert hex_hits, (
-        "expected at least one backend to emit the I2C address in "
-        "hex form (e.g. '0x76')"
-    )
+    assert hex_hits, "expected at least one backend to emit the I2C address in " "hex form (e.g. '0x76')"
 
     for backend, value in dec_hits.items():
         assert value == target_address_dec, (
-            f"backend '{backend}' reported slave_address={value} "
-            f"but the model declares 0x{target_address_dec:02X}"
+            f"backend '{backend}' reported slave_address={value} " f"but the model declares 0x{target_address_dec:02X}"
         )
     for backend in hex_hits:
         assert "0x76" in texts[backend], (
-            f"backend '{backend}' emitted hex I2C literals but not "
-            f"0x76; the value drifted from the model"
+            f"backend '{backend}' emitted hex I2C literals but not " f"0x76; the value drifted from the model"
         )
 
 
@@ -348,9 +334,7 @@ def test_pin_assignment_consistency(generate_pair):
             output_dir = generate_pair(MULTI_PERIPH_MODEL, backend)
         except Exception:  # noqa: BLE001
             if (MULTI_PERIPH_MODEL, backend) in KNOWN_INCOMPLETE_PAIRS:
-                pytest.xfail(
-                    f"{KNOWN_INCOMPLETE_PAIRS[(MULTI_PERIPH_MODEL, backend)]}"
-                )
+                pytest.xfail(f"{KNOWN_INCOMPLETE_PAIRS[(MULTI_PERIPH_MODEL, backend)]}")
             raise
         text = _read_output(output_dir)
         pins = _collect_gpio_numbers(text)
@@ -358,8 +342,7 @@ def test_pin_assignment_consistency(generate_pair):
             pins_by_backend[backend] = pins
 
     assert len(pins_by_backend) >= 2, (
-        "expected at least two backends to emit GPIO pin references; "
-        f"got {sorted(pins_by_backend)}"
+        "expected at least two backends to emit GPIO pin references; " f"got {sorted(pins_by_backend)}"
     )
 
     expected_pins = {2, 3, 4, 17, 18, 23, 24}
@@ -367,8 +350,7 @@ def test_pin_assignment_consistency(generate_pair):
     for backend, pins in pins_by_backend.items():
         missing = expected_pins - pins
         assert not missing, (
-            f"backend '{backend}' is missing GPIO pins {sorted(missing)} "
-            f"that the source model declares"
+            f"backend '{backend}' is missing GPIO pins {sorted(missing)} " f"that the source model declares"
         )
 
 
@@ -418,14 +400,8 @@ def test_smartconnect_topic_consistency(generate_pair):
         )
         topics_by_backend[backend] = topics
 
-    assert topics_by_backend["rpi"], (
-        "RPi backend did not emit any MQTT topic string for the "
-        "SmartConnect model"
-    )
-    assert topics_by_backend["riot"], (
-        "RIOT backend did not emit any MQTT topic string for the "
-        "SmartConnect model"
-    )
+    assert topics_by_backend["rpi"], "RPi backend did not emit any MQTT topic string for the " "SmartConnect model"
+    assert topics_by_backend["riot"], "RIOT backend did not emit any MQTT topic string for the " "SmartConnect model"
 
     # The shared topics are the cross-backend invariant. We don't
     # require the disjoint topics to match (RPi can render peripherals
@@ -458,8 +434,7 @@ def test_smartconnect_topic_consistency(generate_pair):
     }
     unexpected_rpi_only = rpi_only - rpi_only_declared_in_model
     assert not unexpected_rpi_only, (
-        f"RPi backend emitted topics not declared in the model: "
-        f"{sorted(unexpected_rpi_only)}"
+        f"RPi backend emitted topics not declared in the model: " f"{sorted(unexpected_rpi_only)}"
     )
 
 
@@ -472,8 +447,7 @@ def test_matrix_is_not_empty():
     """Guard against a silent parametrize that would pass trivially."""
     assert MODEL_BACKEND_MATRIX, "MODEL_BACKEND_MATRIX must be non-empty"
     assert len(MODEL_BACKEND_MATRIX) == 15, (
-        f"expected 3 models x 5 backends = 15 cases, got "
-        f"{len(MODEL_BACKEND_MATRIX)}"
+        f"expected 3 models x 5 backends = 15 cases, got " f"{len(MODEL_BACKEND_MATRIX)}"
     )
 
 

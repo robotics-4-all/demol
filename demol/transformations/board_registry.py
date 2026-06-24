@@ -126,9 +126,7 @@ class BoardNameRegistry:
         # un-mapped case observable (lowercased + separator-preserving).
         return key
 
-    def get(
-        self, board_name: str, os_name: str
-    ) -> Optional[str]:
+    def get(self, board_name: str, os_name: str) -> Optional[str]:
         """Return the mapped target name or ``None`` if no mapping exists.
 
         Unlike :meth:`resolve`, this method does not fall back to the

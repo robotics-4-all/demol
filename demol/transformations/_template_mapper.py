@@ -54,6 +54,6 @@ class PeripheralTemplateMapper:
         logger.warning(
             f"No '{os_name}' template found for peripheral "
             f"'{getattr(peripheral_ref, 'name', '?')}'. "
-            f"Declare a `templates {os_name}=\"...\"` entry in the peripheral .hwd."
+            f'Declare a `templates {os_name}="..."` entry in the peripheral .hwd.'
         )
         return None

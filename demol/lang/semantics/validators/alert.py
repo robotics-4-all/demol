@@ -29,8 +29,8 @@ from .base import BaseValidator
 # new target can never silently downgrade multi-broker routing.
 PER_OS_CAPABILITIES = {
     "raspbian": {"multi_broker": True},
-    "riotos":   {"multi_broker": False},
-    "zephyr":   {"multi_broker": True},
+    "riotos": {"multi_broker": False},
+    "zephyr": {"multi_broker": True},
 }
 
 
@@ -168,7 +168,13 @@ class AlertValidator(BaseValidator):
                     # its firmware ships a single global MQTTClient, so
                     # m2t_riot.py downgrades non-default VIA to the default
                     # broker. Rule name is preserved for backward compat.
-                    if not multi_broker_supported and via and via in broker_map and default_broker_name and via != default_broker_name:
+                    if (
+                        not multi_broker_supported
+                        and via
+                        and via in broker_map
+                        and default_broker_name
+                        and via != default_broker_name
+                    ):
                         raise_validation_warning(
                             alert,
                             f"[Safety-Alert-RiotMultiBroker] ALERT '{alert.name}' "

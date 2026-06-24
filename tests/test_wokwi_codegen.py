@@ -32,7 +32,6 @@ import pytest
 from demol.lang import get_device_mm
 from demol.transformations.m2t_wokwi import m2t_wokwi
 
-
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SCHEMA_PATH = REPO_ROOT / "tests" / "wokwi_schema.json"
 EXAMPLES_DIR = REPO_ROOT / "examples" / "esp"
@@ -157,8 +156,7 @@ def test_diagram_connections_reference_known_parts(wokwi_outputs, example):
         for endpoint in (conn[0], conn[1]):
             part_id, _, _pin = endpoint.partition(":")
             assert part_id in known, (
-                f"connection endpoint '{endpoint}' in {example} "
-                f"references unknown part id '{part_id}'"
+                f"connection endpoint '{endpoint}' in {example} " f"references unknown part id '{part_id}'"
             )
 
 

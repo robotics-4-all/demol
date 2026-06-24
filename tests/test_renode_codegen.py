@@ -31,7 +31,6 @@ import pytest
 from demol.lang import get_device_mm
 from demol.transformations.m2t_renode import m2t_renode
 
-
 REPO_ROOT = Path(__file__).resolve().parent.parent
 EXAMPLES_DIR = REPO_ROOT / "examples" / "esp"
 
@@ -80,9 +79,7 @@ def renode_outputs(renode_codegen_device_mm, tmp_path_factory):
     out_root = tmp_path_factory.mktemp("renode_codegen")
     outputs: dict[str, Path] = {}
     for example in ESP_EXAMPLES:
-        model = renode_codegen_device_mm.model_from_file(
-            str(EXAMPLES_DIR / example)
-        )
+        model = renode_codegen_device_mm.model_from_file(str(EXAMPLES_DIR / example))
         out_dir = out_root / example
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", UserWarning)
@@ -109,12 +106,8 @@ def test_repl_and_test_script_files_exist(renode_outputs, example):
     relative paths from the script's directory).
     """
     out_dir = renode_outputs[example]
-    assert (out_dir / "device.repl").is_file(), (
-        f"missing device.repl for {example}"
-    )
-    assert (out_dir / "test_device.py").is_file(), (
-        f"missing test_device.py for {example}"
-    )
+    assert (out_dir / "device.repl").is_file(), f"missing device.repl for {example}"
+    assert (out_dir / "test_device.py").is_file(), f"missing test_device.py for {example}"
 
 
 # ---------------------------------------------------------------------
@@ -131,9 +124,7 @@ def test_repl_starts_with_using_sysbus(renode_outputs, example):
     ``using`` directive for a non-sysbus bus).
     """
     repl = (renode_outputs[example] / "device.repl").read_text()
-    assert "using sysbus" in repl, (
-        f"device.repl for {example} missing required 'using sysbus' header"
-    )
+    assert "using sysbus" in repl, f"device.repl for {example} missing required 'using sysbus' header"
 
 
 @pytest.mark.parametrize("example", ESP_EXAMPLES, ids=_example_ids())
@@ -144,9 +135,7 @@ def test_repl_has_mach_create_directive(renode_outputs, example):
     platform description into, and the script is a no-op.
     """
     repl = (renode_outputs[example] / "device.repl").read_text()
-    assert "mach create" in repl, (
-        f"device.repl for {example} missing required 'mach create' directive"
-    )
+    assert "mach create" in repl, f"device.repl for {example} missing required 'mach create' directive"
 
 
 @pytest.mark.parametrize("example", ESP_EXAMPLES, ids=_example_ids())
@@ -159,8 +148,7 @@ def test_repl_has_load_platform_description_directive(renode_outputs, example):
     """
     repl = (renode_outputs[example] / "device.repl").read_text()
     assert "LoadPlatformDescription" in repl, (
-        f"device.repl for {example} missing required "
-        "'LoadPlatformDescription' directive"
+        f"device.repl for {example} missing required " "'LoadPlatformDescription' directive"
     )
 
 
@@ -174,9 +162,7 @@ def test_repl_loads_firmware_elf(renode_outputs, example):
     passed; either way the directive is required.
     """
     repl = (renode_outputs[example] / "device.repl").read_text()
-    assert "sysbus LoadELF" in repl, (
-        f"device.repl for {example} missing required 'sysbus LoadELF' directive"
-    )
+    assert "sysbus LoadELF" in repl, f"device.repl for {example} missing required 'sysbus LoadELF' directive"
 
 
 # ---------------------------------------------------------------------
@@ -193,9 +179,7 @@ def test_test_script_imports_pyrenode3(renode_outputs, example):
     driver is a no-op.
     """
     body = (renode_outputs[example] / "test_device.py").read_text()
-    assert "pyrenode3" in body, (
-        f"test_device.py for {example} does not import pyrenode3"
-    )
+    assert "pyrenode3" in body, f"test_device.py for {example} does not import pyrenode3"
 
 
 @pytest.mark.parametrize("example", ESP_EXAMPLES, ids=_example_ids())
@@ -206,9 +190,7 @@ def test_test_script_has_at_least_one_test_function(renode_outputs, example):
     report "no tests ran" once the script is loaded.
     """
     body = (renode_outputs[example] / "test_device.py").read_text()
-    assert re.search(r"^def test_", body, re.MULTILINE), (
-        f"test_device.py for {example} has no 'def test_' function"
-    )
+    assert re.search(r"^def test_", body, re.MULTILINE), f"test_device.py for {example} has no 'def test_' function"
 
 
 @pytest.mark.parametrize("example", ESP_EXAMPLES, ids=_example_ids())
@@ -225,9 +207,7 @@ def test_test_script_is_syntactically_valid_python(renode_outputs, example):
     try:
         ast.parse(body, filename=str(test_script_path))
     except SyntaxError as exc:
-        pytest.fail(
-            f"test_device.py for {example} is not valid Python: {exc}"
-        )
+        pytest.fail(f"test_device.py for {example} is not valid Python: {exc}")
 
 
 # ---------------------------------------------------------------------
@@ -245,12 +225,8 @@ def test_test_script_references_the_generated_repl(renode_outputs, example):
     the REPL and the test script get out of sync.
     """
     body = (renode_outputs[example] / "test_device.py").read_text()
-    assert "load_repl" in body, (
-        f"test_device.py for {example} does not call load_repl"
-    )
-    assert "device.repl" in body, (
-        f"test_device.py for {example} does not reference device.repl"
-    )
+    assert "load_repl" in body, f"test_device.py for {example} does not call load_repl"
+    assert "device.repl" in body, f"test_device.py for {example} does not reference device.repl"
 
 
 def test_examples_directory_not_empty():
@@ -260,6 +236,5 @@ def test_examples_directory_not_empty():
     silently pass; the floor guard keeps the suite honest.
     """
     assert ESP_EXAMPLES, (
-        f"No ESP examples found under {EXAMPLES_DIR}; "
-        "parametrized codegen tests would silently pass."
+        f"No ESP examples found under {EXAMPLES_DIR}; " "parametrized codegen tests would silently pass."
     )

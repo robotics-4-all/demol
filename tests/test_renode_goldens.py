@@ -25,7 +25,6 @@ import pytest
 from demol.lang import get_device_mm
 from demol.transformations.m2t_renode import m2t_renode
 
-
 REPO_ROOT = Path(__file__).resolve().parent.parent
 EXAMPLES_DIR = REPO_ROOT / "examples" / "esp"
 
@@ -67,9 +66,7 @@ def renode_artifacts(renode_goldens_device_mm, tmp_path_factory):
     out_root = tmp_path_factory.mktemp("renode_goldens")
     artifacts: dict[str, dict[str, str]] = {}
     for example in _ESP_EXAMPLES:
-        model = renode_goldens_device_mm.model_from_file(
-            str(EXAMPLES_DIR / example)
-        )
+        model = renode_goldens_device_mm.model_from_file(str(EXAMPLES_DIR / example))
         out_dir = out_root / example
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", UserWarning)
@@ -99,7 +96,4 @@ def test_examples_directory_not_empty():
     With an empty ``_ESP_EXAMPLES`` the parametrized tests would
     silently pass; the floor guard keeps the suite honest.
     """
-    assert _ESP_EXAMPLES, (
-        f"No ESP examples found under {EXAMPLES_DIR}; "
-        "golden snapshots would silently pass."
-    )
+    assert _ESP_EXAMPLES, f"No ESP examples found under {EXAMPLES_DIR}; " "golden snapshots would silently pass."

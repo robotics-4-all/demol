@@ -73,7 +73,4 @@ def test_zephyr_codegen_golden(device_mm, tmp_path, snapshot, example_path):
 
 
 def test_examples_directory_not_empty():
-    assert ESP_EXAMPLES, (
-        f"No .dev examples found under {ESP_EXAMPLES_DIR}; "
-        "golden snapshots would silently pass."
-    )
+    assert ESP_EXAMPLES, f"No .dev examples found under {ESP_EXAMPLES_DIR}; " "golden snapshots would silently pass."

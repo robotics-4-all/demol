@@ -22,7 +22,6 @@ from demol.transformations.docker_mixin import DockerBuildMixin
 from demol.transformations.m2t_riot import m2t_riot
 from demol.transformations.m2t_rpi import m2t_rpi
 
-
 # --- Shared device-model fixtures -----------------------------------------
 
 
@@ -121,7 +120,9 @@ def test_rpi_install_deps_os_specific_packages(tmp_path, rpi_model):
 
 def test_rpi_byte_identical_to_baseline(tmp_path):
     """The RPi mixin produces output identical to the pre-refactor baseline."""
-    baseline_dir = Path(__file__).parent.parent / ".matrixx" / "baselines" / "wave1_pre_refactor" / "rpi" / "multi_periph"
+    baseline_dir = (
+        Path(__file__).parent.parent / ".matrixx" / "baselines" / "wave1_pre_refactor" / "rpi" / "multi_periph"
+    )
     example_path = Path(__file__).parent.parent / "examples" / "rpi" / "multi_periph.dev"
     if not baseline_dir.is_dir() or not example_path.is_file():
         pytest.skip(f"baseline or example missing: {baseline_dir} / {example_path}")
@@ -170,7 +171,9 @@ def test_riot_render_individually(tmp_path, riot_model):
 
 def test_riot_byte_identical_to_baseline(tmp_path):
     """The RIOT mixin produces output identical to the pre-refactor baseline."""
-    baseline_dir = Path(__file__).parent.parent / ".matrixx" / "baselines" / "wave1_pre_refactor" / "riot" / "esp_iot_device"
+    baseline_dir = (
+        Path(__file__).parent.parent / ".matrixx" / "baselines" / "wave1_pre_refactor" / "riot" / "esp_iot_device"
+    )
     example_path = Path(__file__).parent.parent / "examples" / "esp" / "esp_iot_device.dev"
     if not baseline_dir.is_dir() or not example_path.is_file():
         pytest.skip(f"baseline or example missing: {baseline_dir} / {example_path}")
