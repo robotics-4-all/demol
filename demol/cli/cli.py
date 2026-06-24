@@ -17,6 +17,7 @@ from demol.transformations import (
     m2t_riot,
     m2t_zephyr,
     m2t_wokwi,
+    m2t_renode,
     m2m_smauto,
     m2t_infrastructure_svg,
     demol_to_json,
@@ -238,6 +239,23 @@ def generate_wokwi(model_filepath, output_dir, skip_semantics):
     if model:
         m2t_wokwi(model, output_dir=output_dir)
         print("[✓] Wokwi project generated successfully.")
+
+
+@generate.command("renode")
+@click.argument("model_filepath")
+@click.option("--output-dir", default=".", help="Output directory for generated Renode project")
+@click.option(
+    "--skip-semantics",
+    is_flag=True,
+    help="Build model even if semantic rules are failing",
+)
+def generate_renode(model_filepath, output_dir, skip_semantics):
+    """Generate a Renode simulation project (device.repl + test_device.py)"""
+    print(f"[*] Generating Renode project for model {model_filepath}")
+    model = handle_build_model(model_filepath, skip_semantics=skip_semantics)
+    if model:
+        m2t_renode(model, output_dir=output_dir)
+        print("[✓] Renode project generated successfully.")
 
 
 @generate.command("zephyr")

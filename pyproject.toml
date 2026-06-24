@@ -87,6 +87,7 @@ demol = [
     "templates/docs/*.j2",
     "templates/smauto/*.j2",
     "templates/wokwi/**/*",
+    "templates/renode/**/*",
 ]
 
 # ---------------------------------------------------------------------------
