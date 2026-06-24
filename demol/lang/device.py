@@ -46,7 +46,7 @@ def model_proc(model, metamodel):
         return
 
     logger.info("Processing model: %s", model._tx_filename)
-    
+
     # Reset validation results for this run
     clear_validation_results()
 
