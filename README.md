@@ -190,6 +190,108 @@ The full hardware library (boards, sensors, actuators, power sources) is in
 [`docs/sensors-actuators.md`](docs/sensors-actuators.md). Each entry is a validated
 `.hwd` component model loaded at parse time.
 
+## Backends
+
+A single `.dev` model is the single source of truth for every backend. DeMoL ships
+with five code generators, each producing a complete runnable artifact set for one
+target platform or simulator. The CLI subcommand selects the backend; the model is
+unchanged.
+
+| Backend | Output | Target |
+| --- | --- | --- |
+| `rpi` | Python (commlib-py) | Raspberry Pi on Raspbian |
+| `riot` | C firmware | RIOT OS on ESP32 / ESP8266 |
+| `zephyr` | C firmware + devicetree | Zephyr RTOS on ESP32 / ESP8266 |
+| `wokwi` | `diagram.json` + `wokwi.toml` | Wokwi web simulator |
+| `renode` | `.repl` + pyrenode3 script | Renode hardware simulator |
+
+All backends share the same validated model, the same pin assignments, the same
+broker configuration, and the same topic wiring. The full reference for every
+backend, including output structure, supported peripherals, and CLI flags, lives
+in [`docs/backends.md`](docs/backends.md). The example gallery at
+[`examples/README.md`](examples/README.md) lists every `.dev` model and the
+backends it supports.
+
+### Zephyr Backend
+
+Generates a complete Zephyr application from the `.dev` model: a `CMakeLists.txt`,
+`prj.conf`, a board-specific devicetree overlay, a static `main.c` skeleton, and
+one driver source file per peripheral. The driver set covers BME680, button,
+HCSR04, LED, MPL3115A2, SRF04, SRF05, and WS281X. Supported targets include
+`esp32_devkitc` (ESP32) and `esp8266` boards.
+
+```sh
+demol generate zephyr examples/esp/esp_bme680.dev --output-dir ./zephyr_out
+```
+
+The generator writes:
+
+```
+zephyr_out/
+└── app/
+    ├── CMakeLists.txt
+    ├── prj.conf
+    ├── boards/<board>.overlay
+    └── src/
+        ├── main.c
+        └── <peripheral>.c   # one file per peripheral instance
+```
+
+Use `--board <name>` to override the inferred board. The full peripheral support
+matrix and example invocations are in [`docs/backends.md`](docs/backends.md#zephyr).
+
+### Wokwi Backend
+
+Produces a [Wokwi](https://wokwi.com/) simulation project from the model. The
+generator emits a `diagram.json` with one part entry per board, peripheral, and
+power source, plus typed `connections` derived from the model's `CONNECT` blocks.
+A `wokwi.toml` provides the net color palette. The model is mapped to standard
+Wokwi part IDs (BME680, WS2812, HCSR04, TactileButton, etc.) and to Wokwi board
+identifiers (`rpi-4b`, `wemos-d1-r32`, `esp32-devkit-c-v4`, `arduino-uno`, and
+others).
+
+```sh
+demol generate wokwi examples/esp/esp_button_led.dev --output-dir ./wokwi_out
+```
+
+The generator writes:
+
+```
+wokwi_out/
+├── diagram.json
+└── wokwi.toml
+```
+
+Drop the contents into the Wokwi editor or push them to a GitHub repository
+connected to a Wokwi project. The full peripheral support matrix is in
+[`docs/backends.md`](docs/backends.md#wokwi).
+
+### Renode Backend
+
+Produces a [Renode](https://renode.io/) simulation harness from the model. The
+generator writes a `.repl` platform description that maps the board's CPU, buses,
+and peripheral devices onto Renode's `sysbus`, plus a `pyrenode3` Python test
+script that boots the simulation, loads the application ELF, and asserts that
+each declared peripheral is present at runtime. The Renode backend is
+verification-oriented: it provides fast, headless integration tests for firmware
+before it is flashed to real hardware.
+
+```sh
+demol generate renode examples/esp/esp_bme680.dev --output-dir ./renode_out
+```
+
+The generator writes:
+
+```
+renode_out/
+├── device.repl
+└── test_device.py
+```
+
+Use `--elf-path <path>` to point the test script at a pre-built application ELF.
+Run the harness with `renode --disable-xwt test_device.py`. The full peripheral
+support matrix is in [`docs/backends.md`](docs/backends.md#renode).
+
 ## DeMoL vs. Alternatives
 
 | Approach | Declarative model | Semantic validation | Multi-target codegen |
@@ -244,6 +346,8 @@ constraints, power budgets, sampling configurations, and alert trigger condition
 | [Language Reference](docs/language-reference.md) | Grammar, syntax, hardware components, connections, brokers |
 | [Semantic Validation](docs/semantic-validation.md) | Validation rules, safety checks, error examples |
 | [Code Generation & CLI](docs/code-generation.md) | Generators, CLI usage, deployment artifacts, diagrams |
+| [Backend Reference](docs/backends.md) | All five code generators: CLI flags, output structure, peripheral support |
+| [Example Gallery](examples/README.md) | Every `.dev` model and the backends it supports |
 | [Formal Semantics](docs/semantics.md) | Mathematical specification of the language |
 | [Sensors & Actuators](docs/sensors-actuators.md) | Hardware library reference |
 | [Testing](docs/testing.md) | Test suite structure and coverage |
