@@ -79,10 +79,13 @@ def wokwi_outputs(tmp_path_factory, wokwi_device_mm):
     Returns a dict mapping example file name (e.g. ``"wemos_bme680.dev"``)
     to the output directory containing the generated files.
     """
+    from demol.lang.semantics import clear_validation_results
+
     out_root = tmp_path_factory.mktemp("wokwi_codegen")
     outputs: dict[str, Path] = {}
     for example in _ESP_EXAMPLES:
         model_path = EXAMPLES_DIR / example
+        clear_validation_results()
         model = wokwi_device_mm.model_from_file(str(model_path))
         out_dir = out_root / example
         with warnings.catch_warnings():
