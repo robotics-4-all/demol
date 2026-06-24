@@ -28,6 +28,11 @@ logger = logging.getLogger(__name__)
 class RPiCodeGenerator(BaseCodeGenerator):
     """Generates Raspberry Pi code from device model."""
 
+    OS = "raspbian"
+
+    def os_name(self) -> str:
+        return self.OS
+
     def __init__(self, device_model, output_dir: Path):
         """Initialize code generator with device model.
 
@@ -344,21 +349,6 @@ class RPiCodeGenerator(BaseCodeGenerator):
         self._write_template(template, context, self.output_dir / "install_deps.sh")
         # Make script executable
         os.chmod(self.output_dir / "install_deps.sh", 0o755)
-
-    def _write_template(self, template: jinja2.Template, context: Dict[str, Any], output_path: Path) -> None:
-        """Render template and write to file.
-
-        Args:
-            template: Jinja2 template
-            context: Template context
-            output_path: Output file path
-        """
-        output = template.render(**context)
-
-        with open(output_path, "w", encoding="utf-8") as f:
-            f.write(output)
-
-        logger.debug(f"Generated: {output_path}")
 
 
 def m2t_rpi(model, output_dir="."):

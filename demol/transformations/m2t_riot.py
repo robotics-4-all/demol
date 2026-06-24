@@ -27,6 +27,11 @@ logger = logging.getLogger(__name__)
 class RiotCodeGenerator(BaseCodeGenerator):
     """Generates RiotOS C code from device model."""
 
+    OS = "riotos"
+
+    def os_name(self) -> str:
+        return self.OS
+
     def __init__(self, device_model, output_dir: Path):
         """Initialize code generator with device model.
 
@@ -336,12 +341,6 @@ class RiotCodeGenerator(BaseCodeGenerator):
                 }
             )
         return rendered
-
-    def _write_template(self, template, context, output_path):
-        output = template.render(**context)
-        with open(output_path, "w") as f:
-            f.write(output)
-        logger.info(f"Generated: {output_path}")
 
 
 def m2t_riot(model, output_dir="."):
