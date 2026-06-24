@@ -19,7 +19,7 @@ and the Zephyr board name is resolved via :class:`BoardNameRegistry`.
 
 import logging
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 import jinja2
 
@@ -93,7 +93,7 @@ class ZephyrCodeGenerator(BaseCodeGenerator):
     def os_name(self) -> str:
         return self.OS
 
-    def __init__(self, device_model, output_dir: Path, board_override: str = None):
+    def __init__(self, device_model, output_dir: Path, board_override: Optional[str] = None):
         """Initialize code generator with device model and output directory.
 
         Args:
@@ -420,7 +420,7 @@ class ZephyrCodeGenerator(BaseCodeGenerator):
         logger.info("Zephyr code generation complete!")
 
 
-def m2t_zephyr(model, output_dir=".", board_override: str = None):
+def m2t_zephyr(model, output_dir=".", board_override: Optional[str] = None):
     """Transform a DeMoL device model object to a Zephyr application tree.
 
     Args:
