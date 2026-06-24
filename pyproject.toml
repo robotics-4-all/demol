@@ -43,6 +43,7 @@ dependencies = [
 test = [
     "pytest",
     "pytest-cov",
+    "syrupy>=4.0",
     # Runtime deps of generated RPi `alerts.py` / sensor / actuator nodes.
     # Required by tests (e.g. test_alert_runtime.py) that importlib-load and
     # exec the generated modules end-to-end. commlib-py imports paho lazily
