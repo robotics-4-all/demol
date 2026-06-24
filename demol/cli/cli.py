@@ -243,18 +243,39 @@ def generate_wokwi(model_filepath, output_dir, skip_semantics):
 
 @generate.command("renode")
 @click.argument("model_filepath")
-@click.option("--output-dir", default=".", help="Output directory for generated Renode project")
+@click.option(
+    "--output-dir",
+    required=True,
+    help="Output directory for generated Renode simulation project",
+)
+@click.option(
+    "--elf-path",
+    default=None,
+    help="Path to pre-built firmware ELF for direct simulation boot (optional)",
+)
 @click.option(
     "--skip-semantics",
     is_flag=True,
     help="Build model even if semantic rules are failing",
 )
-def generate_renode(model_filepath, output_dir, skip_semantics):
-    """Generate a Renode simulation project (device.repl + test_device.py)"""
+def generate_renode(model_filepath, output_dir, elf_path, skip_semantics):
+    """Generate a Renode simulation project (device.repl + test_device.py)
+
+    Transforms a DeMoL device model into a Renode simulation project
+    containing a platform description (device.repl) and a pyrenode3-based
+    test driver (test_device.py).
+
+    Examples:
+
+        demol generate renode examples/esp/esp_bme680.dev --output-dir ./renode_out
+
+        demol generate renode examples/esp/esp_bme680.dev \\
+            --output-dir ./renode_out --elf-path ./build/firmware.elf
+    """
     print(f"[*] Generating Renode project for model {model_filepath}")
     model = handle_build_model(model_filepath, skip_semantics=skip_semantics)
     if model:
-        m2t_renode(model, output_dir=output_dir)
+        m2t_renode(model, output_dir=output_dir, elf_path=elf_path)
         print("[✓] Renode project generated successfully.")
 
 
