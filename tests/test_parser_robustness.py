@@ -573,7 +573,7 @@ class TestVIAEdgeCases:
 class TestOSVariants:
     @pytest.mark.parametrize(
         "os_val",
-        ["raspbian", "riotos", "freertos", "arduino", "esp-idf"],
+        ["raspbian", "riotos", "zephyr", "arduino", "esp-idf"],
     )
     def test_all_valid_os_values(self, device_mm, os_val):
         model = device_mm.model_from_str(

@@ -324,8 +324,6 @@ OperationalPeripheral:
         ("power.max" "=" max=PowerConsumption ","?)?
         ("power.avg" "=" avg=PowerConsumption ","?)?
         ("freq.max" "=" freq_max=Frequency ","?)?
-        ("riotTpl" "=" riotTpl=STRING ","?)?
-        ("piTpl" "=" piTpl=STRING ","?)?
     )#
 ;
 
