@@ -1,0 +1,130 @@
+# =============================================================================
+# Zephyr Build (native_sim)
+# -----------------------------------------------------------------------------
+# CI gate for the Zephyr backend. For each of the 5 ESP device models under
+# `examples/esp/`, this workflow:
+#
+#   1. Installs `west` (the Zephyr meta-tool).
+#   2. Initialises a Zephyr 3.5 LTS workspace at `~/zephyrproject` and fetches
+#      the Zephyr source tree + modules (`west update`).
+#   3. Installs `demol` and generates a Zephyr application for the example.
+#   4. Builds the generated application for the `native_sim` board
+#      (`west build -b native_sim app`).
+#
+# `native_sim` is the POSIX-emulated Zephyr board — no cross-toolchain, no
+# QEMU, no real hardware. Only `west`, the Zephyr source tree, CMake, and a
+# host C toolchain are required; all are available on `ubuntu-latest`.
+# =============================================================================
+
+name: Zephyr Build (native_sim)
+
+on:
+  push:
+    branches: [main, master, devel]
+  pull_request:
+    branches: [main, master, devel]
+
+concurrency:
+  group: zephyr-build-${{ github.ref }}-${{ matrix.example }}
+  cancel-in-progress: true
+
+jobs:
+  zephyr-build:
+    name: Zephyr native_sim (${{ matrix.example }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        example:
+          - esp_bme680
+          - esp_iot_device
+          - wemos_bme680
+          - wemos_button
+          - wemos_srf05
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      # -------------------------------------------------------------------------
+      # Caches
+      # -------------------------------------------------------------------------
+      - name: Cache west executable
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/bin/west
+          key: west-${{ runner.os }}-v1
+          restore-keys: |
+            west-${{ runner.os }}-
+
+      - name: Cache Zephyr workspace (Zephyr 3.5 LTS)
+        uses: actions/cache@v4
+        with:
+          path: ~/zephyrproject
+          key: zephyrproject-v3.5-lts-${{ runner.os }}
+          restore-keys: |
+            zephyrproject-v3.5-lts-${{ runner.os }}-
+
+      # -------------------------------------------------------------------------
+      # Toolchain setup
+      # -------------------------------------------------------------------------
+      - name: Install west
+        run: |
+          python -m pip install --upgrade pip
+          pip install --user west
+
+      - name: Install host build dependencies
+        # Zephyr needs CMake >= 3.20, ninja, gperf, dtc, etc. on the host.
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build gperf \
+               ccache dfu-util device-tree-compiler wget \
+               python3-dev python3-pip python3-setuptools python3-wheel xz-utils file
+
+      - name: Initialize Zephyr workspace
+        env:
+          PATH: $HOME/.local/bin:$PATH
+        run: |
+          set -euo pipefail
+          if [ ! -d "$HOME/zephyrproject/.west" ]; then
+            echo "==> Cloning Zephyr 3.5 LTS manifest"
+            cd "$HOME"
+            west init -m https://github.com/zephyrproject-rtos/zephyr \
+                      --mr v3.5-branch zephyrproject
+            cd zephyrproject
+            west update
+          else
+            echo "==> Reusing cached ~/zephyrproject"
+          fi
+          ls -la "$HOME/zephyrproject"
+
+      - name: Install demol (editable)
+        run: pip install -e .
+
+      # -------------------------------------------------------------------------
+      # Generate + Build
+      # -------------------------------------------------------------------------
+      - name: Generate Zephyr application
+        # Zephyr generator emits <output_dir>/app/ (CMakeLists.txt, prj.conf,
+        # src/main.c, boards/<board>.overlay, per-peripheral driver sources).
+        run: demol generate zephyr examples/esp/${{ matrix.example }}.dev --output-dir ./build
+
+      - name: Build for native_sim
+        env:
+          PATH: $HOME/.local/bin:$PATH
+        run: |
+          set -euo pipefail
+          # Canonical Zephyr CI layout: the application lives inside the
+          # west workspace so `west build` resolves ZEPHYR_BASE and the
+          # module list from the workspace root.
+          rm -rf "$HOME/zephyrproject/app"
+          cp -r ./build/app "$HOME/zephyrproject/app"
+          cd "$HOME/zephyrproject"
+          # shellcheck disable=SC1091
+          source zephyr/zephyr-env.sh
+          west build -b native_sim app
+          echo "==> Build OK for ${{ matrix.example }}"
