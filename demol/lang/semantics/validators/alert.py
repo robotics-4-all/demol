@@ -7,10 +7,41 @@ This module validates ALERT trigger declarations:
 - VIA references must resolve to declared brokers
 - Cooldown must be positive
 - Condition properties are syntactically valid identifiers
+- Per-OS multi-broker support is respected (see PER_OS_CAPABILITIES)
+
+The per-OS capability table governs which runtime warnings are emitted. The
+default is permissive: unknown OSes are assumed to support multi-broker
+routing. RIOT is the only currently-flagged exception because its firmware
+ships a single global MQTTClient, so non-default VIA references are
+downgraded by the codegen. The `[Safety-Alert-RiotMultiBroker]` rule name is
+preserved for backward compatibility.
 """
 
 from ..core import raise_validation_error, raise_validation_warning
 from .base import BaseValidator
+
+# Per-OS capability table.
+# Add a new target OS here (or extend an existing entry) when:
+#   - the codegen for that OS starts/stops supporting non-default VIA routing,
+#   - or any other OS-specific alert behavior diverges from the default.
+#
+# Default for unknown OSes: multi_broker is assumed supported, so adding a
+# new target can never silently downgrade multi-broker routing.
+PER_OS_CAPABILITIES = {
+    "raspbian": {"multi_broker": True},
+    "riotos":   {"multi_broker": False},
+    "zephyr":   {"multi_broker": True},
+}
+
+
+def _supports_multi_broker(target_os: str) -> bool:
+    """Return True if the target OS supports routing to a non-default VIA broker.
+
+    Looks up ``target_os`` in ``PER_OS_CAPABILITIES``; unknown OSes default to
+    ``True`` so that adding a new target cannot silently strip the
+    multi-broker routing path.
+    """
+    return PER_OS_CAPABILITIES.get(target_os, {}).get("multi_broker", True)
 
 
 class AlertValidator(BaseValidator):
@@ -46,11 +77,13 @@ class AlertValidator(BaseValidator):
         peripherals = getattr(model.components, "peripherals", [])
         broker_map = getattr(model, "_broker_map", {})
 
-        # Detect RIOT target — RIOT runtime has a single global MQTTClient,
-        # so VIA non-default-broker is downgraded by the codegen.
+        # Detect target OS capabilities. The multi-broker warning is only
+        # emitted for OSes whose runtime does NOT support non-default VIA
+        # routing. The capability table defaults to "supported" for unknown
+        # OSes, so adding a new target can never silently strip this feature.
         metadata = getattr(model, "metadata", None)
         target_os = (getattr(metadata, "os", "") or "").lower() if metadata else ""
-        is_riot = target_os == "riotos"
+        multi_broker_supported = _supports_multi_broker(target_os)
         default_broker_name = None
         brokers_list = getattr(model, "brokers", None) or []
         if brokers_list:
@@ -129,10 +162,13 @@ class AlertValidator(BaseValidator):
                             "AlertViaResolveError",
                         )
 
-                    # [Safety-Alert-RiotMultiBroker] RIOT runtime ships a single
-                    # global MQTTClient; m2t_riot.py downgrades non-default VIA
-                    # to the default broker. Surface that contract at validate-time.
-                    if is_riot and via and via in broker_map and default_broker_name and via != default_broker_name:
+                    # [Safety-Alert-RiotMultiBroker] Per PER_OS_CAPABILITIES,
+                    # only target OSes that do NOT support multi-broker routing
+                    # get this warning. RIOT is the currently-flagged target:
+                    # its firmware ships a single global MQTTClient, so
+                    # m2t_riot.py downgrades non-default VIA to the default
+                    # broker. Rule name is preserved for backward compat.
+                    if not multi_broker_supported and via and via in broker_map and default_broker_name and via != default_broker_name:
                         raise_validation_warning(
                             alert,
                             f"[Safety-Alert-RiotMultiBroker] ALERT '{alert.name}' "
