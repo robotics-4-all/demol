@@ -15,6 +15,8 @@ from demol.transformations import (
     m2t_docs,
     m2t_rpi,
     m2t_riot,
+    m2t_zephyr,
+    m2t_wokwi,
     m2m_smauto,
     m2t_infrastructure_svg,
     demol_to_json,
@@ -219,6 +221,40 @@ def generate_riot(model_filepath, output_dir, skip_semantics):
     if model:
         m2t_riot(model, output_dir=output_dir)
         print("[✓] RiotOS code generated successfully.")
+
+
+@generate.command("wokwi")
+@click.argument("model_filepath")
+@click.option("--output-dir", default=".", help="Output directory for generated Wokwi project")
+@click.option(
+    "--skip-semantics",
+    is_flag=True,
+    help="Build model even if semantic rules are failing",
+)
+def generate_wokwi(model_filepath, output_dir, skip_semantics):
+    """Generate a Wokwi simulation project (diagram.json + wokwi.toml)"""
+    print(f"[*] Generating Wokwi project for model {model_filepath}")
+    model = handle_build_model(model_filepath, skip_semantics=skip_semantics)
+    if model:
+        m2t_wokwi(model, output_dir=output_dir)
+        print("[✓] Wokwi project generated successfully.")
+
+
+@generate.command("zephyr")
+@click.argument("model_filepath")
+@click.option("--output-dir", default=".", help="Output directory for generated code")
+@click.option(
+    "--skip-semantics",
+    is_flag=True,
+    help="Build model even if semantic rules are failing",
+)
+def generate_zephyr(model_filepath, output_dir, skip_semantics):
+    """Generate Zephyr application skeleton"""
+    print(f"[*] Generating Zephyr application skeleton for model {model_filepath}")
+    model = handle_build_model(model_filepath, skip_semantics=skip_semantics)
+    if model:
+        m2t_zephyr(model, output_dir=output_dir)
+        print("[✓] Zephyr application skeleton generated successfully.")
 
 
 @generate.command("smauto")
