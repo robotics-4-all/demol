@@ -244,16 +244,24 @@ def generate_wokwi(model_filepath, output_dir, skip_semantics):
 @click.argument("model_filepath")
 @click.option("--output-dir", default=".", help="Output directory for generated code")
 @click.option(
+    "--board",
+    default=None,
+    help="Override Zephyr board name (e.g., esp32_devkitc)",
+)
+@click.option(
     "--skip-semantics",
     is_flag=True,
     help="Build model even if semantic rules are failing",
 )
-def generate_zephyr(model_filepath, output_dir, skip_semantics):
-    """Generate Zephyr application skeleton"""
-    print(f"[*] Generating Zephyr application skeleton for model {model_filepath}")
+def generate_zephyr(model_filepath, output_dir, board, skip_semantics):
+    """Generate Zephyr application skeleton
+
+    Usage: demol generate zephyr <file> --output-dir <dir> [--board <name>]
+    """
+    print(f"[*] Generating Zephyr application for model {model_filepath}")
     model = handle_build_model(model_filepath, skip_semantics=skip_semantics)
     if model:
-        m2t_zephyr(model, output_dir=output_dir)
+        m2t_zephyr(model, output_dir=output_dir, board_override=board)
         print("[✓] Zephyr application skeleton generated successfully.")
 
 
