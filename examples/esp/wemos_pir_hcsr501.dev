@@ -9,8 +9,8 @@ USE PIR_HCSR501[Motion];
 
 CONNECT Motion WITH
     POWER
-        gnd -- gnd,
-        power_5v -- vcc
+        VCC -- power_5v,
+        GND -- gnd
     DATA
-        gpio[mode="input"] out -- d2
+        gpio[mode="input"] OUT -- d2
     @ "my_wemos.sensors.motion.pir";

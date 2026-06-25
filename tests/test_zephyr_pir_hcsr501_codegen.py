@@ -23,8 +23,8 @@ SYNTHETIC_PIR_MODEL = dedent("""\
     USE PIR_HCSR501[Motion];
 
     CONNECT Motion WITH
-        POWER gnd -- gnd, power_5v -- vcc
-        DATA gpio[mode="input"] out -- d2
+        POWER VCC -- power_5v, GND -- gnd
+        DATA gpio[mode="input"] OUT -- d2
         @ "test.motion";
     """)
 

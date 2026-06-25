@@ -7,9 +7,9 @@ SENSOR[Proximity] PIR_HCSR501 WITH
         power.avg=50 mW,
         freq.max=10 hz
     PINS
-        vcc[5V] @ 1,
-        out[gpio] @ 2,
-        gnd[GND] @ 3
+        VCC[5V] @ 1,
+        OUT[gpio] @ 2,
+        GND[GND] @ 3
     PROPERTIES
         motion  -> "state" : int32 FOR riotos,
         state   -> "state" : int32 FOR riotos,
