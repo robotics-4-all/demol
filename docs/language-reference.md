@@ -63,7 +63,7 @@ DEVICE SmartSensor WITH description="Environmental monitoring sensor", author="d
 **Target Operating Systems:**
 - `raspbian` - For Raspberry Pi devices
 - `riotos` - For embedded systems (ESP32, ESP8266, etc.)
-- `freertos`, `arduino`, `esp-idf`, `esp-idf-rtos` - Other embedded platforms
+- `zephyr`, `arduino`, `esp-idf`, `esp-idf-rtos` - Other embedded platforms
 
 ### Network Configuration
 

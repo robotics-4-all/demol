@@ -16,9 +16,11 @@ SENSOR[Env] Mpl3115a2 WITH
         pressure -> "pressure" : int32 FOR riotos
     TEMPLATES
         raspbian="mpl3115a2.py.j2",
-        riotos="mpl3115a2_riot.c.j2"
+        riotos="mpl3115a2_riot.c.j2",
+        zephyr="mpl3115a2.c.j2"
     DEPENDENCIES
-        riotos=["mpl3115a2"]
+        riotos=["mpl3115a2"],
+        zephyr=["mpl3115a2"]
     ATTRIBUTES
         i2c_address[int] = 96
 ;

@@ -753,6 +753,17 @@ class BaseCodeGenerator(ABC):
 
         return conn
 
+    # ===== Template Rendering (Shared) =====
+
+    def _write_template(self, template: jinja2.Template, context: Dict[str, Any], output_path: Path) -> None:
+        """Render template and write to file (UTF-8)."""
+        output = template.render(**context)
+
+        with open(output_path, "w", encoding="utf-8") as f:
+            f.write(output)
+
+        logger.debug(f"Generated: {output_path}")
+
     # ===== Abstract Methods (Platform-Specific) =====
 
     @abstractmethod
@@ -772,3 +783,9 @@ class BaseCodeGenerator(ABC):
             Configured Jinja2 Environment object
         """
         pass
+
+    OS = ""
+
+    def os_name(self) -> str:
+        """Return the target operating system identifier (e.g. "raspbian", "riotos")."""
+        return self.OS

@@ -41,6 +41,10 @@ def model_proc(model, metamodel):
         report_passed_rule,
     )
 
+    if getattr(metamodel, "_skip_semantics", False):
+        enrich_model(model)
+        return
+
     logger.info("Processing model: %s", model._tx_filename)
 
     # Reset validation results for this run
@@ -530,6 +534,7 @@ def get_device_mm(debug: bool = False, global_repo: bool = False, skip_semantics
     mm.referenced_languages["component"] = component_mm
 
     mm.register_model_processor(model_proc)
+    mm._skip_semantics = skip_semantics
 
     mm.register_obj_processors(
         {

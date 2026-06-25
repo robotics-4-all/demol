@@ -14,6 +14,7 @@ import jinja2
 
 from demol.definitions import TEMPLATES
 from .base_generator import BaseCodeGenerator
+from .docker_mixin import DockerBuildMixin
 from ._template_mapper import PeripheralTemplateMapper
 
 # Backward-compat re-export — prefer importing from demol.transformations._template_mapper
@@ -24,8 +25,30 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-class RiotCodeGenerator(BaseCodeGenerator):
+def _strip_riot_template_suffix(template: str) -> str:
+    """Strip ``.c.j2``/``.j2`` template suffix and optional ``_riot`` tail.
+
+    Example: ``"ws281x_riot.j2"`` -> ``"ws281x"``, ``"bme680.c.j2"`` -> ``"bme680"``.
+    The base name is what the RIOT generator feeds into ``sensor_<base>_N.c``
+    filenames and ``<type>_<base>.c.j2`` Jinja2 lookups.
+    """
+    base = template
+    if base.endswith(".c.j2"):
+        base = base[:-5]
+    elif base.endswith(".j2"):
+        base = base[:-3]
+    if base.endswith("_riot"):
+        base = base[:-5]
+    return base
+
+
+class RiotCodeGenerator(BaseCodeGenerator, DockerBuildMixin):
     """Generates RiotOS C code from device model."""
+
+    OS = "riotos"
+
+    def os_name(self) -> str:
+        return self.OS
 
     def __init__(self, device_model, output_dir: Path):
         """Initialize code generator with device model.
@@ -65,9 +88,10 @@ class RiotCodeGenerator(BaseCodeGenerator):
 
         for i, conn in enumerate(connections):
             pref = conn.peripheral.ref
-            base_name = PeripheralTemplateMapper.get_template_base(pref)
-            if not base_name:
+            tmpl = PeripheralTemplateMapper.get_template(pref, self.OS)
+            if not tmpl:
                 continue
+            base_name = _strip_riot_template_suffix(tmpl)
 
             peripheral_names[i] = base_name
             peripheral_types[base_name] = type(pref).__name__.lower()
@@ -152,8 +176,9 @@ class RiotCodeGenerator(BaseCodeGenerator):
         counts: dict = {}
         for connection in self.get_connections():
             pref = connection.peripheral.ref
-            base_name = PeripheralTemplateMapper.get_template_base(pref)
-            if base_name:
+            tmpl = PeripheralTemplateMapper.get_template(pref, self.OS)
+            if tmpl:
+                base_name = _strip_riot_template_suffix(tmpl)
                 counts[base_name] = counts.get(base_name, 0) + 1
         return counts
 
@@ -216,9 +241,10 @@ class RiotCodeGenerator(BaseCodeGenerator):
         # Generate peripheral drivers
         for i, conn in enumerate(self.get_connections()):
             pref = conn.peripheral.ref
-            base_name = PeripheralTemplateMapper.get_template_base(pref)
-            if not base_name:
+            tmpl = PeripheralTemplateMapper.get_template(pref, self.OS)
+            if not tmpl:
                 continue
+            base_name = _strip_riot_template_suffix(tmpl)
 
             source_alerts = self._build_riot_alert_context(conn.peripheral, pref)
             context = global_context.copy()
@@ -257,6 +283,10 @@ class RiotCodeGenerator(BaseCodeGenerator):
                 raise FileNotFoundError(msg) from exc
 
         logger.info("RiotOS code generation complete!")
+
+    def _build_docker_context(self) -> Dict[str, Any]:
+        """Return the global Jinja context for RIOT Docker templates."""
+        return getattr(self, "_global_context", self.build_global_context())
 
     def _build_riot_alert_context(self, instance, pref) -> List[Dict[str, Any]]:
         """Build per-source alert specs for inline injection into RIOT driver C templates.
@@ -336,12 +366,6 @@ class RiotCodeGenerator(BaseCodeGenerator):
                 }
             )
         return rendered
-
-    def _write_template(self, template, context, output_path):
-        output = template.render(**context)
-        with open(output_path, "w") as f:
-            f.write(output)
-        logger.info(f"Generated: {output_path}")
 
 
 def m2t_riot(model, output_dir="."):

@@ -1,0 +1,10 @@
+using sysbus
+
+mach create "{{ board.os_arch | default('esp32') }}"
+machine LoadPlatformDescription @platforms/boards/{{ board.zephyr_name | default('esp32_devkitc') }}.repl
+
+{% if has_i2c -%}
+sysbus Tag <0x40013000 0x40014000> "I2C0" 0x40013000 size 0x1000
+{%- endif %}
+
+sysbus LoadELF @{{ firmware_elf if firmware_elf is not none else '/tmp/firmware.elf' }}

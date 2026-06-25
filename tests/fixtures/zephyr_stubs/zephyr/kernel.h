@@ -1,0 +1,4 @@
+#ifndef ZEPHYR_KERNEL_H_STUB
+#define ZEPHYR_KERNEL_H_STUB
+
+#endif

@@ -5,9 +5,8 @@ Python code for Raspberry Pi, including sensor/actuator classes and MQTT
 publisher/subscriber processes.
 """
 
-import os
 from pathlib import Path
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 import logging
 
 import jinja2
@@ -15,6 +14,7 @@ import jinja2
 from demol.definitions import TEMPLATES_RPI
 from demol.lang import build_model
 from .base_generator import BaseCodeGenerator
+from .docker_mixin import DockerBuildMixin
 from ._template_mapper import PeripheralTemplateMapper
 
 # Backward-compat re-export — prefer importing from demol.transformations._template_mapper
@@ -25,8 +25,13 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-class RPiCodeGenerator(BaseCodeGenerator):
+class RPiCodeGenerator(BaseCodeGenerator, DockerBuildMixin):
     """Generates Raspberry Pi code from device model."""
+
+    OS = "raspbian"
+
+    def os_name(self) -> str:
+        return self.OS
 
     def __init__(self, device_model, output_dir: Path):
         """Initialize code generator with device model.
@@ -236,7 +241,7 @@ class RPiCodeGenerator(BaseCodeGenerator):
         peripheral_ref = connection.peripheral.ref
 
         # Get template using peripheral reference
-        template_name = PeripheralTemplateMapper.get_template(peripheral_ref)
+        template_name = PeripheralTemplateMapper.get_template(peripheral_ref, self.OS)
 
         if not template_name:
             logger.warning(f"Skipping peripheral {connection.peripheral.name}: no template available")
@@ -318,47 +323,30 @@ class RPiCodeGenerator(BaseCodeGenerator):
 
         return {"pip": sorted(list(pip_deps)), "apt": sorted(list(apt_deps))}
 
-    def generate_docker_files(self) -> None:
-        """Generate Dockerfile, docker-compose.yml and install_deps.sh."""
-        # Collect dependencies
-        deps = self.get_dependencies()
+    def generate_docker_files(self, output_dir: Optional[Path] = None) -> None:
+        """Render all Docker artifacts for the RPi backend.
 
-        # Dockerfile
-        template = self.env.get_template("Dockerfile.j2")
-        context = {"apt_dependencies": deps["apt"]}
-        self._write_template(template, context, self.output_dir / "Dockerfile")
-
-        # requirements.txt
-        template = self.env.get_template("requirements.txt.j2")
-        context = {"dependencies": deps["pip"]}
-        self._write_template(template, context, self.output_dir / "requirements.txt")
-
-        # docker-compose.yml
-        template = self.env.get_template("docker-compose.yml.j2")
-        context = {"connections": self.get_connections()}
-        self._write_template(template, context, self.output_dir / "docker-compose.yml")
-
-        # install_deps.sh
-        template = self.env.get_template("install_deps.sh.j2")
-        context = {"apt_dependencies": deps["apt"]}
-        self._write_template(template, context, self.output_dir / "install_deps.sh")
-        # Make script executable
-        os.chmod(self.output_dir / "install_deps.sh", 0o755)
-
-    def _write_template(self, template: jinja2.Template, context: Dict[str, Any], output_path: Path) -> None:
-        """Render template and write to file.
-
-        Args:
-            template: Jinja2 template
-            context: Template context
-            output_path: Output file path
+        Thin delegating wrapper preserved on the class for the public API
+        (``generator.generate_docker_files()``); actual rendering is in
+        :class:`DockerBuildMixin`.
         """
-        output = template.render(**context)
+        DockerBuildMixin.generate_docker_files(self, output_dir)
 
-        with open(output_path, "w", encoding="utf-8") as f:
-            f.write(output)
+    def _build_docker_context(self) -> Dict[str, Any]:
+        """Return the combined Jinja context for all RPi Docker templates.
 
-        logger.debug(f"Generated: {output_path}")
+        The four RPi templates each consume a different subset of keys
+        (``apt_dependencies`` / ``dependencies`` / ``connections``); a
+        single dict with all three is byte-equivalent to the previous
+        per-file contexts because each template only reads the keys it
+        needs.
+        """
+        deps = self.get_dependencies()
+        return {
+            "apt_dependencies": deps["apt"],
+            "dependencies": deps["pip"],
+            "connections": self.get_connections(),
+        }
 
 
 def m2t_rpi(model, output_dir="."):

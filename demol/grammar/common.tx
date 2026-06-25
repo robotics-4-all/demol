@@ -82,7 +82,7 @@ DictAttribute:
 OperatingSystem:
     'raspbian'      |
     'riotos'        |
-    'freertos'      |
+    'zephyr'        |
     'arduino'       |
     'esp-idf'       |
     'esp-idf-rtos'
