@@ -1,0 +1,16 @@
+DEVICE MyWemosBme280 WITH description="WemosD1Mini with BME280 I2C sensor", author="demol";
+
+NETWORK[WiFi] WITH ssid="Wifi_2.4GHz", password="guest";
+
+BROKER[MQTT] MyMqttBroker WITH host="node.mqtt.local", port=1883, auth.username="guest", auth.password="guest";
+
+USE WemosD1Mini;
+USE BME280[Env];
+
+CONNECT Env WITH
+    POWER
+        gnd -- gnd,
+        vcc -- power_3v3
+    DATA
+        i2c[slave_address=0x76] sda sda -- d2, scl scl -- d1
+    @ "my_wemos.sensors.env.bme280";

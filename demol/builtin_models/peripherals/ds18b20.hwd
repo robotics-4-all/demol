@@ -29,7 +29,7 @@ SENSOR[Temperature] DS18B20 WITH
             {package="w1thermsensor", source="pip"}
         ],
         riotos=["ds18b20"],
-        zephyr=["ds18b20"
+        zephyr=["ds18b20"]
     ATTRIBUTES
         gpio_modes[dict] = {data = "input"},
         frequency[float] = 1.0,
