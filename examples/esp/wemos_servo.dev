@@ -1,0 +1,6 @@
+DEVICE WemosServo WITH description="Wemos + servo", author="demol", os=zephyr;
+USE WemosD1R32;
+USE SERVO[MyServo];
+CONNECT MyServo WITH
+    POWER gnd -- GND, vcc -- power_5v
+    DATA gpio[mode="output"] din -- D1;

@@ -1,0 +1,6 @@
+DEVICE EspServo WITH description="ESP32 servo actuator", author="demol", os=riotos;
+USE WemosD1R32;
+USE SERVO[MyServo];
+CONNECT MyServo WITH
+    POWER gnd -- GND, vcc -- power_5v
+    DATA gpio[mode="output"] din -- D1;
