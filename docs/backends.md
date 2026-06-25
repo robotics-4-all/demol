@@ -139,9 +139,10 @@ fail-fast on missing templates.
 ### Supported Peripherals
 
 The RIOT driver library lives in
-[`demol/templates/riot/`](../demol/templates/riot/). It ships eight driver
-pairs covering the most common IoT peripherals: `bme680`, `hw006` (HCSR04
-variant), `mpl3115a2`, `srf04`, `srf05`, `led`, `ws281x`, and `button`.
+[`demol/templates/riot/`](../demol/templates/riot/). It ships 18 driver
+pairs covering the most common IoT peripherals: `bme680`, `bme280`, `bh1750`,
+`hw006` (HCSR04 variant), `mpl3115a2`, `srf04`, `srf05`, `ds18b20`, `dht22`,
+`pir_hcsr501`, `relay`, `servo`, `ads1115`, `shtc3`, `led`, `ws281x`, and `button`.
 Peripherals outside this set fall back to a generic GPIO template; for full
 hardware coverage, the RPi backend is the recommended target.
 
@@ -215,11 +216,21 @@ The inferred board mapping (DeMoL board → Zephyr board) is:
 ### Supported Peripherals
 
 The Zephyr driver library lives in
-[`demol/templates/zephyr/`](../demol/templates/zephyr/). It ships eight drivers:
+[`demol/templates/zephyr/`](../demol/templates/zephyr/). It ships 18 drivers:
 
 | Peripheral | Bus | Notes |
 | --- | --- | --- |
 | `bme680` | I2C | Environmental sensor (T, P, H, gas) |
+| `bme280` | I2C | Environmental sensor (T, P, H) |
+| `bh1750` | I2C | Ambient light sensor (lux) |
+| `ds18b20` | GPIO (1-Wire) | Temperature sensor (timing-sensitive) |
+| `dht22` | GPIO | Temperature + humidity sensor (timing-sensitive) |
+| `pir_hcsr501` | GPIO | PIR motion sensor (digital output) |
+| `relay` | GPIO | Digital relay output (on/off) |
+| `servo` | PWM | Servo motor (PWM 50Hz) |
+| `ads1115` | I2C | 16-bit 4-channel ADC |
+| `shtc3` | I2C | Temperature + humidity sensor |
+| `hw006` | GPIO | IR proximity sensor (digital output) |
 | `button` | GPIO | Tactile / pushbutton input |
 | `hcsr04` | GPIO | Ultrasonic distance sensor |
 | `led` | GPIO | Single-color LED output |
