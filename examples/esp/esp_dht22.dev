@@ -1,0 +1,16 @@
+DEVICE ESPDHT22 WITH description="ESP-based DHT22 temperature/humidity sensor test device", author="klpanagi", os=riotos;
+
+NETWORK[WiFi] WITH ssid="Wifi_2.4GHz", password="guest";
+
+BROKER[MQTT] MyMqttBroker WITH host="node.mqtt.local", port=1883, auth.username="guest", auth.password="guest";
+
+USE ESP32Wroom32;
+USE DHT22[EnvSensor];
+
+CONNECT EnvSensor WITH
+    POWER
+        GND -- GND_1,
+        VCC -- VCC_3V3
+    DATA
+        gpio data -- GPIO4
+    @ "my_esp.sensors.env.dht22";

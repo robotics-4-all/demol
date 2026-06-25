@@ -10,13 +10,21 @@ SENSOR[Env] DHT22 WITH
         VCC[3V3] @ 1,
         data[gpio] @ 2,
         GND[GND] @ 4
+    PROPERTIES
+        // DHT22 returns 0.1 degC / 0.1 %%RH resolution.
+        // SCALE 100/1000 converts DSL literals into the centidegree /
+        // thousandths-of-%%RH integer values the driver stores.
+        temperature -> "data.temperature" : int32 SCALE 100 FOR riotos,
+        humidity -> "data.humidity" : int32 SCALE 1000 FOR riotos
     TEMPLATES
-        raspbian="dht22.py.j2"
+        raspbian="dht22.py.j2",
+        riotos="dht22.c.j2"
     DEPENDENCIES
         raspbian=[
             {package="adafruit-circuitpython-dht", source="pip"},
             {package="libgpiod2", source="apt"}
-        ]
+        ],
+        riotos=["dht22"]
     ATTRIBUTES
         gpio_modes[dict] = {data = "input"},
         frequency[float] = 0.5,
