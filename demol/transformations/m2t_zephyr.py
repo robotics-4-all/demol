@@ -366,6 +366,186 @@ class ZephyrCodeGenerator(BaseCodeGenerator):
             self._write_template(template, context, app_src_dir / f"{base_name}.c")
             logger.debug("Generated Zephyr driver: %s", base_name)
 
+    def _collect_constraints(self) -> List[Dict[str, str]]:
+        """Build the constraint-rendering context for Zephyr templates.
+
+        Each entry has ``name`` (DSL name), ``message`` (the MESSAGE string,
+        or a default), ``predicate_func`` (a C identifier for the predicate),
+        and ``predicate_c`` (a C boolean expression evaluating the constraint).
+        Returns an empty list when the model declares no CONSTRAINTs.
+        """
+        constraints = getattr(self.device_model, "constraints", None) or []
+        if not constraints:
+            return []
+
+        result: List[Dict[str, str]] = []
+        for c in constraints:
+            name = str(getattr(c, "name", "")) or "unnamed"
+            message = getattr(c, "message", None) or "expression is false"
+            expr = getattr(c, "expr", None)
+            predicate_c = self._render_zephyr_predicate(expr) if expr is not None else "true"
+            result.append(
+                {
+                    "name": name,
+                    "message": message,
+                    "predicate_func": f"_eval_constraint_{name}",
+                    "predicate_c": predicate_c,
+                }
+            )
+        return result
+
+    @staticmethod
+    def _zephyr_kind_code(arg: Any) -> Optional[str]:
+        """Map a CONSTRAINT ``FunctionArg`` to the matching runtime helper.
+
+        Returns the C expression to use in a predicate, or None when the
+        argument is not a known aggregate. The mapping mirrors design doc §4.1.
+        """
+        if arg is None:
+            return None
+        arg_norm = str(arg).upper()
+        if arg_norm == "SENSOR":
+            return "_count_kind(DEMOL_KIND_SENSOR)"
+        if arg_norm == "ACTUATOR":
+            return "_count_kind(DEMOL_KIND_ACTUATOR)"
+        if arg_norm == "PERIPHERAL":
+            return "_device_count"
+        if arg_norm == "CONNECTION":
+            return "_count_connected()"
+        return None
+
+    @staticmethod
+    def _zephyr_unit_multiplier(unit: Any) -> float:
+        """Normalize a constraint numeric literal to its base unit.
+
+        Returns the multiplier for the unit suffix (or 1.0 when no unit is
+        given). Power is normalised to mW, current to mA, capacity to mAh,
+        frequency to Hz, matching the runtime helpers' expected units.
+        """
+        if unit is None:
+            return 1.0
+        u = str(unit).lower()
+        table = {
+            "w": 1000.0, "mw": 1.0, "uw": 0.001,
+            "a": 1000.0, "ma": 1.0, "ua": 0.001,
+            "ah": 1000.0, "mah": 1.0,
+            "hz": 1.0, "khz": 1e3, "mhz": 1e6, "ghz": 1e9,
+        }
+        return table.get(u, 1.0)
+
+    def _render_zephyr_expr(self, node: Any) -> str:
+        """Render a constraint expression AST node as a C int expression.
+
+        Walks the textX AST and emits a C snippet using the runtime helpers.
+        Returns ``"0"`` (predicate is always false) for unsupported node types;
+        a warning is logged so the operator can fix the offending constraint.
+        """
+        if node is None:
+            return "0"
+        cls = type(node).__name__
+
+        if cls == "FunctionCallExpr":
+            func = str(getattr(node, "func", "")).lower()
+            arg = getattr(node, "arg", None)
+            if func in ("sum_power", "max_power", "avg_power"):
+                kind_code = self._zephyr_kind_code(arg)
+                if kind_code is None:
+                    logger.warning("Unsupported %s argument: %r", func, arg)
+                    return "0"
+                if func == "sum_power":
+                    return "_sum_power_mW()"
+                if func == "max_power":
+                    return "_max_power_mW()"
+                # avg_power: avoid division by zero at runtime
+                return f"((({kind_code}) > 0) ? (((int32_t)_sum_power_mW()) / ({kind_code})) : 0)"
+            if func == "count":
+                kind_code = self._zephyr_kind_code(arg)
+                if kind_code is None:
+                    logger.warning("Unsupported count argument: %r", arg)
+                    return "0"
+                return f"(int32_t)({kind_code})"
+            logger.warning("Unknown built-in function: %r", func)
+            return "0"
+
+        if cls == "NumberLiteral":
+            value = float(getattr(node, "value", 0) or 0)
+            unit = getattr(node, "unit", None)
+            scaled = value * self._zephyr_unit_multiplier(unit)
+            if scaled == int(scaled):
+                return f"{int(scaled)}"
+            return f"{scaled:.6f}"
+
+        if cls == "StringLiteral":
+            return '"' + str(getattr(node, "value", "")).replace('"', '\\"') + '"'
+
+        if cls == "BoolLiteral":
+            return "true" if getattr(node, "value", False) else "false"
+
+        if cls == "PropertyAccessExpr":
+            # Property access is resolved at validation time; at codegen time we
+            # emit a stub that returns 0 with a logged warning.
+            logger.warning("Property access in constraint is not yet supported at runtime.")
+            return "0"
+
+        if cls in ("AdditiveExpr", "MultiplicativeExpr"):
+            operands = list(getattr(node, "operands", []) or [])
+            operators = list(getattr(node, "operators", []) or [])
+            if not operands:
+                return "0"
+            result = self._render_zephyr_expr(operands[0])
+            for op, rhs in zip(operators, operands[1:]):
+                result = f"(({result}) {op} ({self._render_zephyr_expr(rhs)}))"
+            return result
+
+        logger.warning("Unsupported constraint expression node type: %s", cls)
+        return "0"
+
+    def _render_zephyr_predicate(self, expr: Any) -> str:
+        """Render a ConstraintExpr as a C boolean expression.
+
+        The grammar constrains ConstraintExpr to a single ComparisonExpr, so
+        the fast path handles that case directly. Falls back to the generic
+        AST walker when textX collapses the rule.
+        """
+        if expr is None:
+            return "true"
+        cls = type(expr).__name__
+        if cls == "ComparisonExpr":
+            left = self._render_zephyr_expr(getattr(expr, "left", None))
+            op = str(getattr(expr, "op", "=="))
+            right = self._render_zephyr_expr(getattr(expr, "right", None))
+            return f"(({left}) {op} ({right}))"
+        return self._render_zephyr_expr(expr)
+
+    def _render_constraint_files(self, app_src_dir: Path) -> None:
+        """Emit ``constraint.c`` and ``constraint.h`` when constraints exist.
+
+        No-op when ``model.constraints`` is empty — this is the
+        backward-compat guard that keeps existing Zephyr apps without
+        CONSTRAINTs untouched.
+        """
+        constraints = self._collect_constraints()
+        if not constraints:
+            return
+        context = {
+            "device_name": self.device_model.metadata.name,
+            "constraints": constraints,
+        }
+        self._write_template(
+            self.env.get_template("constraint.h.j2"),
+            context,
+            app_src_dir / "constraint.h",
+        )
+        self._write_template(
+            self.env.get_template("constraint.c.j2"),
+            context,
+            app_src_dir / "constraint.c",
+        )
+
+    def _has_constraints(self) -> bool:
+        """True when the model declares at least one CONSTRAINT."""
+        return bool(getattr(self.device_model, "constraints", None))
+
     def generate(self) -> None:
         """Emit the Zephyr application tree.
 
@@ -373,6 +553,7 @@ class ZephyrCodeGenerator(BaseCodeGenerator):
             app/CMakeLists.txt
             app/prj.conf
             app/src/main.c
+            app/src/constraint.{c,h}        (only when model has CONSTRAINTs)
             app/boards/<board>.overlay
             app/dts/bindings/.gitkeep
         """
@@ -387,13 +568,18 @@ class ZephyrCodeGenerator(BaseCodeGenerator):
         app_dts_bindings_dir = app_dir / "dts" / "bindings"
 
         board_name = self._resolve_board_name()
+        has_constraints = self._has_constraints()
 
         app_dir.mkdir(parents=True, exist_ok=True)
         app_boards_dir.mkdir(parents=True, exist_ok=True)
 
         self._write_template(
             self.env.get_template("CMakeLists.txt.j2"),
-            {"board_name": board_name, "sources": self._collect_source_names()},
+            {
+                "board_name": board_name,
+                "sources": self._collect_source_names(),
+                "has_constraints": has_constraints,
+            },
             app_dir / "CMakeLists.txt",
         )
         self._write_template(
@@ -411,6 +597,7 @@ class ZephyrCodeGenerator(BaseCodeGenerator):
         (app_src_dir / "main.c").write_text(self._render_main_c(), encoding="utf-8")
 
         self._render_peripheral_drivers(app_src_dir)
+        self._render_constraint_files(app_src_dir)
 
         app_dts_bindings_dir.mkdir(parents=True, exist_ok=True)
         (app_dts_bindings_dir / ".gitkeep").write_text("", encoding="utf-8")
