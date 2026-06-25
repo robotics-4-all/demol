@@ -1,0 +1,129 @@
+#include "sensor_{{ name }}_{{ index }}.h"
+#include "thread.h"
+#include "xtimer.h"
+#include "json_handler.h"
+#include "mqtt_broker.h"
+#include "ds18b20.h"
+
+static ds18b20_t {{ name }}_{{ index }}_dev;
+static {{ name }}_{{ index }}_callback {{ name }}_{{ index }}_cb;
+
+char {{ name }}_{{ index }}_json_payload[165] = "";
+char {{ name }}_{{ index }}_stack[THREAD_STACKSIZE_MAIN];
+
+void *{{ name }}_{{ index }}_thread(void *args);
+
+int init_sensor_{{ name }}_{{ index }}(void)
+{
+    ds18b20_params_t params;
+    params.pin = GPIO_PIN(0, {{ conn.gpio.pins.data.id }});
+
+    printf("Initialize {{ name|upper }} sensor ... ");
+    if (ds18b20_init(&{{ name }}_{{ index }}_dev, &params) != 0)
+    {
+        puts("failed");
+        return -1;
+    }
+    else
+    {
+        puts("OK");
+        return 0;
+    }
+}
+
+void start_sensor_{{ name }}_{{ index }}({{ name }}_{{ index }}_callback callback)
+{
+    {{ name }}_{{ index }}_cb = callback;
+    thread_create({{ name }}_{{ index }}_stack, sizeof({{ name }}_{{ index }}_stack),
+                  (THREAD_PRIORITY_MAIN + 1),
+                  THREAD_CREATE_STACKTEST,
+                  {{ name }}_{{ index }}_thread,
+                  NULL, "{{ name }}_{{ index }}_sensor");
+};
+
+void *{{ name }}_{{ index }}_thread(void *args)
+{
+    (void)args;
+    int16_t raw_temperature;
+{% if source_alerts %}
+    /* ALERT cooldown trackers (function-scope statics persist across loop iterations) */
+{% for a in source_alerts %}
+    static uint64_t last_fire_{{ a.c_safe_name }} = 0;
+{% endfor %}
+{% endif %}
+{% if sampling and sampling.mode == "on_change" %}
+    int32_t prev_temperature = 0;
+    int first_reading = 1;
+{% endif %}
+{% if sampling and sampling.mode == "batch" %}
+    int batch_count = 0;
+{% endif %}
+
+    while (1)
+    {
+        int res = ds18b20_get_temperature(&{{ name }}_{{ index }}_dev, &raw_temperature);
+
+        if (res == 0)
+        {
+{% if source_alerts %}
+            /* ALERT triggers — evaluated on every successful read, independent of sampling mode */
+            uint64_t _now_sec = xtimer_now_usec64() / 1000000ULL;
+{% for a in source_alerts %}
+            if ({{ a.condition_c }}) {
+                if ((_now_sec - last_fire_{{ a.c_safe_name }}) >= {{ a.cooldown_sec }}ULL) {
+                    last_fire_{{ a.c_safe_name }} = _now_sec;
+{% for act in a.actions %}
+                    publish_alert("{{ act.payload_c }}", "{{ act.topic }}");
+{% endfor %}
+                }
+            }
+{% endfor %}
+{% endif %}
+{% if sampling and sampling.mode == "on_change" %}
+            int changed = first_reading;
+            if (!first_reading) {
+                int32_t threshold = (int32_t)({{ name|upper }}_{{ index }}_THRESHOLD * 100);
+                if (abs((int32_t)raw_temperature - prev_temperature) > threshold) {
+                    changed = 1;
+                }
+            }
+            if (changed) {
+                first_reading = 0;
+                prev_temperature = (int32_t)raw_temperature;
+
+                json_dumps({{ name }}_{{ index }}_json_payload,
+                           JSON_START,
+                           JSON_KEY, "Temperature", JSON_INT, (int32_t)raw_temperature,
+                           JSON_STOP);
+
+                {{ name }}_{{ index }}_cb({{ name }}_{{ index }}_json_payload);
+            }
+{% elif sampling and sampling.mode == "batch" %}
+            batch_count++;
+            if (batch_count >= {{ name|upper }}_{{ index }}_BATCH_SIZE) {
+                json_dumps({{ name }}_{{ index }}_json_payload,
+                           JSON_START,
+                           JSON_KEY, "Temperature", JSON_INT, (int32_t)raw_temperature,
+                           JSON_KEY, "batch_count", JSON_INT, batch_count,
+                           JSON_STOP);
+
+                {{ name }}_{{ index }}_cb({{ name }}_{{ index }}_json_payload);
+                batch_count = 0;
+            }
+{% else %}
+            json_dumps({{ name }}_{{ index }}_json_payload,
+                       JSON_START,
+                       JSON_KEY, "Temperature", JSON_INT, (int32_t)raw_temperature,
+                       JSON_STOP);
+
+            {{ name }}_{{ index }}_cb({{ name }}_{{ index }}_json_payload);
+{% endif %}
+        }
+        else
+        {
+            printf("[{{ name }}]: read data failed with reason %d\n", res);
+        }
+
+        xtimer_msleep(({{ name|upper }}_{{ index }}_FREQ));
+    }
+};
