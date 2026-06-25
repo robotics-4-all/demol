@@ -88,7 +88,7 @@ def redis_publish(topic: str, payload: Any) -> bool:
         try:
             client = _ensure_client()
             body = payload if isinstance(payload, (bytes, str)) else json.dumps(payload)
-            n_subscribers = client.publish(topic, body)
+            client.publish(topic, body)
             _last_publish_at = time.monotonic()
             return True
         except Exception as exc:  # pragma: no cover

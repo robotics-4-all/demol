@@ -255,6 +255,7 @@ class RPiCodeGenerator(BaseCodeGenerator, DockerBuildMixin):
                 template = self.env.get_template("redis_broker.py.j2")
                 self._write_template(template, {"cfg": cfg}, self.output_dir / "redis_broker.py")
             # MQTT: commlib-py already covers it via the standard msg.py path.
+
     def generate_peripheral_classes(self) -> None:
         """Generate peripheral class files by querying model."""
         for connection in self.get_connections():
