@@ -47,6 +47,8 @@ jobs:
           - wemos_bh1750
           - wemos_bme280
           - wemos_ds18b20
+          - wemos_dht22
+          - wemos_pir_hcsr501
     steps:
       - uses: actions/checkout@v4
 

@@ -139,6 +139,8 @@ jobs:
       fail-fast: false
       matrix:
         example:
+          - esp_bme280
+          - esp_dht22
           - wemos_bme680
           - wemos_bme680_alert
           - wemos_button

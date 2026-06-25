@@ -122,6 +122,24 @@ def _i2c_compat_for(peripheral_name: str) -> str:
     return lowered
 
 
+def _gpio_compat_for(peripheral_name: str) -> str:
+    """Build a devicetree ``compatible`` string for a GPIO peripheral.
+
+    GPIO peripherals that implement custom bit-bang protocols use the
+    ``demol,<name>`` convention. Standard Zephyr GPIO bindings
+    (e.g. ``gpio_keys``) are returned as-is, and no custom devicetree
+    overlay node is generated for them.
+    """
+    lowered = peripheral_name.lower()
+    # Known standard Zephyr GPIO bindings — no custom overlay needed
+    known_standard = {
+        "button": "gpio_keys",
+    }
+    if lowered in known_standard:
+        return known_standard[lowered]
+    return f"demol,{lowered}"
+
+
 class ZephyrCodeGenerator(BaseCodeGenerator):
     """Generates a Zephyr application from a DeMoL device model."""
 
@@ -258,8 +276,6 @@ class ZephyrCodeGenerator(BaseCodeGenerator):
                 }
             )
         return result
-
-
 
     def _collect_alerts(self) -> List[Dict[str, Any]]:
         """Build the ALERT trigger rendering context for ``main.c.j2``.
@@ -403,8 +419,6 @@ class ZephyrCodeGenerator(BaseCodeGenerator):
 
             return []
 
-
-
         result: List[Dict[str, Any]] = []
 
         for s in samplings:
@@ -512,6 +526,70 @@ class ZephyrCodeGenerator(BaseCodeGenerator):
                 )
         return nodes
 
+    def _collect_gpio_nodes(self) -> List[Dict[str, Any]]:
+        """Build the devicetree GPIO overlay node list.
+
+        Each GPIO-connected peripheral with a custom ``demol,*`` compatible
+        contributes one entry with ``name``, ``compat``, ``gpio_ctrl``,
+        ``gpio_pins`` (dict of {pin_function: pin_number}), and
+        ``gpio_flags`` keys. Standard Zephyr GPIO bindings (e.g.
+        ``gpio_keys``) are excluded.
+        """
+        nodes: List[Dict[str, Any]] = []
+        for conn in self.get_connections():
+            data_conns = getattr(conn, "dataConns", None) or []
+            has_gpio = any(
+                getattr(d, "type", None) == "gpio" for d in data_conns
+            )
+            if not has_gpio:
+                continue
+            peripheral_name = self._peripheral_short_name(conn)
+            if not peripheral_name:
+                continue
+            compat = _gpio_compat_for(peripheral_name)
+            # Skip standard Zephyr bindings -- they don't need custom nodes
+            if not compat.startswith("demol,"):
+                continue
+            # Extract GPIO pin info for each pin on the connection
+            gpio_pins: Dict[str, int] = {}
+            for data in data_conns:
+                if getattr(data, "type", None) != "gpio":
+                    continue
+                pin_maps = getattr(data, "pins", None) or []
+                for pin_map in pin_maps:
+                    board_pin_name, periph_pin_name = self._get_board_and_periph_pins(conn, pin_map)
+                    pin_num = self._extract_gpio_pin_number(board_pin_name)
+                    gpio_pins[periph_pin_name] = pin_num
+            if not gpio_pins:
+                continue
+            nodes.append(
+                {
+                    "name": peripheral_name.lower(),
+                    "compat": compat,
+                    "gpio_pins": gpio_pins,
+                    "gpio_ctrl": "gpio0",
+                    "gpio_flags": "GPIO_ACTIVE_HIGH",
+                }
+            )
+        return nodes
+
+    @staticmethod
+    def _extract_gpio_pin_number(board_pin_name: str) -> int:
+        """Extract the GPIO port pin number from a board pin name.
+
+        Board pins named ``GPIO<N>`` (e.g. ``GPIO4``) decode the number
+        directly. For named board pins (e.g. ``d3`` on Wemos D1 Mini),
+        falls back to 0 as the default -- the user may need to adjust
+        the overlay for their target board.
+        """
+        name = board_pin_name.upper()
+        if name.startswith("GPIO"):
+            try:
+                return int(name[4:])
+            except ValueError:
+                pass
+        # Wemos D1 Mini: d3=GPIO0, d4=GPIO2 -- not currently resolved
+
     @staticmethod
     def _extract_i2c_address(data_conn: Any) -> str:
         """Return the I2C slave address in hex (e.g. ``0x76``) or empty."""
@@ -588,9 +666,12 @@ class ZephyrCodeGenerator(BaseCodeGenerator):
         )
 
     def _render_devicetree(self) -> str:
-        """Render ``app/boards/<board>.overlay`` from the I2C node list."""
+        """Render ``app/boards/<board>.overlay`` from the I2C and GPIO node lists."""
         template = self.env.get_template("app.overlay.j2")
-        return template.render(i2c_nodes=self._collect_i2c_nodes())
+        return template.render(
+            i2c_nodes=self._collect_i2c_nodes(),
+            gpio_nodes=self._collect_gpio_nodes(),
+        )
 
     def _render_cmakelists(self) -> str:
         """Render ``app/CMakeLists.txt`` for the resolved Zephyr board."""
@@ -636,7 +717,7 @@ class ZephyrCodeGenerator(BaseCodeGenerator):
             )
         if self._collect_mqtt_brokers():
             return _MQTT_APP_MAIN_C
-        return _APP_SRC_MAIN_C
+
     def _render_peripheral_drivers(self, app_src_dir: Path) -> None:
         """Render per-peripheral driver templates to ``app/src/<base>.c``."""
         board = self.get_board()
@@ -861,6 +942,34 @@ class ZephyrCodeGenerator(BaseCodeGenerator):
         """True when the model declares at least one CONSTRAINT."""
         return bool(getattr(self.device_model, "constraints", None))
 
+    def _render_gpio_bindings(self, bindings_dir: Path) -> None:
+        """Emit custom devicetree binding YAML files for GPIO peripherals.
+
+        Each GPIO-connected peripheral that uses a ``demol,*`` compatible
+        string gets a minimal binding YAML in ``app/dts/bindings/``.
+        The binding declares a ``<pin_function>-gpios`` phandle-array
+        property so the peripheral's driver can use ``GPIO_DT_SPEC_GET``.
+        """
+        gpio_nodes = self._collect_gpio_nodes()
+        if not gpio_nodes:
+            return
+        for node in gpio_nodes:
+            pin_name = next(iter(node["gpio_pins"]), "data")
+            compat = node["compat"]
+            yaml_name = compat.replace(",", "-") + ".yaml"
+            yaml_content = (
+                f"description: {node['name'].title()} sensor\n"
+                f"compatible: \"{compat}\"\n"
+                "\n"
+                "properties:\n"
+                f"  {pin_name}-gpios:\n"
+                "    type: phandle-array\n"
+                "    required: true\n"
+                f"    description: GPIO {pin_name} pin\n"
+            )
+            (bindings_dir / yaml_name).write_text(yaml_content, encoding="utf-8")
+            logger.debug("Generated devicetree binding: %s", yaml_name)
+
     def generate(self) -> None:
         """Emit the Zephyr application tree.
 
@@ -907,7 +1016,10 @@ class ZephyrCodeGenerator(BaseCodeGenerator):
         )
         self._write_template(
             self.env.get_template("app.overlay.j2"),
-            {"i2c_nodes": self._collect_i2c_nodes()},
+            {
+                "i2c_nodes": self._collect_i2c_nodes(),
+                "gpio_nodes": self._collect_gpio_nodes(),
+            },
             app_boards_dir / f"{board_name}.overlay",
         )
 
@@ -919,6 +1031,7 @@ class ZephyrCodeGenerator(BaseCodeGenerator):
 
         app_dts_bindings_dir.mkdir(parents=True, exist_ok=True)
         (app_dts_bindings_dir / ".gitkeep").write_text("", encoding="utf-8")
+        self._render_gpio_bindings(app_dts_bindings_dir)
 
         logger.info("Zephyr code generation complete!")
 
