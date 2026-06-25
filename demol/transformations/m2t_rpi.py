@@ -30,6 +30,16 @@ class RPiCodeGenerator(BaseCodeGenerator, DockerBuildMixin):
 
     OS = "raspbian"
 
+    def _get_constraint_functions(self):
+        # RPi runtime: helpers keep their DSL names so the template can call
+        # plain Python callables (count, sum_power, avg_power, max_power).
+        return {
+            "count": "count",
+            "sum_power": "sum_power",
+            "avg_power": "avg_power",
+            "max_power": "max_power",
+        }
+
     def os_name(self) -> str:
         return self.OS
 
@@ -108,6 +118,7 @@ class RPiCodeGenerator(BaseCodeGenerator, DockerBuildMixin):
         self.generate_common()
         self.generate_messages()
         self.generate_alerts_runtime()
+        self.generate_constraints_runtime()
         self.generate_docker_files()
         logger.info("Code generation complete!")
 
@@ -195,6 +206,31 @@ class RPiCodeGenerator(BaseCodeGenerator, DockerBuildMixin):
     def generate_alerts_runtime(self) -> None:
         template = self.env.get_template("alerts.py.j2")
         self._write_template(template, {}, self.output_dir / "alerts.py")
+
+    def generate_constraints_runtime(self) -> None:
+        """Generate the constraints.py runtime module if model has constraints.
+
+        Each constraint's predicate is rendered as a Python expression via
+        :meth:`BaseCodeGenerator.render_constraint_predicate` so the template
+        stays free of AST-walking logic.
+        """
+        constraints = getattr(self.device_model, "constraints", None)
+        if not constraints:
+            return
+        template = self.env.get_template("constraints.py.j2")
+        rendered = []
+        for c in constraints:
+            predicate = self.render_constraint_predicate(c, "raspbian")
+            message = getattr(c, "message", "") or ""
+            rendered.append(
+                {
+                    "name": c.name,
+                    "predicate": predicate,
+                    "message": message,
+                }
+            )
+        context = {"constraints": rendered}
+        self._write_template(template, context, self.output_dir / "constraints.py")
 
     def generate_peripheral_classes(self) -> None:
         """Generate peripheral class files by querying model."""
