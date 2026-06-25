@@ -1,0 +1,16 @@
+DEVICE ESPBME280 WITH description="ESP32 with BME280 sensor", author="DeMoL", os=riotos;
+
+NETWORK[WiFi] WITH ssid="MyWiFi", password="secret";
+
+BROKER[MQTT] MyBroker WITH host="mqtt.local", port=1883, auth.username="guest", auth.password="guest";
+
+USE ESP32Wroom32;
+USE BME280[EnvSensor];
+
+CONNECT EnvSensor WITH
+    POWER
+        gnd -- GND_1,
+        vcc -- VCC_3V3
+    DATA
+        i2c[slave_address=0x76] sda sda -- GPIO21, scl scl -- GPIO22
+    @ "sensors/env/bme280";
