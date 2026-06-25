@@ -17,7 +17,9 @@ SENSOR[ADC] ADS1115 WITH
         ? A2[adc] @ 9,
         ? A3[adc] @ 10
     TEMPLATES
-        raspbian="ads1115.py.j2"
+        raspbian="ads1115.py.j2",
+        riotos="sensor_ads1115.c.j2",
+        zephyr="ads1115.c.j2"
     DEPENDENCIES
         raspbian=[
             {package="adafruit-circuitpython-ads1x15", source="pip"}

@@ -1,0 +1,6 @@
+DEVICE WemosADS1115 WITH description="Wemos + ADS1115 ADC", author="demol", os=zephyr;
+USE WemosD1R32;
+USE ADS1115[MyADC];
+CONNECT MyADC WITH
+    POWER gnd -- GND, vcc -- power_3v3
+    DATA i2c[slave_address=0x48] sda -- D2, scl -- D1;
