@@ -35,38 +35,72 @@ class BaseCodeGenerator(ABC):
 
     # ===== Common Model Query Methods =====
 
-    def get_broker_config(self) -> Dict[str, Any]:
+    def get_broker_config(self, broker: Any = None) -> Dict[str, Any]:
         """Query broker configuration from device model.
 
-        Returns:
-            Dictionary containing broker configuration (host, port, ssl, auth)
+        Returns a dict that ALWAYS contains the legacy 4-tuple
+        (host, port, ssl, username, password) so existing MQTT-only
+        callers (RIOT mqtt_broker.c.j2, Zephyr prj.conf.j2) keep
+        working unchanged. A new ``kind`` key ('amqp' | 'mqtt' |
+        'redis') is added for T40-T45 to dispatch on.
 
-        Raises:
-            TypeError: If broker is not an MQTTBroker
+        Per-broker-kind extra fields are also included when the
+        grammar exposes them (e.g. vhost/topicExchange for AMQP,
+        basePath/webPath/webPort for MQTT, db for Redis).
+
+        When called with no args, returns the default broker's
+        config (``self.device_model.broker``). When called with an
+        explicit broker, returns that broker's config. No longer
+        raises TypeError on non-MQTT brokers — the legacy behavior
+        is preserved by leaving the legacy keys in place and adding
+        new ones rather than by raising.
         """
-        broker = self.device_model.broker
+        if broker is None:
+            broker = self.device_model.broker
+        if broker is None:
+            return {"kind": "unknown", "host": "", "port": 0, "ssl": False, "username": "", "password": ""}
 
-        if type(broker).__name__ != "MQTTBroker":
-            raise TypeError("This transformation does not support other Broker types than MQTTBroker.")
+        type_name = type(broker).__name__
+        if type_name.endswith("Broker"):
+            kind = type_name[:-len("Broker")].lower()
+        else:
+            kind = "unknown"
+        if kind not in ("amqp", "mqtt", "redis"):
+            kind = "unknown"
 
         config = {
+            "kind": kind,
             "host": broker.host,
             "port": broker.port,
             "ssl": getattr(broker, "ssl", False),
             "username": "",
             "password": "",
+            "auth_key": "",
         }
 
-        # Extract authentication
-        auth_type = type(broker.auth).__name__
+        # Extract authentication (common to all 3 broker kinds).
+        auth = getattr(broker, "auth", None)
+        if auth is not None:
+            auth_type = type(auth).__name__
+            if auth_type == "AuthPlain":
+                config["username"] = getattr(auth, "username", "") or ""
+                config["password"] = getattr(auth, "password", "") or ""
+            elif auth_type == "AuthApiKey":
+                config["auth_key"] = getattr(auth, "key", "") or ""
+            # AuthCert: leave username/password empty; backend templates
+            # decide whether to consume the cert path from model extras.
 
-        if auth_type == "AuthPlain":
-            config["username"] = getattr(broker.auth, "username", "")
-            config["password"] = getattr(broker.auth, "password", "")
-        elif auth_type in ("AuthCert", "AuthApiKey"):
-            raise TypeError(
-                "This transformation uses commlib-py library and only supports " "plain authentication for MQTTBroker."
-            )
+        # Per-broker-kind optional fields.
+        if kind == "amqp":
+            config["vhost"] = getattr(broker, "vhost", "/")
+            config["topic_exchange"] = getattr(broker, "topicE", "") or ""
+            config["rpc_exchange"] = getattr(broker, "rpcE", "") or ""
+        elif kind == "mqtt":
+            config["base_path"] = getattr(broker, "basePath", "") or ""
+            config["web_path"] = getattr(broker, "webPath", "") or ""
+            config["web_port"] = getattr(broker, "webPort", 0) or 0
+        elif kind == "redis":
+            config["db"] = getattr(broker, "db", 0) or 0
 
         return config
 
