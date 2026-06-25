@@ -119,6 +119,7 @@ class RPiCodeGenerator(BaseCodeGenerator, DockerBuildMixin):
         self.generate_messages()
         self.generate_alerts_runtime()
         self.generate_constraints_runtime()
+        self.generate_broker_specific()
         self.generate_docker_files()
         logger.info("Code generation complete!")
 
@@ -231,7 +232,29 @@ class RPiCodeGenerator(BaseCodeGenerator, DockerBuildMixin):
             )
         context = {"constraints": rendered}
         self._write_template(template, context, self.output_dir / "constraints.py")
+        self._write_template(template, context, self.output_dir / "constraints.py")
 
+    def generate_broker_specific(self) -> None:
+        """Emit broker-kind-specific wrapper modules.
+
+        RPi supports multi-broker (unlike RIOT), so we walk every broker
+        declared in the model and emit one wrapper per non-MQTT broker.
+        MQTT continues to be served by commlib-py via the standard
+        commlib_msg.py/msg.py path; AMQP and Redis each get a dedicated
+        module that mirrors the commlib-py ``publish()`` signature.
+
+        T40 / T43: AMQP via pika, Redis via redis-py.
+        """
+        for broker in self.get_brokers():
+            cfg = self.get_broker_config(broker)
+            kind = cfg.get("kind", "unknown")
+            if kind == "amqp":
+                template = self.env.get_template("amqp_broker.py.j2")
+                self._write_template(template, {"cfg": cfg}, self.output_dir / "amqp_broker.py")
+            elif kind == "redis":
+                template = self.env.get_template("redis_broker.py.j2")
+                self._write_template(template, {"cfg": cfg}, self.output_dir / "redis_broker.py")
+            # MQTT: commlib-py already covers it via the standard msg.py path.
     def generate_peripheral_classes(self) -> None:
         """Generate peripheral class files by querying model."""
         for connection in self.get_connections():
@@ -378,9 +401,21 @@ class RPiCodeGenerator(BaseCodeGenerator, DockerBuildMixin):
         needs.
         """
         deps = self.get_dependencies()
+        pip_deps = list(deps["pip"])
+        # T40 / T43: add AMQP / Redis pip dependencies when those brokers
+        # are declared. Versions are pinned to current stable releases
+        # (no upper bound) so Renovate / dependabot can bump them.
+        broker_kinds = {
+            self.get_broker_config(broker).get("kind", "unknown")
+            for broker in self.get_brokers()
+        }
+        if "amqp" in broker_kinds and not any(d.startswith("pika") for d in pip_deps):
+            pip_deps.append("pika>=1.3.0")
+        if "redis" in broker_kinds and not any(d.startswith("redis") for d in pip_deps):
+            pip_deps.append("redis>=5.0.0")
         return {
             "apt_dependencies": deps["apt"],
-            "dependencies": deps["pip"],
+            "dependencies": pip_deps,
             "connections": self.get_connections(),
         }
 

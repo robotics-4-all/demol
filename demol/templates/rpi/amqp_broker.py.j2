@@ -1,0 +1,135 @@
+"""AMQP broker support for the RPi backend (T40).
+
+When the device model declares a BROKER[AMQP], this module is emitted
+alongside msg.py. The commlib-py based MQTTPublisher used for MQTT does
+not cover AMQP, so we provide a thin pika-based wrapper that mirrors
+the commlib-py's ``publish()`` API surface. Application code can call
+``amqp_publish(topic, payload)`` without knowing whether the underlying
+broker is AMQP or MQTT.
+"""
+
+from __future__ import annotations
+
+import json
+import logging
+import os
+import threading
+import time
+from typing import Any, Dict, Optional
+
+try:
+    import pika
+    _PIKA_AVAILABLE = True
+except ImportError:  # pragma: no cover — pika is a soft dep
+    pika = None
+    _PIKA_AVAILABLE = False
+
+
+LOG = logging.getLogger(__name__)
+
+
+# --- Configuration --------------------------------------------------------
+
+AMQP_HOST: str = os.environ.get("AMQP_HOST", "{{ cfg.host }}")
+AMQP_PORT: int = int(os.environ.get("AMQP_PORT", "{{ cfg.port }}"))
+AMQP_VHOST: str = os.environ.get("AMQP_VHOST", "{{ cfg.vhost }}")
+AMQP_EXCHANGE: str = os.environ.get("AMQP_EXCHANGE", "{{ cfg.topic_exchange }}")
+AMQP_USERNAME: str = os.environ.get("AMQP_USERNAME", "{{ cfg.username }}")
+AMQP_PASSWORD: str = os.environ.get("AMQP_PASSWORD", "{{ cfg.password }}")
+AMQP_USE_SSL: bool = os.environ.get("AMQP_USE_SSL", "{{ cfg.ssl }}").lower() in ("1", "true", "yes")
+
+
+# --- Connection management -----------------------------------------------
+
+_connection: Optional["pika.BlockingConnection"] = None
+_channel: Optional[Any] = None
+_lock = threading.Lock()
+_last_publish_at: float = 0.0
+_PUBLISH_COOLDOWN_SEC = 0.05  # 50ms — keep below pika's heartbeat
+
+
+def _build_credentials() -> "pika.PlainCredentials":
+    return pika.PlainCredentials(AMQP_USERNAME, AMQP_PASSWORD)
+
+
+def _build_params() -> "pika.ConnectionParameters":
+    return pika.ConnectionParameters(
+        host=AMQP_HOST,
+        port=AMQP_PORT,
+        virtual_host=AMQP_VHOST,
+        credentials=_build_credentials(),
+        ssl=AMQP_USE_SSL,
+        heartbeat=30,
+        blocked_connection_timeout=10,
+    )
+
+
+def _ensure_channel() -> Any:
+    """Open (or re-open) the AMQP connection and return a confirm-mode channel.
+
+    Re-establishes the connection on any pika exception (network drop, server
+    restart, channel close) so the calling code does not have to retry.
+    """
+    global _connection, _channel
+    if not _PIKA_AVAILABLE:
+        raise RuntimeError("pika not installed; add pika>=1.3.0 to requirements.txt")
+    if _channel is not None and _channel.is_open and _connection.is_open:
+        return _channel
+    _connection = pika.BlockingConnection(_build_params())
+    _channel = _connection.channel()
+    _channel.exchange_declare(exchange=AMQP_EXCHANGE, exchange_type="topic", durable=True)
+    _channel.confirm_delivery()
+    return _channel
+
+
+# --- Public API -----------------------------------------------------------
+
+
+def amqp_publish(topic: str, payload: Any) -> bool:
+    """Publish a payload to the configured AMQP exchange with the topic as routing key.
+
+    Returns True on broker confirm, False on any failure (the failure is
+    logged and a retry is scheduled for the next call).
+    """
+    global _last_publish_at
+    with _lock:
+        # Cooldown to avoid hammering the broker if a publish loop spins
+        wait = _PUBLISH_COOLDOWN_SEC - (time.monotonic() - _last_publish_at)
+        if wait > 0:
+            time.sleep(wait)
+        try:
+            channel = _ensure_channel()
+            body = payload if isinstance(payload, (bytes, str)) else json.dumps(payload)
+            channel.basic_publish(
+                exchange=AMQP_EXCHANGE,
+                routing_key=topic,
+                body=body,
+                properties=pika.BasicProperties(
+                    content_type="application/json",
+                    delivery_mode=2,  # persistent
+                ),
+                mandatory=True,
+            )
+            _last_publish_at = time.monotonic()
+            return True
+        except Exception as exc:  # pragma: no cover
+            LOG.warning("AMQP publish failed for topic=%s: %s", topic, exc)
+            _reset_connection()
+            return False
+
+
+def _reset_connection() -> None:
+    global _connection, _channel
+    try:
+        if _connection is not None and _connection.is_open:
+            _connection.close()
+    except Exception:  # pragma: no cover
+        pass
+    _connection = None
+    _channel = None
+
+
+def is_amqp_available() -> bool:
+    """Probe whether pika is importable. Used by application code to fall back
+    to MQTT when AMQP support is not installed."""
+    return _PIKA_AVAILABLE
