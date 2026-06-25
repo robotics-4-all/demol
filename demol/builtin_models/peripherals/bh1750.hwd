@@ -11,12 +11,18 @@ SENSOR[Light] BH1750 WITH
         GND[GND] @ 2,
         sda[sda-0] @ 3,
         scl[scl-0] @ 4
+    PROPERTIES
+        // Zephyr BH1750 driver exposes illuminance in lux (double).
+        // No SCALE because the Zephyr sensor API returns physical units.
+        illuminance -> "bh1750_data.illuminance" : double FOR zephyr
     TEMPLATES
-        raspbian="bh1750.py.j2"
+        raspbian="bh1750.py.j2",
+        zephyr="bh1750.c.j2"
     DEPENDENCIES
         raspbian=[
             {package="adafruit-circuitpython-bh1750", source="pip"}
-        ]
+        ],
+        zephyr=["bh1750"]
     ATTRIBUTES
         i2c_address[int] = 35,
         frequency[float] = 1.0,

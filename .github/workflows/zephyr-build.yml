@@ -44,6 +44,8 @@ jobs:
           - wemos_mqtt_bme680
           - wemos_sampling_bme680
           - wemos_srf05
+          - wemos_bh1750
+          - wemos_bme280
     steps:
       - uses: actions/checkout@v4
 

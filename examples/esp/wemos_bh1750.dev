@@ -1,0 +1,16 @@
+DEVICE WemosBh1750 WITH description="Wemos D1 Mini with BH1750 light sensor", author="demol";
+
+NETWORK[WiFi] WITH ssid="WiFi_2.4GHz", password="guest";
+
+BROKER[MQTT] MyMqttBroker WITH host="node.mqtt.local", port=1883, auth.username="guest", auth.password="guest";
+
+USE WemosD1Mini;
+USE BH1750[Light];
+
+CONNECT Light WITH
+    POWER
+        GND -- gnd,
+        VCC -- power_3v3
+    DATA
+        i2c[slave_address=0x23] sda sda -- d2, scl scl -- d1
+    @ "my_wemos.sensors.light.bh1750";

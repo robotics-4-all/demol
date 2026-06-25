@@ -115,6 +115,10 @@ def _i2c_compat_for(peripheral_name: str) -> str:
     lowered = peripheral_name.lower()
     if lowered == "bme680":
         return "bosch,bme680"
+    if lowered == "bme280":
+        return "bosch,bme280"
+    if lowered == "bh1750":
+        return "rohm,bh1750"
     return lowered
 
 
