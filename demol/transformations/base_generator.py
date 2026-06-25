@@ -789,3 +789,384 @@ class BaseCodeGenerator(ABC):
     def os_name(self) -> str:
         """Return the target operating system identifier (e.g. "raspbian", "riotos")."""
         return self.OS
+
+    # ------------------------------------------------------------------
+    # CONSTRAINT runtime helpers
+    # ------------------------------------------------------------------
+    #
+    # These helpers are the foundation of the user-defined CONSTRAINT
+    # codegen path.  T11/T12/T13 add the per-backend emission logic that
+    # actually wires ``get_constraint_runtime_check`` output into the
+    # generated ``<peripheral>.py`` / ``<peripheral>.c`` template.
+    #
+    # Design goals:
+    #   * Backend-agnostic entry point: ``get_constraint_runtime_check`` /
+    #     ``render_constraint_predicate`` always exist on the base class
+    #     and dispatch on the ``backend`` string.
+    #   * Subclass-overridable leaves: each backend can replace the
+    #     Python or C renderer (and the helper-function table) without
+    #     having to copy the dispatch logic.
+    #   * Defensive AST traversal: textX collapses some rules at parse
+    #     time, so the renderer is tolerant of the AdditiveExpr vs
+    #     MultiplicativeExpr-vs-atom collapse pattern observed in
+    #     ``user_constraints._eval_*``.
+
+    # Per-kind integer codes used by C runtime helpers.  Mirrors the
+    # ``kind`` field populated by the RIOT/Zephyr codegen (see
+    # ``docs/constraint-runtime-design.md`` §6).
+    _CONSTRAINT_KIND_CODES = {
+        "SENSOR": 0,
+        "ACTUATOR": 1,
+        "PERIPHERAL": 2,
+        "CONNECTION": 3,
+    }
+
+    def _get_constraint_functions(self) -> Dict[str, str]:
+        """Return the table of runtime helper names, keyed by DSL builtin.
+
+        The base implementation targets C runtimes (RIOT, Zephyr) — every
+        backend's runtime names those four helpers ``count_*`` /
+        ``*_power_mW``.  The RPi generator overrides this in T11 to
+        return raw Python builtin names (e.g. ``"count": "count"``).
+
+        Subclasses may also override individual entries via the
+        ``_get_constraint_functions`` hook to point at driver-local
+        helpers (e.g. ``peripheral_count_kind(kind)``).
+
+        Returns:
+            Mapping ``{count, sum_power, avg_power, max_power}`` ->
+            runtime function name as a string.
+        """
+        return {
+            "count": "count_peripherals",
+            "sum_power": "sum_power_mW",
+            "avg_power": "avg_power_mW",
+            "max_power": "max_power_mW",
+        }
+
+    def get_constraint_runtime_check(
+        self, model, backend: Optional[str] = None
+    ) -> str:
+        """Emit a runtime ``check_constraints()`` block for ``model``.
+
+        The output is a multi-line string suitable for splicing into a
+        backend template.  It declares the runtime helper functions the
+        predicates rely on and iterates over ``model.constraints``,
+        rendering one check per CONSTRAINT block.  Models with no
+        constraints produce an empty string so the generators can call
+        this method unconditionally.
+
+        Args:
+            model: The parsed textX device model.
+            backend: Optional backend tag (``"raspbian"``, ``"riotos"``,
+                ``"zephyr"``).  When ``None`` the generator's ``OS`` class
+                constant is used, falling back to ``"raspbian"``.
+
+        Returns:
+            A multi-line string with the runtime check, or ``""`` when
+            the model has no CONSTRAINT blocks.
+        """
+        constraints = list(getattr(model, "constraints", []) or [])
+        if not constraints:
+            return ""
+
+        resolved_backend = backend or self.OS or "raspbian"
+        model_name = getattr(getattr(model, "metadata", None), "name", "device")
+        funcs = self._get_constraint_functions()
+
+        header = [
+            f"# Runtime constraint check for '{model_name}'",
+            f"# Backend: {resolved_backend}",
+            f"# Helpers: {', '.join(sorted(funcs))}",
+            "",
+        ]
+
+        if resolved_backend == "raspbian":
+            return "\n".join(header + self._emit_python_runtime_check(constraints))
+        if resolved_backend in ("riotos", "zephyr"):
+            return "\n".join(header + self._emit_c_runtime_check(constraints))
+        raise ValueError(
+            f"Unsupported backend for constraint runtime check: {resolved_backend!r}"
+        )
+
+    def _emit_python_runtime_check(self, constraints: List[Any]) -> List[str]:
+        """Build the Python ``check_constraints()`` body line-by-line."""
+        lines = [
+            "def check_constraints():",
+            "    \"\"\"Run all declared CONSTRAINTs and return the failure count.\"\"\"",
+            "    constraint_failures = 0",
+        ]
+        for c in constraints:
+            pred = self.render_constraint_predicate(c, "raspbian")
+            message = getattr(c, "message", "") or "expression is false"
+            lines.extend(
+                [
+                    f"    # {c.name}: {message}",
+                    f"    if not ({pred}):",
+                    "        constraint_failures += 1",
+                ]
+            )
+        lines.append("    return constraint_failures")
+        return lines
+
+    def _emit_c_runtime_check(self, constraints: List[Any]) -> List[str]:
+        """Build the C ``check_constraints()`` body line-by-line."""
+        lines = [
+            "void check_constraints(void) {",
+            "    static uint32_t constraint_failures = 0;",
+        ]
+        for c in constraints:
+            pred = self.render_constraint_predicate(c, "riotos")
+            message = getattr(c, "message", "") or "expression is false"
+            lines.extend(
+                [
+                    f"    /* {c.name}: {message} */",
+                    f"    if (!({pred})) {{",
+                    "        constraint_failures++;",
+                    "    }",
+                ]
+            )
+        lines.append("}")
+        return lines
+
+    def render_constraint_predicate(self, constraint, backend: str) -> str:
+        """Render a UserConstraint predicate for the requested backend.
+
+        Args:
+            constraint: A parsed ``UserConstraint`` instance.
+            backend: One of ``"raspbian"`` (Python), ``"riotos"`` (C),
+                ``"zephyr"`` (C).
+
+        Returns:
+            The predicate as a Python or C expression string.
+
+        Raises:
+            ValueError: When ``backend`` is not a recognised target.
+        """
+        if backend == "raspbian":
+            return self._render_python_predicate(constraint)
+        if backend in ("riotos", "zephyr"):
+            return self._render_c_predicate(constraint)
+        raise ValueError(
+            f"Unsupported backend for constraint predicate: {backend!r}"
+        )
+
+    def _render_python_predicate(self, constraint) -> str:
+        """Render a UserConstraint as a Python boolean expression.
+
+        The output is a parenthesised Python expression.  Function calls
+        keep their DSL name (e.g. ``count("SENSOR") < 10``) so the
+        generated runtime helpers can be plain Python callables.
+        """
+        expr = getattr(constraint, "expr", None)
+        if expr is None:
+            return "True"
+        cls = type(expr).__name__
+        # ComparisonExpr (or its alias ConstraintExpr).
+        if cls in ("ComparisonExpr", "ConstraintExpr"):
+            left = self._render_python_atom(expr.left)
+            right = self._render_python_atom(expr.right)
+            return f"({left}) {expr.op} ({right})"
+        # Anything that collapsed straight to an atom: just render it.
+        return self._render_python_atom(expr)
+
+    def _render_c_predicate(self, constraint) -> str:
+        """Render a UserConstraint as a C boolean expression.
+
+        Function calls are mapped through :meth:`_get_constraint_functions`
+        and receive the per-kind integer code as their argument.
+        """
+        expr = getattr(constraint, "expr", None)
+        if expr is None:
+            return "1"
+        cls = type(expr).__name__
+        if cls in ("ComparisonExpr", "ConstraintExpr"):
+            left = self._render_c_atom(expr.left)
+            right = self._render_c_atom(expr.right)
+            return f"({left}) {expr.op} ({right})"
+        return self._render_c_atom(expr)
+
+    def _render_python_atom(self, node) -> str:
+        """Recursively render a single constraint expression node in Python."""
+        cls = type(node).__name__
+
+        if cls == "FunctionCallExpr":
+            return f'{node.func}("{node.arg}")'
+
+        if cls == "AdditiveExpr":
+            return self._render_python_binary(node)
+
+        if cls == "MultiplicativeExpr":
+            return self._render_python_binary(node)
+
+        if cls == "UnaryExpr":
+            return self._render_python_atom(self._unwrap_unary(node))
+
+        if cls == "NumberLiteral":
+            return self._format_python_number(node)
+
+        if cls == "StringLiteral":
+            return repr(node.value)
+
+        if cls == "BoolLiteral":
+            return "True" if node.value else "False"
+
+        if cls == "PropertyAccessExpr":
+            return self._render_python_property(node)
+
+        # Unknown node type: keep codegen going with a safe placeholder.
+        return "0"
+
+    def _render_c_atom(self, node) -> str:
+        """Recursively render a single constraint expression node in C."""
+        cls = type(node).__name__
+
+        if cls == "FunctionCallExpr":
+            return self._render_c_function_call(node)
+
+        if cls == "AdditiveExpr":
+            return self._render_c_binary(node)
+
+        if cls == "MultiplicativeExpr":
+            return self._render_c_binary(node)
+
+        if cls == "UnaryExpr":
+            return self._render_c_atom(self._unwrap_unary(node))
+
+        if cls == "NumberLiteral":
+            return self._format_c_number(node)
+
+        if cls == "StringLiteral":
+            return f'"{node.value}"'
+
+        if cls == "BoolLiteral":
+            return "true" if node.value else "false"
+
+        if cls == "PropertyAccessExpr":
+            return self._render_c_property(node)
+
+        # Unknown node type: keep codegen going with a safe placeholder.
+        return "0"
+
+    def _render_python_binary(self, node) -> str:
+        """Render an AdditiveExpr or MultiplicativeExpr as a Python expression."""
+        operands = node.operands
+        operators = node.operators
+        result = self._render_python_atom(operands[0])
+        for i, op in enumerate(operators):
+            right = self._render_python_atom(operands[i + 1])
+            result = f"({result} {op} {right})"
+        return result
+
+    def _render_c_binary(self, node) -> str:
+        """Render an AdditiveExpr or MultiplicativeExpr as a C expression."""
+        operands = node.operands
+        operators = node.operators
+        result = self._render_c_atom(operands[0])
+        for i, op in enumerate(operators):
+            right = self._render_c_atom(operands[i + 1])
+            result = f"({result} {op} {right})"
+        return result
+
+    def _render_c_function_call(self, node) -> str:
+        """Render a FunctionCallExpr as ``<runtime_helper>(<kind_code>)``."""
+        funcs = self._get_constraint_functions()
+        func_name = funcs.get(node.func, node.func)
+        kind_code = self._CONSTRAINT_KIND_CODES.get(node.arg, 0)
+        return f"{func_name}({kind_code})"
+
+    def _render_python_property(self, node) -> str:
+        """Render a PropertyAccessExpr as a Python ``_registry`` lookup."""
+        segments = list(getattr(node, "segments", []) or [])
+        if len(segments) >= 2:
+            return f'_registry["{segments[0]}"].get("{segments[1]}")'
+        if segments:
+            return f'_registry["{segments[0]}"]'
+        return "0"
+
+    def _render_c_property(self, node) -> str:
+        """Render a PropertyAccessExpr in C (placeholder; T11-T13 may override)."""
+        segments = list(getattr(node, "segments", []) or [])
+        if len(segments) >= 2:
+            return f"/* {segments[0]}.{segments[1]} */ 0"
+        if segments:
+            return f"/* {segments[0]} */ 0"
+        return "0"
+
+    def _format_python_number(self, node) -> str:
+        """Render a NumberLiteral as a Python numeric literal.
+
+        When a unit is attached we delegate to the user-constraints
+        normaliser so the emitted runtime value matches the validator's
+        canonical units.
+        """
+        raw_value = node.value
+        unit = getattr(node, "unit", None)
+        if unit:
+            normalised = self._normalize_constraint_value(raw_value, unit)
+            if normalised is not None:
+                return repr(normalised)
+        try:
+            return repr(float(raw_value))
+        except (TypeError, ValueError):
+            return str(raw_value)
+
+    def _format_c_number(self, node) -> str:
+        """Render a NumberLiteral as a C float literal."""
+        raw_value = node.value
+        unit = getattr(node, "unit", None)
+        value: Any
+        if unit:
+            normalised = self._normalize_constraint_value(raw_value, unit)
+            value = normalised if normalised is not None else raw_value
+        else:
+            value = raw_value
+        try:
+            numeric = float(value)
+        except (TypeError, ValueError):
+            return str(value)
+        if numeric != numeric:  # NaN
+            return "0.0f"
+        if numeric == int(numeric) and abs(numeric) < 1e15:
+            return f"{int(numeric)}.0f"
+        return f"{numeric}f"
+
+    @staticmethod
+    def _unwrap_unary(node):
+        """Return the inner expression wrapped by a ``UnaryExpr``.
+
+        textX may collapse the ``UnaryExpr`` rule at parse time, in
+        which case ``node`` is already the inner expression.  When the
+        rule is preserved we try the common attribute names produced by
+        textX for a single-child rule.
+        """
+        if type(node).__name__ != "UnaryExpr":
+            return node
+        for attr in ("expr", "multiplicative", "multiplicativeExpr", "operand", "value"):
+            inner = getattr(node, attr, None)
+            if inner is not None:
+                return inner
+        return node
+
+    @staticmethod
+    def _normalize_constraint_value(value: Any, unit: str) -> Optional[float]:
+        """Normalise a ``(value, unit)`` pair to the validator's canonical unit.
+
+        Wraps the validator helper in a lazy import to avoid an import
+        cycle at module load time.  Returns ``None`` when the unit is
+        unrecognised so callers can fall back to a raw literal.
+        """
+        try:
+            from demol.lang.semantics.validators.user_constraints import (
+                _normalize_value_with_unit,
+            )
+        except ImportError:
+            return None
+        try:
+            normalised: Any = _normalize_value_with_unit(value, unit)
+        except (ValueError, TypeError):
+            return None
+        try:
+            return float(normalised)
+        except (TypeError, ValueError):
+            return None
