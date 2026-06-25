@@ -84,6 +84,6 @@ OperatingSystem:
     'riotos'        |
     'zephyr'        |
     'arduino'       |
-    'esp-idf'       |
-    'esp-idf-rtos'
+    'esp-idf-rtos'  |
+    'esp-idf'
 ;

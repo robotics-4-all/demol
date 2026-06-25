@@ -317,7 +317,7 @@ def test_pin_assignment_consistency(generate_pair):
 
     * EnvSensor (BME680)   -> GPIO2, GPIO3 (I2C)
     * DistanceSensor (SRF05) -> GPIO23 (trigger), GPIO24 (echo)
-    * StatusLed (WS2812)   -> GPIO18
+    * StatusLed (WS281X)   -> GPIO18
     * LineTracker (TCRT5000) -> GPIO4
     * UserButton (TactileButton) -> GPIO17
 
