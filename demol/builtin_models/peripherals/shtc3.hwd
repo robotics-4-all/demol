@@ -11,7 +11,9 @@ SENSOR[Env] SHTC3 WITH
         sda[sda-0] @ 3,
         scl[scl-0] @ 4
     TEMPLATES
-        raspbian="shtc3.py.j2"
+        raspbian="shtc3.py.j2",
+        riotos="sensor_shtc3.c.j2",
+        zephyr="shtc3.c.j2"
     DEPENDENCIES
         raspbian=[
             {package="adafruit-circuitpython-shtc3", source="pip"}

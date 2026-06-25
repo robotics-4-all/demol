@@ -1,0 +1,6 @@
+DEVICE EspSHTC3 WITH description="ESP32 SHTC3 temp/humidity", author="demol", os=riotos;
+USE WemosD1R32;
+USE SHTC3[MyEnv];
+CONNECT MyEnv WITH
+    POWER gnd -- GND, vcc -- power_3v3
+    DATA i2c[slave_address=0x70] sda -- D2, scl -- D1;
