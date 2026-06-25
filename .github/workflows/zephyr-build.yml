@@ -1,8 +1,7 @@
 # =============================================================================
 # Zephyr Build (native_sim)
 # -----------------------------------------------------------------------------
-# CI gate for the Zephyr backend. For each of the 5 ESP device models under
-# `examples/esp/`, this workflow:
+# CI gate for the Zephyr backend. For each of the 8 ESP device models under
 #
 #   1. Installs `west` (the Zephyr meta-tool).
 #   2. Initialises a Zephyr 3.5 LTS workspace at `~/zephyrproject` and fetches
@@ -41,6 +40,9 @@ jobs:
           - esp_iot_device
           - wemos_bme680
           - wemos_button
+          - wemos_constraint_bme680
+          - wemos_mqtt_bme680
+          - wemos_sampling_bme680
           - wemos_srf05
     steps:
       - uses: actions/checkout@v4
