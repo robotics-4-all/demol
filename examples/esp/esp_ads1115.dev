@@ -1,6 +1,8 @@
 DEVICE EspADS1115 WITH description="ESP32 ADS1115 ADC", author="demol", os=riotos;
 USE WemosD1R32;
 USE ADS1115[MyADC];
+NETWORK[WiFi] WITH ssid="test", password="test123";
+BROKER[MQTT] Local WITH host="localhost", port=1883;
 CONNECT MyADC WITH
-    POWER gnd -- GND, vcc -- power_3v3
-    DATA i2c[slave_address=0x48] sda -- D2, scl -- D1;
+    POWER GND -- GND, VCC -- VCC_3V3
+    DATA i2c[slave_address=0x48] sda sda -- SDA, scl scl -- SCL;

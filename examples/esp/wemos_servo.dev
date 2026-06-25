@@ -1,6 +1,8 @@
 DEVICE WemosServo WITH description="Wemos + servo", author="demol", os=zephyr;
 USE WemosD1R32;
-USE SERVO[MyServo];
+USE ServoGeneric[MyServo];
+NETWORK[WiFi] WITH ssid="test", password="test123";
+BROKER[MQTT] Local WITH host="localhost", port=1883;
 CONNECT MyServo WITH
-    POWER gnd -- GND, vcc -- power_5v
+    POWER gnd -- GND, vcc -- VCC_5V
     DATA gpio[mode="output"] din -- D1;

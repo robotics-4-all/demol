@@ -1,6 +1,8 @@
 DEVICE WemosRelay WITH description="Wemos + relay actuator", author="demol", os=zephyr;
 USE WemosD1R32;
-USE RELAY[MyRelay];
+USE RelayModule[MyRelay];
+NETWORK[WiFi] WITH ssid="test", password="test123";
+BROKER[MQTT] Local WITH host="localhost", port=1883;
 CONNECT MyRelay WITH
-    POWER gnd -- GND, vcc -- power_5v
+    POWER gnd -- GND, vcc -- VCC_5V
     DATA gpio[mode="output"] IN -- D1;

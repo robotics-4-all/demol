@@ -1,12 +1,8 @@
-DEVICE WemosPirHcsr501 WITH description="Wemos D1 Mini with a PIR motion sensor (Zephyr)", author="demol";
-
-NETWORK[WiFi] WITH ssid="test", password="test";
-
-BROKER[MQTT] MyMqttBroker WITH host="node.mqtt.local", port=1883;
-
+DEVICE WemosPirHcsr501 WITH description="Wemos D1 Mini with a PIR motion sensor (Zephyr)", author="demol", os=zephyr;
 USE WemosD1Mini;
 USE PIR_HCSR501[Motion];
-
+NETWORK[WiFi] WITH ssid="test", password="test123";
+BROKER[MQTT] Local WITH host="localhost", port=1883;
 CONNECT Motion WITH
     POWER
         VCC -- power_5v,
