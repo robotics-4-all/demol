@@ -1,0 +1,25 @@
+/*
+ * RIOT Redis broker stub (T44). RIOT does not ship a native Redis client;
+ * the canonical implementation would encode the RESP protocol manually
+ * over the sock module. This stub provides the API surface only.
+ */
+
+#ifndef REDIS_BROKER_H
+#define REDIS_BROKER_H
+
+#include <stdbool.h>
+#include <stddef.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+int redis_broker_init(void);
+int redis_publish(const char *channel, const void *payload, size_t len);
+bool redis_is_available(void);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* REDIS_BROKER_H */

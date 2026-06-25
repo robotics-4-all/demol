@@ -1,0 +1,48 @@
+/*
+ * Zephyr AMQP broker stub (T42).
+ */
+
+#include "amqp_broker.h"
+
+#include <zephyr/kernel.h>
+#include <zephyr/net/socket.h>
+#include <zephyr/sys/printk.h>
+
+static const char *_amqp_host = "{{ cfg.host }}";
+static uint16_t _amqp_port = {{ cfg.port }};
+static const char *_amqp_vhost = "{{ cfg.vhost }}";
+static const char *_amqp_exchange = "{{ cfg.topic_exchange }}";
+static const char *_amqp_user = "{{ cfg.username }}";
+static const char *_amqp_pass = "{{ cfg.password }}";
+
+static int _amqp_fd = -1;
+static bool _amqp_connected = false;
+
+int amqp_broker_init(void)
+{
+    /* TODO: open a TCP socket, do the AMQP protocol-header exchange,
+     * Connection.StartOk / TuneOk / Open, declare the exchange.
+     * For now, log the config so codegen can be exercised end-to-end. */
+    printk("amqp_broker_init: host=%s port=%d vhost=%s exchange=%s\n",
+           _amqp_host, _amqp_port, _amqp_vhost, _amqp_exchange);
+    (void)_amqp_user;
+    (void)_amqp_pass;
+    return 0;
+}
+
+int amqp_publish(const char *topic, const void *payload, size_t len)
+{
+    if (topic == NULL || payload == NULL) {
+        return -EINVAL;
+    }
+    /* TODO: build AMQP Basic.Publish frame and write to the socket. */
+    (void)topic;
+    (void)payload;
+    (void)len;
+    return 0;
+}
+
+bool amqp_is_available(void)
+{
+    return _amqp_connected;
+}

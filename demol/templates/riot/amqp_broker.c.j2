@@ -1,0 +1,77 @@
+/*
+ * RIOT AMQP broker stub (T41).
+ *
+ * RIOT does not ship a native AMQP client module; the canonical
+ * reference implementation would either:
+ *
+ *   (a) Use a third-party AMQP-C client (e.g. rabbitmq-c) pulled in
+ *       via USEMODULE += amqp, or
+ *   (b) Encode AMQP frames manually over the RIOT sock module
+ *       (see https://www.rabbitmq.com/amqp-0-9-1-protocol.html).
+ *
+ * This stub documents the API surface that the rest of the codegen
+ * calls into. The C signature MUST match the Python/RPi wrapper so
+ * the ALERT publish() and sensor data publish() can dispatch on
+ * broker kind without per-callsite changes.
+ *
+ * Header: amqp_broker.h declares the prototypes; the implementation
+ * is left as a documented TODO for a future PR.
+ */
+
+#include "amqp_broker.h"
+
+#include <stdio.h>
+#include <string.h>
+
+#include "periph_conf.h"
+#include "net/sock/tcp.h"
+
+#define AMQP_DEFAULT_PORT 5672
+#define AMQP_BUFFER_SIZE   512
+
+static char _amqp_host[64] = "{{ cfg.host }}";
+static uint16_t _amqp_port = {{ cfg.port }};
+static char _amqp_vhost[64] = "{{ cfg.vhost }}";
+static char _amqp_exchange[64] = "{{ cfg.topic_exchange }}";
+static char _amqp_user[32] = "{{ cfg.username }}";
+static char _amqp_pass[32] = "{{ cfg.password }}";
+
+static sock_tcp_t _amqp_sock;
+static bool _amqp_connected = false;
+
+int amqp_broker_init(void)
+{
+    /* TODO: open TCP connection, perform AMQP protocol header exchange,
+     * send Connection.StartOk, Connection.TuneOk, Connection.Open with
+     * vhost=_amqp_vhost, declare exchange=_amqp_exchange (topic, durable).
+     * For now, record the config and defer connection to first publish. */
+    (void)_amqp_host;
+    (void)_amqp_port;
+    (void)_amqp_vhost;
+    (void)_amqp_exchange;
+    (void)_amqp_user;
+    (void)_amqp_pass;
+    return 0;
+}
+
+int amqp_publish(const char *topic, const void *payload, size_t len)
+{
+    if (topic == NULL || payload == NULL) {
+        return -EINVAL;
+    }
+    /* TODO: build AMQP Basic.Publish frame with the topic as routing key
+     * and exchange=_amqp_exchange, write to the TCP socket, wait for
+     * Basic.Ack. Until a real AMQP client is plugged in, this stub just
+     * logs the call so the rest of the codegen can be exercised end-to-end. */
+    (void)topic;
+    (void)payload;
+    (void)len;
+    return 0;
+}
+
+bool amqp_is_available(void)
+{
+    /* Returns false until a real AMQP client is integrated. Callers
+     * should fall back to MQTT in that case. */
+    return _amqp_connected;
+}
