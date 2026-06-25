@@ -320,7 +320,7 @@ class ZephyrCodeGenerator(BaseCodeGenerator):
                     result.append(
                         {
                             "name": a.name,
-                            "peripheral": str(type(pref).__name__).lower(),
+                            "peripheral": str(getattr(pref, "name", "")).lower(),
                             "condition_c": condition_c,
                             "cooldown_ms": cooldown_ms,
                             "action": "publish",
@@ -340,7 +340,7 @@ class ZephyrCodeGenerator(BaseCodeGenerator):
                     result.append(
                         {
                             "name": a.name,
-                            "peripheral": str(type(pref).__name__).lower(),
+                            "peripheral": str(getattr(pref, "name", "")).lower(),
                             "condition_c": condition_c,
                             "cooldown_ms": cooldown_ms,
                             "action": "activate",
