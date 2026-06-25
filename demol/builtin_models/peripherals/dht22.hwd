@@ -15,16 +15,20 @@ SENSOR[Env] DHT22 WITH
         // SCALE 100/1000 converts DSL literals into the centidegree /
         // thousandths-of-%%RH integer values the driver stores.
         temperature -> "data.temperature" : int32 SCALE 100 FOR riotos,
-        humidity -> "data.humidity" : int32 SCALE 1000 FOR riotos
+        humidity -> "data.humidity" : int32 SCALE 1000 FOR riotos,
+        temperature -> "dht22_data.temperature" : double FOR zephyr,
+        humidity -> "dht22_data.humidity" : double FOR zephyr
     TEMPLATES
         raspbian="dht22.py.j2",
-        riotos="dht22.c.j2"
+        riotos="dht22.c.j2",
+        zephyr="dht22.c.j2"
     DEPENDENCIES
         raspbian=[
             {package="adafruit-circuitpython-dht", source="pip"},
             {package="libgpiod2", source="apt"}
         ],
-        riotos=["dht22"]
+        riotos=["dht22"],
+        zephyr=["dht22"]
     ATTRIBUTES
         gpio_modes[dict] = {data = "input"},
         frequency[float] = 0.5,
