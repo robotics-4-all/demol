@@ -160,6 +160,12 @@ from .validators.peripheral_properties import (
     validate_peripheral_properties,
 )
 
+# Meta-OS validators (reserved OS rejection)
+from .validators.meta_os import (
+    MetaOsNotSupportedValidator,
+    validate_meta_os,
+)
+
 # Base validator class
 from .validators.base import BaseValidator
 
@@ -263,4 +269,7 @@ __all__ = [
     # Peripheral properties validators
     "PeripheralPropertyValidator",
     "validate_peripheral_properties",
+    # Meta-OS validators
+    "MetaOsNotSupportedValidator",
+    "validate_meta_os",
 ]

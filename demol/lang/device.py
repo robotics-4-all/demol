@@ -64,6 +64,18 @@ def model_proc(model, metamodel):
     enrich_model(model)
 
     # ========================================================================
+    # Meta: OS Not Supported (reserved OS values with no codegen backend)
+    # ========================================================================
+    from demol.lang.semantics.validators.meta_os import validate_meta_os
+
+    run_rule(
+        "Meta-OS-NotSupported",
+        validate_meta_os,
+        model,
+        desc="OS is a supported codegen target (not arduino/esp-idf/esp-idf-rtos)",
+    )
+
+    # ========================================================================
     # Well-Formedness: Single board
     # ========================================================================
     run_rule(

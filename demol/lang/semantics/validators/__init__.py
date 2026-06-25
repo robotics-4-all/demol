@@ -31,6 +31,10 @@ from .peripheral_properties import (
     PeripheralPropertyValidator,
     validate_peripheral_properties,
 )
+from .meta_os import (
+    MetaOsNotSupportedValidator,
+    validate_meta_os,
+)
 
 __all__ = [
     "BaseValidator",
@@ -52,4 +56,6 @@ __all__ = [
     "validate_protocol_frequency",
     "PeripheralPropertyValidator",
     "validate_peripheral_properties",
+    "MetaOsNotSupportedValidator",
+    "validate_meta_os",
 ]
