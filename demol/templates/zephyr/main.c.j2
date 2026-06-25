@@ -65,7 +65,7 @@ void check_alerts(void)
 {% endif %}
 {% if samplings %}
 {% for s in samplings -%}
-{% if s.mode in ('on_change', 'batch') %}
+{% if s.mode in ('continuous', 'on_change', 'batch') %}
 #include "{{ s.peripheral }}.h"
 {% endif -%}
 {% endfor %}
