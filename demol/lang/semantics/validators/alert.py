@@ -31,6 +31,9 @@ PER_OS_CAPABILITIES = {
     "raspbian": {"multi_broker": True},
     "riotos": {"multi_broker": False},
     "zephyr": {"multi_broker": True},
+    "arduino": {"multi_broker": True},
+    "esp-idf": {"multi_broker": True},
+    "esp-idf-rtos": {"multi_broker": True},
 }
 
 
