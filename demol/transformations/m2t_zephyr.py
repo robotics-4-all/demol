@@ -257,6 +257,104 @@ class ZephyrCodeGenerator(BaseCodeGenerator):
 
 
 
+    def _collect_alerts(self) -> List[Dict[str, Any]]:
+        """Build the ALERT trigger rendering context for ``main.c.j2``.
+
+        Walks every ``ALERT`` block declared on the model and emits one
+        descriptor dict per alert with keys: ``name`` (str), ``peripheral``
+        (lowercased component type name, matches the .c driver base),
+        ``condition_c`` (rendered C boolean expression, or ``None`` when the
+        property resolver is empty / the condition references an unknown
+        property), ``cooldown_ms`` (integer milliseconds), ``action`` (``"publish"``
+        or ``"activate"``) and ``topic`` (the MQTT topic for ``publish`` actions,
+        the subscribed CONNECT topic for ``activate`` actions).
+
+        Returns an empty list when the model declares no ALERTs. Alerts whose
+        condition cannot be rendered are dropped with a ``logger.warning`` to
+        keep the generated code honest about what the driver actually exposes;
+        ACTIVATE actions whose target has no CONNECT topic are downgraded to a
+        warning (the runtime cannot route a payload to a disconnected target).
+        """
+        alerts = getattr(self.device_model, "alerts", None) or []
+        if not alerts:
+            return []
+        result: List[Dict[str, Any]] = []
+        for a in alerts:
+            source = getattr(a, "source", None)
+            source_name = getattr(source, "name", None) if source else None
+            pref = getattr(source, "ref", None) if source else None
+            if not source_name or pref is None:
+                logger.warning(
+                    "Zephyr alert '%s' dropped: source peripheral is unresolved.",
+                    getattr(a, "name", "?"),
+                )
+                continue
+            resolver = self.get_alert_property_resolver(pref, target="zephyr")
+            if not resolver:
+                logger.warning(
+                    "Zephyr alert '%s' dropped: peripheral '%s' has no PROPERTIES "
+                    "block declaring zephyr targets. Add PROPERTIES to the .hwd "
+                    "to enable Zephyr alert codegen.",
+                    a.name,
+                    source_name,
+                    type(pref).__name__,
+                )
+                continue
+            condition_c = self.render_riot_condition(a.condition, resolver)
+            if condition_c is None:
+                logger.warning(
+                    "Zephyr alert '%s' dropped: condition references a property "
+                    "not declared in PROPERTIES (resolver=%s).",
+                    a.name,
+                    sorted(resolver.keys()),
+                )
+                continue
+            cooldown_sec = self.cooldown_to_seconds(
+                getattr(a, "cooldown", None), getattr(a, "cooldown_unit", None)
+            )
+            cooldown_ms = int(cooldown_sec * 1000)
+            actions = getattr(a, "actions", None) or []
+            for act in actions:
+                kind = type(act).__name__
+                if kind == "AlertPublish":
+                    result.append(
+                        {
+                            "name": a.name,
+                            "peripheral": str(type(pref).__name__).lower(),
+                            "condition_c": condition_c,
+                            "cooldown_ms": cooldown_ms,
+                            "action": "publish",
+                            "topic": getattr(act, "topic", ""),
+                        }
+                    )
+                elif kind == "AlertActivate":
+                    target_topic = self.resolve_activate_target_topic(act.target)
+                    if not target_topic:
+                        logger.warning(
+                            "Zephyr alert '%s' ACTIVATE action skipped: target '%s' "
+                            "has no CONNECT topic.",
+                            a.name,
+                            getattr(act.target, "name", "?"),
+                        )
+                        continue
+                    result.append(
+                        {
+                            "name": a.name,
+                            "peripheral": str(type(pref).__name__).lower(),
+                            "condition_c": condition_c,
+                            "cooldown_ms": cooldown_ms,
+                            "action": "activate",
+                            "topic": target_topic,
+                        }
+                    )
+                else:
+                    logger.warning(
+                        "Zephyr alert '%s' has unknown action kind '%s' -- skipped.",
+                        a.name,
+                        kind,
+                    )
+        return result
+
     def _collect_samplings(self) -> List[Dict[str, Any]]:
 
         """Build the sampling-loop rendering context for ``main.c.j2``.
@@ -501,25 +599,34 @@ class ZephyrCodeGenerator(BaseCodeGenerator):
     def _render_main_c(self) -> str:
         """Return the ``app/src/main.c`` body.
 
-        Three branches, in priority order:
+        Four branches, in priority order:
 
-        1. Model declares >= 1 SAMPLING block -> render the Jinja2
-           ``main.c.j2`` template, which emits a deterministic
-           ``while (1) { k_msleep(period); read_<peripheral>(); }`` loop
-           with per-mode dispatch (continuous / on_change / batch /
-           on_demand).  The fastest sampling drives the cadence.
-        2. Model declares >= 1 MQTT broker -> emit the MQTT-flavoured
-           skeleton (``_MQTT_APP_MAIN_C``) which wires ``mqtt_init()``
-           into ``main()``.  The full publish loop is deferred to T17+.
-        3. Otherwise -> the static ``_APP_SRC_MAIN_C`` skeleton (byte-
+        1. Model declares >= 1 ALERT -> render the Jinja2 ``main.c.j2``
+           template with the collected alerts. The template emits a
+           ``void check_alerts(void)`` function and calls it from a
+           main loop. PUBLISH actions emit a ``LOG_INF`` placeholder
+           (full MQTT publish is owned by T16); ACTIVATE actions emit a
+           ``gpio_pin_set_dt`` placeholder.
+        2. Model declares >= 1 SAMPLING block -> render the same template
+           with sampling entries. Each sampling entry has keys
+           ``peripheral``, ``rate``, ``mode``, ``period_ms`` and
+           ``buffer_size``; the template emits a deterministic
+           ``while (1) { k_msleep(period); read_<peripheral>(); }`` loop.
+        3. Model declares >= 1 MQTT broker (and no ALERTs / SAMPLINGs) ->
+           emit the MQTT-flavoured skeleton (``_MQTT_APP_MAIN_C``) which
+           wires ``mqtt_init()`` into ``main()``.  The full publish loop
+           is deferred to T17+.
+        4. Otherwise -> the static ``_APP_SRC_MAIN_C`` skeleton (byte-
            identical to the pre-T14 output, so existing golden snapshots
-           for non-SAMPLING / non-MQTT examples stay stable).
+           for non-ALERT / non-SAMPLING / non-MQTT examples stay stable).
         """
+        alerts = self._collect_alerts()
         samplings = self._collect_samplings()
-        if samplings:
-            min_period_ms = min(s["period_ms"] for s in samplings)
+        if alerts or samplings:
+            min_period_ms = min(s["period_ms"] for s in samplings) if samplings else 1000
             template = self.env.get_template("main.c.j2")
             return template.render(
+                alerts=alerts,
                 samplings=samplings,
                 min_period_ms=min_period_ms,
             )
