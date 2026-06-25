@@ -1,0 +1,32 @@
+// WemosD1Mini + BME680 with user-defined constraint
+//
+// Demonstrates the CONSTRAINT DSL construct on an ESP8266 platform:
+// a power-budget constraint verifies total peripheral consumption
+// stays within the specified limit. The BME680 sensor's max power draw
+// (39.6 mW) easily satisfies the 100 mW ceiling, making this example
+// a validation-time pass (shows CONSTRAINT usage without forcing a
+// semantic error).
+
+DEVICE WemosConstraintBME680 WITH
+    description="Wemos + BME680 with CONSTRAINT",
+    author="demol";
+
+NETWORK[WiFi] WITH ssid="Wifi_2.4GHz", password="guest";
+
+BROKER[MQTT] MyMqttBroker WITH
+    host="node.mqtt.local", port=1883,
+    auth.username="guest", auth.password="guest";
+
+USE WemosD1Mini;
+USE BME680[MyBME];
+
+CONNECT MyBME WITH
+    POWER
+        gnd -- gnd,
+        vcc -- power_5v
+    DATA
+        i2c[slave_address=0x76] sda sda -- d2, scl scl -- d1
+    @ "my_wemos.sensors.env.bme680";
+
+CONSTRAINT power_ok: sum_power(PERIPHERAL) < 100
+    MESSAGE "Total peripheral power exceeds 100 mW budget";
