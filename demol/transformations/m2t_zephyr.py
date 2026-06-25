@@ -589,6 +589,7 @@ class ZephyrCodeGenerator(BaseCodeGenerator):
             except ValueError:
                 pass
         # Wemos D1 Mini: d3=GPIO0, d4=GPIO2 -- not currently resolved
+        return 0
 
     @staticmethod
     def _extract_i2c_address(data_conn: Any) -> str:
