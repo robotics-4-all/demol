@@ -137,6 +137,18 @@ class {{ peripheral.name }}Node:
         return False
 
 {% endif %}
+
+{% if sampling and sampling.mode == "on_demand" %}
+    def read_on_demand(self):
+        """Read sensor data and publish on external request.
+
+        Returns the current sensor data dict.
+        """
+        self._read()
+        self._send()
+        return self.sensor.current_state.get('data', {})
+{% endif %}
+
     def disconnect(self):
         self.sensor.disconnect()
 
