@@ -1,0 +1,31 @@
+#include "actuator_{{ name }}_{{ index }}.h"
+#include "periph/gpio.h"
+
+static gpio_t {{ name }}_{{ index }}_pin;
+
+int relay_init_{{ name }}(void)
+{
+    {{ name }}_{{ index }}_pin = GPIO_PIN(0, {{ conn.gpio.pins.IN.id }});
+    printf("Initialize relay on pin %d ... ", {{ conn.gpio.pins.IN.id }});
+    if (gpio_init({{ name }}_{{ index }}_pin, GPIO_OUT) < 0) {
+        puts("failed");
+        return -1;
+    }
+    gpio_write({{ name }}_{{ index }}_pin, {{ attributes.initial_state|default(false)|string|lower }} == 'true' ? 1 : 0);
+    puts("OK");
+    return 0;
+}
+
+void relay_set_{{ name }}(int state)
+{
+    if (state) {
+        gpio_set({{ name }}_{{ index }}_pin);
+    } else {
+        gpio_clear({{ name }}_{{ index }}_pin);
+    }
+}
+
+int relay_get_{{ name }}(void)
+{
+    return gpio_read({{ name }}_{{ index }}_pin);
+}

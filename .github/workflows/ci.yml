@@ -141,7 +141,7 @@ jobs:
         example:
           - esp_bme280
           - esp_dht22
-          - wemos_bme680
+          - esp_relay
           - wemos_bme680_alert
           - wemos_button
           - wemos_srf05

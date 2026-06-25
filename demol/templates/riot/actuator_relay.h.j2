@@ -1,0 +1,8 @@
+#ifndef {{ name|upper }}_{{ index }}_RELAY_DRIVER_H
+#define {{ name|upper }}_{{ index }}_RELAY_DRIVER_H
+
+int relay_init_{{ name }}(void);
+void relay_set_{{ name }}(int state);
+int relay_get_{{ name }}(void);
+
+#endif /* {{ name|upper }}_{{ index }}_RELAY_DRIVER_H */
