@@ -1,0 +1,16 @@
+DEVICE EspPirHcsr501 WITH description="ESP32 with PIR HC-SR501 motion sensor (RIOT)", author="demol";
+
+NETWORK[WiFi] WITH ssid="Wifi_2.4GHz", password="guest";
+
+BROKER[MQTT] MyMqttBroker WITH host="node.mqtt.local", port=1883, auth.username="guest", auth.password="guest";
+
+USE ESP32Wroom32;
+USE PIR_HCSR501[Motion];
+
+CONNECT Motion WITH
+    POWER
+        VCC -- VCC_5V,
+        GND -- GND_1
+    DATA
+        gpio[mode="input"] OUT -- GPIO11
+    @ "sensors/pir/motion";
