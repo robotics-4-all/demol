@@ -1,0 +1,6 @@
+DEVICE WemosRelay WITH description="Wemos + relay actuator", author="demol", os=zephyr;
+USE WemosD1R32;
+USE RELAY[MyRelay];
+CONNECT MyRelay WITH
+    POWER gnd -- GND, vcc -- power_5v
+    DATA gpio[mode="output"] IN -- D1;
