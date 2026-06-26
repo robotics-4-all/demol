@@ -635,9 +635,8 @@ def test_rpi_transformation_sampling_on_demand(tmp_path):
     m2t_rpi(model, output_dir=str(output_dir))
 
     node_content = (output_dir / "envsensor_node.py").read_text()
-    assert '_FREQUENCY = 5.0' in node_content
+    assert "_FREQUENCY = 5.0" in node_content
     assert '_SAMPLING_MODE = "on_demand"' in node_content
     assert "def read_on_demand(self):" in node_content
     assert "self._read()" in node_content
     assert "self._send()" in node_content
-

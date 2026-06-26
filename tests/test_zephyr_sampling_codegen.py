@@ -23,7 +23,6 @@ import pytest
 
 from demol.transformations.m2t_zephyr import m2t_zephyr
 
-
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 
@@ -169,6 +168,7 @@ def _read(p: Path) -> str:
 # Mirrors the pattern in test_zephyr_constraint_codegen.py.
 # ---------------------------------------------------------------------------
 
+
 @pytest.fixture(scope="module")
 def sampling_out(device_mm, tmp_path_factory):
     out = tmp_path_factory.mktemp("zephyr_sampling")
@@ -223,6 +223,7 @@ def no_sampling_out(device_mm, tmp_path_factory):
 # breaks.
 # ---------------------------------------------------------------------------
 
+
 class TestBackwardCompat:
     """A model without SAMPLINGs must still produce the original skeleton."""
 
@@ -253,6 +254,7 @@ class TestBackwardCompat:
 # ---------------------------------------------------------------------------
 # Continuous mode — the canonical SAMPLING case.
 # ---------------------------------------------------------------------------
+
 
 class TestContinuousSampling:
     """continuous mode: always call ``<peripheral>_read`` in the loop."""
@@ -298,6 +300,7 @@ class TestContinuousSampling:
 # on_change mode — compare to last sample, only call when changed.
 # ---------------------------------------------------------------------------
 
+
 class TestOnChangeSampling:
     """on_change mode: compare to last value, only call when different."""
 
@@ -328,6 +331,7 @@ class TestOnChangeSampling:
 # batch mode — collect N samples in a buffer, publish when full.
 # ---------------------------------------------------------------------------
 
+
 class TestBatchSampling:
     """batch mode: collect N samples in a buffer, publish when full."""
 
@@ -355,6 +359,7 @@ class TestBatchSampling:
 # ---------------------------------------------------------------------------
 # on_demand mode — no main-loop call, skeleton reserves an RPC stub.
 # ---------------------------------------------------------------------------
+
 
 class TestOnDemandSampling:
     """on_demand mode: no main-loop call, an RPC stub is reserved instead."""
@@ -386,6 +391,7 @@ class TestOnDemandSampling:
 # Multi-SAMPLING — the loop must iterate all configured peripherals.
 # ---------------------------------------------------------------------------
 
+
 class TestMultiSampling:
     """A model with multiple SAMPLINGs must emit all of them in the loop."""
 
@@ -409,6 +415,7 @@ class TestMultiSampling:
 # ---------------------------------------------------------------------------
 # Determinism — generation must be repeatable.
 # ---------------------------------------------------------------------------
+
 
 class TestGenerationDeterminism:
     """Re-generation must be byte-identical (template uses no time/random)."""

@@ -94,7 +94,7 @@ def test_dht22_gpio_overlay_node_emitted(device_mm, tmp_path):
     overlay = overlays[0].read_text(encoding="utf-8")
     assert "demol,dht22" in overlay, "Missing demol,dht22 compatible in overlay"
     assert "data-gpios" in overlay, "Missing data-gpios in overlay"
-    assert "status = \"okay\"" in overlay, "Missing status okay in overlay"
+    assert 'status = "okay"' in overlay, "Missing status okay in overlay"
 
 
 def test_dht22_binding_yaml_emitted(device_mm, tmp_path):
@@ -106,6 +106,6 @@ def test_dht22_binding_yaml_emitted(device_mm, tmp_path):
     assert binding.is_file(), "Missing demol-dht22.yaml binding"
 
     body = binding.read_text(encoding="utf-8")
-    assert "compatible: \"demol,dht22\"" in body
+    assert 'compatible: "demol,dht22"' in body
     assert "data-gpios" in body
     assert "phandle-array" in body

@@ -11,7 +11,6 @@ from pathlib import Path
 from demol.lang.device import get_device_mm
 from demol.transformations.m2t_riot import m2t_riot
 
-
 BASE_MODEL = """
 DEVICE Bh1750Test WITH
     description="BH1750 light sensor test",
@@ -108,8 +107,8 @@ class TestBh1750CI2CAddress:
 
     def test_bh1750_c_has_custom_i2c_addr(self, tmp_path):
         model_str = BASE_MODEL.replace(
-            'DATA i2c[slave_address=0x23]',
-            'DATA i2c[slave_address=0x5c]',
+            "DATA i2c[slave_address=0x23]",
+            "DATA i2c[slave_address=0x5c]",
         )
         out = tmp_path / "out"
         _generate(model_str, out)

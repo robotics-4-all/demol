@@ -14,7 +14,6 @@ from pathlib import Path
 
 import pytest
 
-
 REPO_ROOT = Path(__file__).resolve().parent.parent
 RPI_EXAMPLES_DIR = REPO_ROOT / "examples" / "rpi"
 
@@ -73,9 +72,9 @@ def test_rpi_amqp_pip_dependency_added(tmp_path):
     out = tmp_path / "amqp"
     _generate(model, out)
     reqs = _read(out, "requirements.txt")
-    assert re.search(r"^pika", reqs, re.MULTILINE), (
-        f"requirements.txt must include pika when AMQP is declared; got:\n{reqs}"
-    )
+    assert re.search(
+        r"^pika", reqs, re.MULTILINE
+    ), f"requirements.txt must include pika when AMQP is declared; got:\n{reqs}"
 
 
 def test_rpi_amqp_not_emitted_for_mqtt_model(tmp_path):
@@ -85,12 +84,10 @@ def test_rpi_amqp_not_emitted_for_mqtt_model(tmp_path):
         pytest.skip(f"missing example: {mqtt_model}")
     out = tmp_path / "mqtt"
     _generate(mqtt_model, out)
-    assert not (out / "amqp_broker.py").exists(), (
-        "amqp_broker.py must NOT be emitted when model has only MQTT brokers"
-    )
-    assert not (out / "redis_broker.py").exists(), (
-        "redis_broker.py must NOT be emitted when model has only MQTT brokers"
-    )
+    assert not (out / "amqp_broker.py").exists(), "amqp_broker.py must NOT be emitted when model has only MQTT brokers"
+    assert not (
+        out / "redis_broker.py"
+    ).exists(), "redis_broker.py must NOT be emitted when model has only MQTT brokers"
     reqs = _read(out, "requirements.txt")
     assert "pika" not in reqs, "requirements.txt must NOT include pika for MQTT-only model"
     assert "redis" not in reqs, "requirements.txt must NOT include redis for MQTT-only model"
@@ -130,9 +127,9 @@ def test_rpi_redis_pip_dependency_added(tmp_path):
     out = tmp_path / "redis"
     _generate(model, out)
     reqs = _read(out, "requirements.txt")
-    assert re.search(r"^redis", reqs, re.MULTILINE), (
-        f"requirements.txt must include redis when Redis is declared; got:\n{reqs}"
-    )
+    assert re.search(
+        r"^redis", reqs, re.MULTILINE
+    ), f"requirements.txt must include redis when Redis is declared; got:\n{reqs}"
 
 
 def test_rpi_get_broker_config_redis_kind():

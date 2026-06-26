@@ -17,7 +17,6 @@ from demol.lang.device import get_device_mm
 
 from demol.transformations.m2t_riot import m2t_riot
 
-
 BASE_MODEL = """
 DEVICE ConstraintTest WITH
     description="Constraint test",

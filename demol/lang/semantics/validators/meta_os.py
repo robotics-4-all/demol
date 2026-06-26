@@ -24,10 +24,7 @@ class MetaOsNotSupportedValidator(BaseValidator):
 
     @staticmethod
     def get_description() -> str:
-        return (
-            "Rejects reserved OS values (arduino, esp-idf, esp-idf-rtos) "
-            "that have no codegen backend"
-        )
+        return "Rejects reserved OS values (arduino, esp-idf, esp-idf-rtos) " "that have no codegen backend"
 
     @staticmethod
     def validate(model, **kwargs):

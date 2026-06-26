@@ -32,33 +32,42 @@ def _generate_zephyr(model: Path, out_dir: Path) -> subprocess.CompletedProcess:
     )
 
 
-@pytest.mark.parametrize("example,tpl_rel", [
-    ("esp_relay.dev", "riot/actuator_relay.c.j2"),
-    ("esp_servo.dev", "riot/actuator_servo.c.j2"),
-    ("esp_ads1115.dev", "riot/sensor_ads1115.c.j2"),
-    ("esp_shtc3.dev", "riot/sensor_shtc3.c.j2"),
-])
+@pytest.mark.parametrize(
+    "example,tpl_rel",
+    [
+        ("esp_relay.dev", "riot/actuator_relay.c.j2"),
+        ("esp_servo.dev", "riot/actuator_servo.c.j2"),
+        ("esp_ads1115.dev", "riot/sensor_ads1115.c.j2"),
+        ("esp_shtc3.dev", "riot/sensor_shtc3.c.j2"),
+    ],
+)
 def test_riot_template_exists(example, tpl_rel):
     assert (TEMPLATES_DIR / tpl_rel).is_file(), f"Missing {tpl_rel}"
 
 
-@pytest.mark.parametrize("example,tpl_rel", [
-    ("wemos_relay.dev", "zephyr/relay.c.j2"),
-    ("wemos_servo.dev", "zephyr/servo.c.j2"),
-    ("wemos_ads1115.dev", "zephyr/ads1115.c.j2"),
-    ("wemos_shtc3.dev", "zephyr/shtc3.c.j2"),
-    ("wemos_hw006.dev", "zephyr/hw006.c.j2"),
-])
+@pytest.mark.parametrize(
+    "example,tpl_rel",
+    [
+        ("wemos_relay.dev", "zephyr/relay.c.j2"),
+        ("wemos_servo.dev", "zephyr/servo.c.j2"),
+        ("wemos_ads1115.dev", "zephyr/ads1115.c.j2"),
+        ("wemos_shtc3.dev", "zephyr/shtc3.c.j2"),
+        ("wemos_hw006.dev", "zephyr/hw006.c.j2"),
+    ],
+)
 def test_zephyr_template_exists(example, tpl_rel):
     assert (TEMPLATES_DIR / tpl_rel).is_file(), f"Missing {tpl_rel}"
 
 
-@pytest.mark.parametrize("example,output_glob", [
-    ("esp_relay.dev", "actuator_relay_0.c"),
-    ("esp_servo.dev", "actuator_servo_0.c"),
-    ("esp_ads1115.dev", "sensor_ads1115_0.c"),
-    ("esp_shtc3.dev", "sensor_shtc3_0.c"),
-])
+@pytest.mark.parametrize(
+    "example,output_glob",
+    [
+        ("esp_relay.dev", "actuator_relay_0.c"),
+        ("esp_servo.dev", "actuator_servo_0.c"),
+        ("esp_ads1115.dev", "sensor_ads1115_0.c"),
+        ("esp_shtc3.dev", "sensor_shtc3_0.c"),
+    ],
+)
 def test_riot_generate_produces_driver(example, output_glob, tmp_path):
     model = EXAMPLES_DIR / example
     if not model.is_file():
@@ -70,13 +79,16 @@ def test_riot_generate_produces_driver(example, output_glob, tmp_path):
     assert matches, f"Expected {output_glob} under {out}; got {list(out.rglob('*'))[:5]}"
 
 
-@pytest.mark.parametrize("example,output_glob", [
-    ("wemos_relay.dev", "relay_0.c"),
-    ("wemos_servo.dev", "servo_0.c"),
-    ("wemos_ads1115.dev", "ads1115_0.c"),
-    ("wemos_shtc3.dev", "shtc3_0.c"),
-    ("wemos_hw006.dev", "hw006_0.c"),
-])
+@pytest.mark.parametrize(
+    "example,output_glob",
+    [
+        ("wemos_relay.dev", "relay_0.c"),
+        ("wemos_servo.dev", "servo_0.c"),
+        ("wemos_ads1115.dev", "ads1115_0.c"),
+        ("wemos_shtc3.dev", "shtc3_0.c"),
+        ("wemos_hw006.dev", "hw006_0.c"),
+    ],
+)
 def test_zephyr_generate_produces_driver(example, output_glob, tmp_path):
     model = EXAMPLES_DIR / example
     if not model.is_file():

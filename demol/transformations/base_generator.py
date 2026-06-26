@@ -62,7 +62,7 @@ class BaseCodeGenerator(ABC):
 
         type_name = type(broker).__name__
         if type_name.endswith("Broker"):
-            kind = type_name[:-len("Broker")].lower()
+            kind = type_name[: -len("Broker")].lower()
         else:
             kind = "unknown"
         if kind not in ("amqp", "mqtt", "redis"):
@@ -883,9 +883,7 @@ class BaseCodeGenerator(ABC):
             "max_power": "max_power_mW",
         }
 
-    def get_constraint_runtime_check(
-        self, model, backend: Optional[str] = None
-    ) -> str:
+    def get_constraint_runtime_check(self, model, backend: Optional[str] = None) -> str:
         """Emit a runtime ``check_constraints()`` block for ``model``.
 
         The output is a multi-line string suitable for splicing into a
@@ -924,15 +922,13 @@ class BaseCodeGenerator(ABC):
             return "\n".join(header + self._emit_python_runtime_check(constraints))
         if resolved_backend in ("riotos", "zephyr"):
             return "\n".join(header + self._emit_c_runtime_check(constraints))
-        raise ValueError(
-            f"Unsupported backend for constraint runtime check: {resolved_backend!r}"
-        )
+        raise ValueError(f"Unsupported backend for constraint runtime check: {resolved_backend!r}")
 
     def _emit_python_runtime_check(self, constraints: List[Any]) -> List[str]:
         """Build the Python ``check_constraints()`` body line-by-line."""
         lines = [
             "def check_constraints():",
-            "    \"\"\"Run all declared CONSTRAINTs and return the failure count.\"\"\"",
+            '    """Run all declared CONSTRAINTs and return the failure count."""',
             "    constraint_failures = 0",
         ]
         for c in constraints:
@@ -986,9 +982,7 @@ class BaseCodeGenerator(ABC):
             return self._render_python_predicate(constraint)
         if backend in ("riotos", "zephyr"):
             return self._render_c_predicate(constraint)
-        raise ValueError(
-            f"Unsupported backend for constraint predicate: {backend!r}"
-        )
+        raise ValueError(f"Unsupported backend for constraint predicate: {backend!r}")
 
     def _render_python_predicate(self, constraint) -> str:
         """Render a UserConstraint as a Python boolean expression.

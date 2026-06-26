@@ -10,7 +10,6 @@ import subprocess
 import tempfile
 from pathlib import Path
 
-
 EXAMPLES_DIR = Path(__file__).resolve().parent.parent / "examples" / "esp"
 
 
@@ -47,8 +46,7 @@ def test_relay_generated_driver_exists():
 
         driver_file = out / "actuator_relay_0.c"
         assert driver_file.is_file(), (
-            f"Expected generated driver at {driver_file}. "
-            f"Contents of {out}: {list(out.iterdir())}"
+            f"Expected generated driver at {driver_file}. " f"Contents of {out}: {list(out.iterdir())}"
         )
 
 
@@ -66,9 +64,5 @@ def test_relay_generated_driver_contains_init():
 
         driver_file = out / "actuator_relay_0.c"
         content = driver_file.read_text()
-        assert "relay_init" in content, (
-            f"Expected 'relay_init' in generated C file.\n{content}"
-        )
-        assert "relay_set" in content, (
-            f"Expected 'relay_set' in generated C file.\n{content}"
-        )
+        assert "relay_init" in content, f"Expected 'relay_init' in generated C file.\n{content}"
+        assert "relay_set" in content, f"Expected 'relay_set' in generated C file.\n{content}"

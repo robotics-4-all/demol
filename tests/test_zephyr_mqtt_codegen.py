@@ -19,7 +19,6 @@ import pytest
 from demol.lang import get_device_mm
 from demol.transformations.m2t_zephyr import m2t_zephyr
 
-
 # ---------------------------------------------------------------------------
 # Inline DSL fixtures
 # ---------------------------------------------------------------------------
@@ -143,29 +142,23 @@ class TestKconfigEmission:
         """`CONFIG_MQTT_LIB=y` is the canonical Zephyr symbol for the MQTT client."""
         prj = (mqtt_out / "app" / "prj.conf").read_text()
         assert "CONFIG_MQTT_LIB=y" in prj, (
-            "Expected CONFIG_MQTT_LIB=y in prj.conf when an MQTT broker is "
-            "present. Got:\n" + prj
+            "Expected CONFIG_MQTT_LIB=y in prj.conf when an MQTT broker is " "present. Got:\n" + prj
         )
 
     def test_network_ipv4_enabled(self, mqtt_out: Path):
         prj = (mqtt_out / "app" / "prj.conf").read_text()
         assert "CONFIG_NET_IPV4=y" in prj, (
-            "Expected CONFIG_NET_IPV4=y — MQTT needs a working TCP/IP stack. "
-            "Got:\n" + prj
+            "Expected CONFIG_NET_IPV4=y — MQTT needs a working TCP/IP stack. " "Got:\n" + prj
         )
 
     def test_network_tcp_enabled(self, mqtt_out: Path):
         prj = (mqtt_out / "app" / "prj.conf").read_text()
-        assert "CONFIG_NET_TCP=y" in prj, (
-            "Expected CONFIG_NET_TCP=y — MQTT sits on top of TCP. "
-            "Got:\n" + prj
-        )
+        assert "CONFIG_NET_TCP=y" in prj, "Expected CONFIG_NET_TCP=y — MQTT sits on top of TCP. " "Got:\n" + prj
 
     def test_sockets_enabled(self, mqtt_out: Path):
         prj = (mqtt_out / "app" / "prj.conf").read_text()
         assert "CONFIG_NET_SOCKETS=y" in prj, (
-            "Expected CONFIG_NET_SOCKETS=y — Zephyr's MQTT client uses BSD "
-            "sockets internally. Got:\n" + prj
+            "Expected CONFIG_NET_SOCKETS=y — Zephyr's MQTT client uses BSD " "sockets internally. Got:\n" + prj
         )
 
     def test_multi_broker_model_enables_mqtt_lib(self, multi_mqtt_out: Path):
@@ -204,16 +197,13 @@ class TestMainCEmission:
     def test_mqtt_init_function_present(self, mqtt_out: Path):
         main_c = (mqtt_out / "app" / "src" / "main.c").read_text()
         assert "mqtt_init" in main_c, (
-            "Expected `mqtt_init` to be referenced in main.c when the model "
-            "has an MQTT broker. Got:\n" + main_c
+            "Expected `mqtt_init` to be referenced in main.c when the model " "has an MQTT broker. Got:\n" + main_c
         )
 
     def test_mqtt_init_called_from_main(self, mqtt_out: Path):
         """`mqtt_init()` must be invoked from `main()`."""
         main_c = (mqtt_out / "app" / "src" / "main.c").read_text()
-        assert "mqtt_init();" in main_c, (
-            "Expected `mqtt_init();` invocation inside main(). Got:\n" + main_c
-        )
+        assert "mqtt_init();" in main_c, "Expected `mqtt_init();` invocation inside main(). Got:\n" + main_c
 
     def test_mqtt_header_included(self, mqtt_out: Path):
         main_c = (mqtt_out / "app" / "src" / "main.c").read_text()
@@ -230,8 +220,7 @@ class TestMainCEmission:
     def test_mqtt_client_struct_declared(self, mqtt_out: Path):
         main_c = (mqtt_out / "app" / "src" / "main.c").read_text()
         assert "struct mqtt_client" in main_c, (
-            "Expected `struct mqtt_client client;` declaration in main.c. "
-            "Got:\n" + main_c
+            "Expected `struct mqtt_client client;` declaration in main.c. " "Got:\n" + main_c
         )
 
 
@@ -287,6 +276,5 @@ class TestMqttSkeletonCompilable:
         for token in forbidden:
             assert token not in main_c, (
                 f"T16 scope violation: `{token}` must NOT appear in the "
-                "skeleton. The full publish loop is deferred to T17+.\n"
-                + main_c
+                "skeleton. The full publish loop is deferred to T17+.\n" + main_c
             )

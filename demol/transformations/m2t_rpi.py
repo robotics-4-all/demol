@@ -406,10 +406,7 @@ class RPiCodeGenerator(BaseCodeGenerator, DockerBuildMixin):
         # T40 / T43: add AMQP / Redis pip dependencies when those brokers
         # are declared. Versions are pinned to current stable releases
         # (no upper bound) so Renovate / dependabot can bump them.
-        broker_kinds = {
-            self.get_broker_config(broker).get("kind", "unknown")
-            for broker in self.get_brokers()
-        }
+        broker_kinds = {self.get_broker_config(broker).get("kind", "unknown") for broker in self.get_brokers()}
         if "amqp" in broker_kinds and not any(d.startswith("pika") for d in pip_deps):
             pip_deps.append("pika>=1.3.0")
         if "redis" in broker_kinds and not any(d.startswith("redis") for d in pip_deps):

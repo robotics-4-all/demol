@@ -19,7 +19,6 @@ import pytest
 
 from demol.transformations.m2t_zephyr import m2t_zephyr
 
-
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 

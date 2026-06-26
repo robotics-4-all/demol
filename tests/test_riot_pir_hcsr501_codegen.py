@@ -10,7 +10,6 @@ from pathlib import Path
 from demol.lang.device import get_device_mm
 from demol.transformations.m2t_riot import m2t_riot
 
-
 BASE_MODEL = """
 DEVICE PirTest WITH
     description="PIR HC-SR501 motion sensor test",

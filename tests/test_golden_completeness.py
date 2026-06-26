@@ -36,8 +36,7 @@ def test_golden_dir_has_ambr_file(backend: str) -> None:
     )
     ambr_files = list(golden_dir.glob("*.ambr"))
     assert ambr_files, (
-        f"No .ambr files found in {golden_dir}. "
-        f"Run: pytest tests/test_{backend}_goldens.py --snapshot-update"
+        f"No .ambr files found in {golden_dir}. " f"Run: pytest tests/test_{backend}_goldens.py --snapshot-update"
     )
 
 
@@ -46,8 +45,7 @@ def test_snapshot_file_exists(snapshot_file: str) -> None:
     """Each expected syrupy .ambr file must exist under __snapshots__/."""
     path = SNAPSHOTS_DIR / snapshot_file
     assert path.is_file(), (
-        f"Expected snapshot file {path} not found. "
-        f"Run the corresponding golden test with --snapshot-update."
+        f"Expected snapshot file {path} not found. " f"Run the corresponding golden test with --snapshot-update."
     )
 
 

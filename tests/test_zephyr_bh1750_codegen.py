@@ -4,6 +4,7 @@ Verifies the Zephyr backend emits a valid bh1750.c driver, that it uses
 the Zephyr sensor API (sensor_sample_fetch / SENSOR_CHAN_LIGHT), and
 that the devicetree overlay references the correct compatible string.
 """
+
 from pathlib import Path
 from textwrap import dedent
 
@@ -40,11 +41,13 @@ def synthetic_bh1750_dir(device_mm, tmp_path_factory):
 
 def _has_cpp() -> bool:
     import shutil
+
     return shutil.which("cpp") is not None
 
 
 def _has_clang_format() -> bool:
     import shutil
+
     return shutil.which("clang-format") is not None
 
 
@@ -56,6 +59,7 @@ def _validate_c_syntax(c_file: Path) -> tuple:
     when cpp is missing.
     """
     import subprocess
+
     zephyr_stubs_dir = PROJECT_ROOT / "tests" / "fixtures" / "zephyr_stubs"
 
     if _has_cpp() and zephyr_stubs_dir.is_dir():
@@ -114,9 +118,7 @@ def test_bh1750_devicetree_overlay_has_rohm_compatible(synthetic_bh1750_dir):
     assert overlays, "No board overlay emitted"
 
     overlay_text = overlays[0].read_text(encoding="utf-8")
-    assert "rohm,bh1750" in overlay_text, (
-        f"Overlay {overlays[0].name} missing rohm,bh1750 compatible"
-    )
+    assert "rohm,bh1750" in overlay_text, f"Overlay {overlays[0].name} missing rohm,bh1750 compatible"
     assert "0x23" in overlay_text, "Overlay missing I2C address 0x23"
 
 

@@ -35,6 +35,7 @@ def _read(p: Path) -> str:
 
 def _generate(model_str: str, out: Path) -> None:
     from demol.lang.device import get_device_mm
+
     mm = get_device_mm()
     model = mm.model_from_str(model_str)
     m2t_zephyr(model, output_dir=str(out))
@@ -71,7 +72,7 @@ class TestPirDriverContent:
         out = tmp_path / "out"
         _generate(SYNTHETIC_PIR_MODEL, out)
         body = _read(out / "app" / "src" / "pir_hcsr501.c")
-        assert '#include <zephyr/drivers/gpio.h>' in body
+        assert "#include <zephyr/drivers/gpio.h>" in body
 
     def test_pir_driver_has_gpio_dt_spec(self, tmp_path) -> None:
         out = tmp_path / "out"

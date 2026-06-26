@@ -163,9 +163,7 @@ class TestEndToEndCli:
             text=True,
             check=False,
         )
-        assert result.returncode == 0, (
-            f"demol generate failed: stdout={result.stdout!r} stderr={result.stderr!r}"
-        )
+        assert result.returncode == 0, f"demol generate failed: stdout={result.stdout!r} stderr={result.stderr!r}"
         # Walk the output tree to find the constraints.py (RPi generator does not
         # create subdirectories, so it lives directly under tmp_path)
         candidates = list(tmp_path.rglob("constraints.py"))
@@ -175,7 +173,6 @@ class TestEndToEndCli:
         # must contain the check function and at least one helper
         assert "def check_constraints" in body
         assert "def count(" in body
-
 
 
 class TestGeneratedRuntimeImports:
@@ -206,4 +203,3 @@ class TestGeneratedRuntimeImports:
         # all_connected: 3 >= 5 FAIL, has_actuators: 1 >= 1 OK
         assert violations == 1
         assert module.constraint_failures == 1
-

@@ -23,7 +23,6 @@ import pytest
 
 from demol.transformations.m2t_zephyr import m2t_zephyr
 
-
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 
@@ -138,13 +137,11 @@ class TestCooldownGatesEmitted:
 
     def test_first_alert_has_static_var(self, alert_out):
         body = _read(alert_out / "app" / "src" / "main.c")
-        assert "static int64_t last_trigger_fever_alert_ms" in body, \
-            "missing static last_trigger_fever_alert_ms"
+        assert "static int64_t last_trigger_fever_alert_ms" in body, "missing static last_trigger_fever_alert_ms"
 
     def test_second_alert_has_static_var(self, alert_out):
         body = _read(alert_out / "app" / "src" / "main.c")
-        assert "static int64_t last_trigger_humid_alert_ms" in body, \
-            "missing static last_trigger_humid_alert_ms"
+        assert "static int64_t last_trigger_humid_alert_ms" in body, "missing static last_trigger_humid_alert_ms"
 
     def test_cooldown_uses_k_uptime_get(self, alert_out):
         body = _read(alert_out / "app" / "src" / "main.c")
@@ -164,13 +161,13 @@ class TestConditionRendersAsCBool:
 
     def test_temperature_property_referenced(self, alert_out):
         body = _read(alert_out / "app" / "src" / "main.c")
-        assert "bme680_data.temperature" in body, \
-            "condition must reference bme680_data.temperature (FOR zephyr property)"
+        assert (
+            "bme680_data.temperature" in body
+        ), "condition must reference bme680_data.temperature (FOR zephyr property)"
 
     def test_humidity_property_referenced(self, alert_out):
         body = _read(alert_out / "app" / "src" / "main.c")
-        assert "bme680_data.humidity" in body, \
-            "condition must reference bme680_data.humidity (FOR zephyr property)"
+        assert "bme680_data.humidity" in body, "condition must reference bme680_data.humidity (FOR zephyr property)"
 
     def test_uses_inequality_operator(self, alert_out):
         body = _read(alert_out / "app" / "src" / "main.c")
@@ -179,8 +176,9 @@ class TestConditionRendersAsCBool:
     def test_condition_is_boolean_expression(self, alert_out):
         """The condition must be wrapped in a C boolean context (e.g., an if)."""
         body = _read(alert_out / "app" / "src" / "main.c")
-        assert "if ((" in body or "if (bme680_data" in body, \
-            "condition must be wrapped in an if (...) C boolean expression"
+        assert (
+            "if ((" in body or "if (bme680_data" in body
+        ), "condition must be wrapped in an if (...) C boolean expression"
 
 
 class TestPublishActionPlaceholder:
@@ -203,18 +201,15 @@ class TestNoAlertBackwardCompat:
 
     def test_no_check_alerts_when_no_alerts(self, no_alert_out):
         body = _read(no_alert_out / "app" / "src" / "main.c")
-        assert "check_alerts" not in body, \
-            "no-alert model must NOT emit check_alerts"
+        assert "check_alerts" not in body, "no-alert model must NOT emit check_alerts"
 
     def test_no_cooldown_statics_when_no_alerts(self, no_alert_out):
         body = _read(no_alert_out / "app" / "src" / "main.c")
-        assert "last_trigger_" not in body, \
-            "no-alert model must NOT emit last_trigger_* statics"
+        assert "last_trigger_" not in body, "no-alert model must NOT emit last_trigger_* statics"
 
     def test_no_log_module_register_when_no_alerts(self, no_alert_out):
         body = _read(no_alert_out / "app" / "src" / "main.c")
-        assert "LOG_MODULE_REGISTER" not in body, \
-            "no-alert model must NOT emit LOG_MODULE_REGISTER (backward compat)"
+        assert "LOG_MODULE_REGISTER" not in body, "no-alert model must NOT emit LOG_MODULE_REGISTER (backward compat)"
 
 
 class TestRealAlertExample:

@@ -13,12 +13,12 @@ The default base implementation targets C-style runtimes (riotos/zephyr); the
 RPi generator is expected to override ``_get_constraint_functions`` to return
 Python-friendly function names in T11.
 """
+
 import jinja2
 import pytest
 from pathlib import Path
 
 from demol.transformations.base_generator import BaseCodeGenerator
-
 
 # ---------------------------------------------------------------------------
 # Inline model fixtures
@@ -83,12 +83,9 @@ def stub_gen(device_mm):
 @pytest.fixture
 def stub_gen_with_constraint(device_mm):
     """A stub generator bound to a model that has a single CONSTRAINT block."""
-    model_str = (
-        BASE_MODEL
-        + """
+    model_str = BASE_MODEL + """
     CONSTRAINT c1: count(SENSOR) < 10;
     """
-    )
     model = device_mm.model_from_str(model_str)
     return _StubGen(model, Path("/tmp/demol_test_stub_out"))
 
@@ -96,13 +93,10 @@ def stub_gen_with_constraint(device_mm):
 @pytest.fixture
 def stub_gen_with_multi_constraint(device_mm):
     """A stub generator bound to a model with multiple CONSTRAINTs."""
-    model_str = (
-        BASE_MODEL
-        + """
+    model_str = BASE_MODEL + """
     CONSTRAINT max_sensors: count(SENSOR) < 10;
     CONSTRAINT power_budget: sum_power(PERIPHERAL) < 5000.0 mW;
     """
-    )
     model = device_mm.model_from_str(model_str)
     return _StubGen(model, Path("/tmp/demol_test_stub_out"))
 
@@ -155,9 +149,7 @@ def test_get_constraint_runtime_check_uses_helper_functions(stub_gen_with_multi_
     model = stub_gen_with_multi_constraint.device_model
     funcs = stub_gen_with_multi_constraint._get_constraint_functions()
 
-    output = stub_gen_with_multi_constraint.get_constraint_runtime_check(
-        model, backend="riotos"
-    )
+    output = stub_gen_with_multi_constraint.get_constraint_runtime_check(model, backend="riotos")
 
     # The block must mention at least the helpers it actually invokes.
     invoked = {funcs["count"], funcs["sum_power"]}
@@ -169,9 +161,7 @@ def test_get_constraint_runtime_check_python_uses_raw_names(stub_gen_with_multi_
     """The Python runtime check must reference DSL builtin names directly."""
     model = stub_gen_with_multi_constraint.device_model
 
-    output = stub_gen_with_multi_constraint.get_constraint_runtime_check(
-        model, backend="raspbian"
-    )
+    output = stub_gen_with_multi_constraint.get_constraint_runtime_check(model, backend="raspbian")
 
     # Python predicates use the raw DSL function names (e.g. ``count``,
     # ``sum_power``) so the generated helpers can be plain callables.
@@ -180,7 +170,6 @@ def test_get_constraint_runtime_check_python_uses_raw_names(stub_gen_with_multi_
 
 
 def test_render_constraint_predicate_python_contains_count(stub_gen_with_constraint):
-
     """RPi (raspbian) predicates must call a Python helper named ``count``."""
     constraint = stub_gen_with_constraint.device_model.constraints[0]
 
@@ -248,6 +237,7 @@ def test_get_constraint_functions_has_required_keys(stub_gen):
 
 def test_get_constraint_functions_is_overridable(stub_gen):
     """Subclasses must be able to override the helper-naming table."""
+
     class _CustomGen(_StubGen):
         def _get_constraint_functions(self):
             return {"count": "py_count", "sum_power": "py_sum", "avg_power": "py_avg", "max_power": "py_max"}

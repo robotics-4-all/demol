@@ -329,9 +329,7 @@ class ZephyrCodeGenerator(BaseCodeGenerator):
                     sorted(resolver.keys()),
                 )
                 continue
-            cooldown_sec = self.cooldown_to_seconds(
-                getattr(a, "cooldown", None), getattr(a, "cooldown_unit", None)
-            )
+            cooldown_sec = self.cooldown_to_seconds(getattr(a, "cooldown", None), getattr(a, "cooldown_unit", None))
             cooldown_ms = int(cooldown_sec * 1000)
             actions = getattr(a, "actions", None) or []
             for act in actions:
@@ -351,8 +349,7 @@ class ZephyrCodeGenerator(BaseCodeGenerator):
                     target_topic = self.resolve_activate_target_topic(act.target)
                     if not target_topic:
                         logger.warning(
-                            "Zephyr alert '%s' ACTIVATE action skipped: target '%s' "
-                            "has no CONNECT topic.",
+                            "Zephyr alert '%s' ACTIVATE action skipped: target '%s' " "has no CONNECT topic.",
                             a.name,
                             getattr(act.target, "name", "?"),
                         )
@@ -376,7 +373,6 @@ class ZephyrCodeGenerator(BaseCodeGenerator):
         return result
 
     def _collect_samplings(self) -> List[Dict[str, Any]]:
-
         """Build the sampling-loop rendering context for ``main.c.j2``.
 
 
@@ -458,21 +454,13 @@ class ZephyrCodeGenerator(BaseCodeGenerator):
             buffer_size = int(getattr(s, "buffer", 10) or 10)
 
             result.append(
-
                 {
-
                     "peripheral": str(type_name).lower(),
-
                     "rate": rate_hz,
-
                     "mode": mode,
-
                     "period_ms": period_ms,
-
                     "buffer_size": buffer_size,
-
                 }
-
             )
 
         return result
@@ -538,9 +526,7 @@ class ZephyrCodeGenerator(BaseCodeGenerator):
         nodes: List[Dict[str, Any]] = []
         for conn in self.get_connections():
             data_conns = getattr(conn, "dataConns", None) or []
-            has_gpio = any(
-                getattr(d, "type", None) == "gpio" for d in data_conns
-            )
+            has_gpio = any(getattr(d, "type", None) == "gpio" for d in data_conns)
             if not has_gpio:
                 continue
             peripheral_name = self._peripheral_short_name(conn)
@@ -823,10 +809,18 @@ class ZephyrCodeGenerator(BaseCodeGenerator):
             return 1.0
         u = str(unit).lower()
         table = {
-            "w": 1000.0, "mw": 1.0, "uw": 0.001,
-            "a": 1000.0, "ma": 1.0, "ua": 0.001,
-            "ah": 1000.0, "mah": 1.0,
-            "hz": 1.0, "khz": 1e3, "mhz": 1e6, "ghz": 1e9,
+            "w": 1000.0,
+            "mw": 1.0,
+            "uw": 0.001,
+            "a": 1000.0,
+            "ma": 1.0,
+            "ua": 0.001,
+            "ah": 1000.0,
+            "mah": 1.0,
+            "hz": 1.0,
+            "khz": 1e3,
+            "mhz": 1e6,
+            "ghz": 1e9,
         }
         return table.get(u, 1.0)
 
@@ -960,7 +954,7 @@ class ZephyrCodeGenerator(BaseCodeGenerator):
             yaml_name = compat.replace(",", "-") + ".yaml"
             yaml_content = (
                 f"description: {node['name'].title()} sensor\n"
-                f"compatible: \"{compat}\"\n"
+                f'compatible: "{compat}"\n'
                 "\n"
                 "properties:\n"
                 f"  {pin_name}-gpios:\n"
