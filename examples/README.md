@@ -36,17 +36,17 @@ peripheral support) lives in [`docs/backends.md`](../docs/backends.md).
 
 | Directory | Target | Models | Primary backends |
 | --- | --- | --- | --- |
-| [`examples/rpi/`](#raspberry-pi-examples) | Raspberry Pi on Raspbian | 40 | RPi, Wokwi |
-| [`examples/esp/`](#esp-examples) | ESP32 / WemosD1Mini on RIOT or Zephyr | 7 | RIOT, Zephyr, Wokwi, Renode |
+| [`examples/rpi/`](#raspberry-pi-examples) | Raspberry Pi on Raspbian | 42 | RPi, Wokwi |
+| [`examples/esp/`](#esp-examples) | ESP32 / WemosD1Mini on RIOT or Zephyr | 29 | RIOT, Zephyr, Wokwi, Renode |
 | [`examples/smauto/`](#smauto-examples) | Raspberry Pi → SmartAuto automation | 5 | RPi, Wokwi |
 
-Total: 52 `.dev` models across three example directories.
+Total: 76 `.dev` models across three example directories.
 
 ---
 
 ## Raspberry Pi Examples
 
-`examples/rpi/*.dev` — 40 models targeting Raspberry Pi boards running
+`examples/rpi/*.dev` — 42 models targeting Raspberry Pi boards running
 Raspbian. Every model in this directory uses a Raspberry Pi 4B or 5
 board, so it compiles to RPi Python code and maps cleanly to the Wokwi
 `board-raspberry-pi-4b` / `board-raspberry-pi-5` simulator parts.
@@ -60,6 +60,7 @@ board, so it compiles to RPi Python code and maps cleanly to the Wokwi
 | [`rpi_access_control.dev`](../examples/rpi/rpi_access_control.dev) | ✓ | — | — | ✓ | — |
 | [`rpi_alert_triggers.dev`](../examples/rpi/rpi_alert_triggers.dev) | ✓ | — | — | ✓ | — |
 | [`rpi_all_features.dev`](../examples/rpi/rpi_all_features.dev) | ✓ | — | — | ✓ | — |
+| [`rpi_amqp_bme680.dev`](../examples/rpi/rpi_amqp_bme680.dev) | ✓ | — | — | ✓ | — |
 | [`rpi_apds9960_gesture.dev`](../examples/rpi/rpi_apds9960_gesture.dev) | ✓ | — | — | ✓ | — |
 | [`rpi_battery_power_analysis.dev`](../examples/rpi/rpi_battery_power_analysis.dev) | ✓ | — | — | ✓ | — |
 | [`rpi_bh1750_lux.dev`](../examples/rpi/rpi_bh1750_lux.dev) | ✓ | — | — | ✓ | — |
@@ -84,6 +85,7 @@ board, so it compiles to RPi Python code and maps cleanly to the Wokwi
 | [`rpi_pir_motion.dev`](../examples/rpi/rpi_pir_motion.dev) | ✓ | — | — | ✓ | — |
 | [`rpi_precision_scale.dev`](../examples/rpi/rpi_precision_scale.dev) | ✓ | — | — | ✓ | — |
 | [`rpi_relay_switch.dev`](../examples/rpi/rpi_relay_switch.dev) | ✓ | — | — | ✓ | — |
+| [`rpi_redis_bme680.dev`](../examples/rpi/rpi_redis_bme680.dev) | ✓ | — | — | ✓ | — |
 | [`rpi_robot.dev`](../examples/rpi/rpi_robot.dev) | ✓ | — | — | ✓ | — |
 | [`rpi_smart_connect.dev`](../examples/rpi/rpi_smart_connect.dev) | ✓ | — | — | ✓ | — |
 | [`rpi_smart_home.dev`](../examples/rpi/rpi_smart_home.dev) | ✓ | — | — | ✓ | — |
@@ -110,7 +112,7 @@ generator produces a `diagram.json` that loads the same circuit in the
 
 ## ESP Examples
 
-`examples/esp/*.dev` — 7 models targeting ESP32 (`ESP32Wroom32`) and
+`examples/esp/*.dev` — 29 models targeting ESP32 (`ESP32Wroom32`) and
 WemosD1Mini boards. These models are the cross-backend test corpus: each
 one is designed to compile to RIOT C, Zephyr C, Wokwi JSON, and a Renode
 `.repl` platform description from the same `.dev` source. The CI matrix
@@ -118,12 +120,34 @@ compiles the ESP examples on all three microcontroller backends per push.
 
 | Example | RPi | RIOT | Zephyr | Wokwi | Renode |
 | --- | :-: | :-: | :-: | :-: | :-: |
+| [`esp_ads1115.dev`](../examples/esp/esp_ads1115.dev) | — | ✓ | ✓ | ✓ | ✓ |
+| [`esp_bh1750.dev`](../examples/esp/esp_bh1750.dev) | — | ✓ | ✓ | ✓ | ✓ |
+| [`esp_bme280.dev`](../examples/esp/esp_bme280.dev) | — | ✓ | ✓ | ✓ | ✓ |
 | [`esp_bme680.dev`](../examples/esp/esp_bme680.dev) | — | ✓ | ✓ | ✓ | ✓ |
+| [`esp_dht22.dev`](../examples/esp/esp_dht22.dev) | — | ✓ | ✓ | ✓ | ✓ |
+| [`esp_ds18b20.dev`](../examples/esp/esp_ds18b20.dev) | — | ✓ | ✓ | ✓ | ✓ |
 | [`esp_iot_device.dev`](../examples/esp/esp_iot_device.dev) | — | ✓ | ✓ | ✓ | ✓ |
+| [`esp_pir_hcsr501.dev`](../examples/esp/esp_pir_hcsr501.dev) | — | ✓ | ✓ | ✓ | ✓ |
+| [`esp_relay.dev`](../examples/esp/esp_relay.dev) | — | ✓ | ✓ | ✓ | ✓ |
+| [`esp_servo.dev`](../examples/esp/esp_servo.dev) | — | ✓ | ✓ | ✓ | ✓ |
+| [`esp_shtc3.dev`](../examples/esp/esp_shtc3.dev) | — | ✓ | ✓ | ✓ | ✓ |
 | [`wemos_a.dev`](../examples/esp/wemos_a.dev) | — | ✓ | ✓ | ✓ | ✓ |
+| [`wemos_ads1115.dev`](../examples/esp/wemos_ads1115.dev) | — | ✓ | ✓ | ✓ | ✓ |
+| [`wemos_bh1750.dev`](../examples/esp/wemos_bh1750.dev) | — | ✓ | ✓ | ✓ | ✓ |
+| [`wemos_bme280.dev`](../examples/esp/wemos_bme280.dev) | — | ✓ | ✓ | ✓ | ✓ |
 | [`wemos_bme680.dev`](../examples/esp/wemos_bme680.dev) | — | ✓ | ✓ | ✓ | ✓ |
 | [`wemos_bme680_alert.dev`](../examples/esp/wemos_bme680_alert.dev) | — | ✓ | ✓ | ✓ | ✓ |
 | [`wemos_button.dev`](../examples/esp/wemos_button.dev) | — | ✓ | ✓ | ✓ | ✓ |
+| [`wemos_constraint_bme680.dev`](../examples/esp/wemos_constraint_bme680.dev) | — | ✓ | ✓ | ✓ | ✓ |
+| [`wemos_dht22.dev`](../examples/esp/wemos_dht22.dev) | — | ✓ | ✓ | ✓ | ✓ |
+| [`wemos_ds18b20.dev`](../examples/esp/wemos_ds18b20.dev) | — | ✓ | ✓ | ✓ | ✓ |
+| [`wemos_hw006.dev`](../examples/esp/wemos_hw006.dev) | — | ✓ | ✓ | ✓ | ✓ |
+| [`wemos_mqtt_bme680.dev`](../examples/esp/wemos_mqtt_bme680.dev) | — | ✓ | ✓ | ✓ | ✓ |
+| [`wemos_pir_hcsr501.dev`](../examples/esp/wemos_pir_hcsr501.dev) | — | ✓ | ✓ | ✓ | ✓ |
+| [`wemos_relay.dev`](../examples/esp/wemos_relay.dev) | — | ✓ | ✓ | ✓ | ✓ |
+| [`wemos_sampling_bme680.dev`](../examples/esp/wemos_sampling_bme680.dev) | — | ✓ | ✓ | ✓ | ✓ |
+| [`wemos_servo.dev`](../examples/esp/wemos_servo.dev) | — | ✓ | ✓ | ✓ | ✓ |
+| [`wemos_shtc3.dev`](../examples/esp/wemos_shtc3.dev) | — | ✓ | ✓ | ✓ | ✓ |
 | [`wemos_srf05.dev`](../examples/esp/wemos_srf05.dev) | — | ✓ | ✓ | ✓ | ✓ |
 
 ### Quick start

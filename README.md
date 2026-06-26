@@ -47,7 +47,9 @@ representation that captures both structure and constraints.
 ## DeMoL in One Sentence
 
 DeMoL is a textX-based DSL that captures an IoT device as a single `.dev` model and
-compiles it to validated, reproducible code for Raspberry Pi (Python) and RIOT (C).
+compiles it to validated, reproducible code for five target platforms: Raspberry Pi
+(Python), RIOT OS (C), Zephyr RTOS (C), Wokwi (diagram.json + wokwi.toml), and
+Renode (.repl + pyrenode3).
 
 The `.dev` model serves as the authoritative specification: it describes the board,
 its peripherals, the electrical connections, the communication brokers, the sampling
@@ -66,7 +68,7 @@ DeMoL follows a three-stage pipeline.
    protocols, and buses are all first-class citizens in the grammar. The file is
    self-contained and serves as the single source of truth for the device.
 
-2. **Validate** -- The semantic engine checks 21 hardware-aware rules: voltage
+2. **Validate** -- The semantic engine checks 33+ hardware-aware rules across 16 validator classes: voltage
    compatibility, pin conflict detection, I2C address uniqueness, protocol frequency
    constraints, power budget limits, user-defined CONSTRAINT expressions, and ALERT
    trigger consistency. Validation errors are collected with precise line and column
@@ -78,9 +80,10 @@ DeMoL follows a three-stage pipeline.
    MQTT publishing, and configurable sampling loops. The RIOT C generator produces
    bare-metal firmware with the same logical structure. The Zephyr C generator emits
    a buildable Zephyr application (CMakeLists.txt, prj.conf, devicetree overlay,
-   Kconfig, and 8 driver ports matching the RIOT set). Wokwi emits a `diagram.json`
-   and `wokwi.toml` for the Wokwi simulator. Renode emits a `.repl` machine
-   definition plus a pyrenode3 test script. Additional generators produce wiring
+   Kconfig, and 18 driver ports covering the most common IoT peripherals). Both
+   RIOT and Zephyr backends support CONSTRAINT runtime checks. Wokwi emits a
+   `diagram.json` and `wokwi.toml` for the Wokwi simulator. Renode emits a `.repl`
+   machine definition plus a pyrenode3 test script. Additional generators produce wiring
    diagrams (SVG), pin-mapping reports (MD + JSON), JSON model representations, and
    hardware construction guides.
 
@@ -166,14 +169,15 @@ verification of model properties and opens a path toward theorem-prover integrat
 and model checking.
 
 **Reproducible code generation** -- The same `.dev` model produces byte-identical RPi
-Python and RIOT C outputs across runs and machines. The generators in
-[`demol/transformations/m2t_rpi.py`](demol/transformations/m2t_rpi.py) and
-[`demol/transformations/m2t_riot.py`](demol/transformations/m2t_riot.py) are
+Python, RIOT C, and Zephyr C outputs across runs and machines. The generators in
+[`demol/transformations/m2t_rpi.py`](demol/transformations/m2t_rpi.py),
+[`demol/transformations/m2t_riot.py`](demol/transformations/m2t_riot.py), and
+[`demol/transformations/m2t_zephyr.py`](demol/transformations/m2t_zephyr.py) are
 deterministic and tested against golden-file snapshots in the test suite at
 [`tests/`](tests/). A model round-trip through validate and generate always produces
 the same artifact set, which supports CI verification of generated code.
 
-**21 semantic validation rules** -- The validator suite in
+**33+ semantic validation rules** -- The validator suite in
 [`demol/lang/semantics/validators/`](demol/lang/semantics/validators/) covers power
 compatibility, pin conflicts, protocol frequency constraints, I2C address uniqueness,
 user-defined CONSTRAINT expressions, ALERT trigger correctness, sampling policy
@@ -222,8 +226,10 @@ backends it supports.
 
 Generates a complete Zephyr application from the `.dev` model: a `CMakeLists.txt`,
 `prj.conf`, a board-specific devicetree overlay, a static `main.c` skeleton, and
-one driver source file per peripheral. The driver set covers BME680, button,
-HCSR04, LED, MPL3115A2, SRF04, SRF05, and WS281X. Supported targets include
+one driver source file per peripheral. The driver set covers 18 IoT peripherals
+including BME280, BME680, BH1750, button, DS18B20, DHT22, HCSR04, HW006, LED,
+MPL3115A2, PIR_HCSR501, relay, servo, ADS1115, SHTC3, SRF04, SRF05, and WS281X.
+Supported targets include
 `esp32_devkitc` (ESP32) and `esp8266` boards.
 
 ```sh
@@ -317,6 +323,7 @@ distinctive among DSLs for IoT device design.
 pip install demol
 demol validate examples/rpi/rpi_mixed_connect.dev
 demol generate rpi examples/rpi/rpi_mixed_connect.dev --output-dir ./output
+demol generate riot examples/esp/esp_iot_device.dev --output-dir ./output
 demol generate zephyr examples/esp/esp_iot_device.dev --output-dir ./output
 demol generate wokwi examples/esp/esp_iot_device.dev --output-dir ./output
 demol generate renode examples/esp/esp_iot_device.dev --output-dir ./output
@@ -347,7 +354,7 @@ meantime, please cite the GitHub release at
 DeMoL's design is grounded in a formal semantic specification covering the device
 model, voltage/pin/protocol constraints, and the validation engine. The full 1,800-line
 mathematical specification is in [`docs/semantics.md`](docs/semantics.md), with
-inference rules and proof obligations for the 21 validation checks. The semantics
+inference rules and proof obligations for the 33+ validation checks. The semantics
 document uses mathematical notation for voltage domains, pin functions, protocol
 constraints, power budgets, sampling configurations, and alert trigger conditions.
 
@@ -363,6 +370,8 @@ constraints, power budgets, sampling configurations, and alert trigger condition
 | [Sensors & Actuators](docs/sensors-actuators.md) | Hardware library reference |
 | [Testing](docs/testing.md) | Test suite structure and coverage |
 | [Example Gallery](examples/README.md) | Generated output for every backend |
+| [CONSTRAINT Design](docs/constraint-runtime-design.md) | CONSTRAINT runtime architecture for RPi, RIOT, Zephyr |
+| [Broker Codegen Audit](docs/broker-codegen-audit.md) | AMQP/Redis broker support architecture |
 
 ## License & Community
 
