@@ -15,8 +15,10 @@ SRC += constraint.c
 ################## Common #################
 
 USEMODULE += xtimer
+{% if 'esp32' not in board_name.lower() -%}
 USEMODULE += pthread
 USEMODULE += posix_headers
+{% endif -%}
 USEMODULE += ps
 USEMODULE += netdev_default
 
