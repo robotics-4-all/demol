@@ -14,6 +14,7 @@ import jinja2
 
 from demol.definitions import TEMPLATES
 from .base_generator import BaseCodeGenerator
+from .board_registry import BoardNameRegistry
 from .docker_mixin import DockerBuildMixin
 from ._template_mapper import PeripheralTemplateMapper
 
@@ -59,6 +60,19 @@ class RiotCodeGenerator(BaseCodeGenerator, DockerBuildMixin):
         """
         super().__init__(device_model, output_dir)
         self.env = self.setup_template_environment()
+        self._registry = BoardNameRegistry()
+
+    def _resolve_board_name(self, board) -> str:
+        """Resolve DeMoL board name to RIOT target board name.
+
+        1. ``PLATFORMS.riotos.board`` attribute in the ``.hwd`` board file.
+        2. :class:`BoardNameRegistry` lookup.
+        3. Lowercased DeMoL board name (registry fallback).
+        """
+        platform_attrs = self.get_platform_attributes(board, "riotos")
+        if "board" in platform_attrs:
+            return str(platform_attrs["board"])
+        return self._registry.resolve(board.name, self.OS)
 
     def setup_template_environment(self) -> jinja2.Environment:
         """Setup Jinja2 environment with RiotOS-specific templates.
@@ -129,17 +143,7 @@ class RiotCodeGenerator(BaseCodeGenerator, DockerBuildMixin):
         wifi_ssid = getattr(network, "ssid", "")
         wifi_passwd = getattr(network, "passwd", "")
 
-        # Board name mapping for RiotOS
-        board_name = board.name.lower()
-        platform_attrs = self.get_platform_attributes(board, "riotos")
-        if "board" in platform_attrs:
-            board_name = platform_attrs["board"]
-        elif board_name == "esp32wroom32":
-            board_name = "esp32-wroom-32"
-        # Add more mappings as needed or use a more generic approach
-        # For now, let's try to be smart about common patterns
-        elif "_" in board_name:
-            board_name = board_name.replace("_", "-")
+        board_name = self._resolve_board_name(board)
 
         context = {
             "peripheral_name": peripheral_names,

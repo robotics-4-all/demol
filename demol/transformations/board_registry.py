@@ -57,21 +57,23 @@ class BoardNameRegistry:
     def __init__(self) -> None:
         """Initialize the registry with the default board name mappings."""
         # Deep copy the default mapping so instance mutations are isolated.
+        # Keys are normalized via _normalize() so that e.g. ``wemos_d1_r32``
+        # (from the .hwd filename) matches ``WemosD1R32`` (from USE in a
+        # .dev model) — both resolve to ``wemosd1r32``.
         self._mappings: Dict[str, Dict[str, str]] = {
-            board: dict(os_map) for board, os_map in self._DEFAULT_MAPPINGS.items()
+            self._normalize(board): dict(os_map)
+            for board, os_map in self._DEFAULT_MAPPINGS.items()
         }
 
     @staticmethod
     def _normalize(board_name: str) -> str:
         """Normalize a board name to the registry's canonical key form.
 
-        Args:
-            board_name: A DeMoL board name in any case (e.g. ``ESP32Wroom32``).
-
-        Returns:
-            Lowercased DeMoL board name used as the registry key.
+        Strips underscores and lowercases so that ``WemosD1R32``,
+        ``wemos_d1_r32`` (from .hwd filenames), and ``WemosD1R32``
+        all resolve to the same key ``wemosd1r32``.
         """
-        return board_name.lower() if board_name else ""
+        return board_name.replace("_", "").lower() if board_name else ""
 
     def register(
         self,
