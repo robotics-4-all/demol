@@ -704,6 +704,9 @@ class ZephyrCodeGenerator(BaseCodeGenerator):
             )
         if self._collect_mqtt_brokers():
             return _MQTT_APP_MAIN_C
+        # Branch 4: no ALERT, no SAMPLING, no MQTT broker -> emit the
+        # static pre-T14 skeleton so golden snapshots stay byte-identical.
+        return _APP_SRC_MAIN_C
 
     def _render_peripheral_drivers(self, app_src_dir: Path) -> None:
         """Render per-peripheral driver templates to ``app/src/<base>.c``."""
