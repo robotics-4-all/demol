@@ -18,7 +18,7 @@ SENSOR[ADC] ADS1115 WITH
         ? A3[adc] @ 10
     TEMPLATES
         raspbian="ads1115.py.j2",
-        riotos="sensor_ads1115.c.j2",
+        riotos="ads1115.c.j2",
         zephyr="ads1115.c.j2"
     DEPENDENCIES
         raspbian=[

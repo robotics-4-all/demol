@@ -82,11 +82,11 @@ def test_riot_generate_produces_driver(example, output_glob, tmp_path):
 @pytest.mark.parametrize(
     "example,output_glob",
     [
-        ("wemos_relay.dev", "relay_0.c"),
-        ("wemos_servo.dev", "servo_0.c"),
-        ("wemos_ads1115.dev", "ads1115_0.c"),
-        ("wemos_shtc3.dev", "shtc3_0.c"),
-        ("wemos_hw006.dev", "hw006_0.c"),
+        ("wemos_relay.dev", "relay.c"),
+        ("wemos_servo.dev", "servo.c"),
+        ("wemos_ads1115.dev", "ads1115.c"),
+        ("wemos_shtc3.dev", "shtc3.c"),
+        ("wemos_hw006.dev", "hw006.c"),
     ],
 )
 def test_zephyr_generate_produces_driver(example, output_glob, tmp_path):

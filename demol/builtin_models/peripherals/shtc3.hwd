@@ -12,7 +12,7 @@ SENSOR[Env] SHTC3 WITH
         scl[scl-0] @ 4
     TEMPLATES
         raspbian="shtc3.py.j2",
-        riotos="sensor_shtc3.c.j2",
+        riotos="shtc3.c.j2",
         zephyr="shtc3.c.j2"
     DEPENDENCIES
         raspbian=[
