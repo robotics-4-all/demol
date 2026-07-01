@@ -35,6 +35,10 @@ from .meta_os import (
     MetaOsNotSupportedValidator,
     validate_meta_os,
 )
+from .board_platform import (
+    BoardPlatformValidator,
+    validate_board_platform,
+)
 
 __all__ = [
     "BaseValidator",
@@ -58,4 +62,6 @@ __all__ = [
     "validate_peripheral_properties",
     "MetaOsNotSupportedValidator",
     "validate_meta_os",
+    "BoardPlatformValidator",
+    "validate_board_platform",
 ]

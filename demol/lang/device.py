@@ -76,6 +76,17 @@ def model_proc(model, metamodel):
     )
 
     # ========================================================================
+    # Board-Platform Compatibility: board PLATFORMS declares target OS
+    # ========================================================================
+    from demol.lang.semantics.validators.board_platform import validate_board_platform
+
+    run_rule(
+        "Board-Platform",
+        validate_board_platform,
+        model,
+        desc="Board declares PLATFORMS support for the model's declared OS",
+    )
+    # ========================================================================
     # Well-Formedness: Single board
     # ========================================================================
     run_rule(
