@@ -8,7 +8,7 @@
 FROM riot/riotbuild:latest
 
 # RIOT release tag baked into this image. Override with --build-arg if needed.
-ARG RIOT_VERSION={{ riot_version | default('2024.10') }}
+ARG RIOT_VERSION={{ riot_version | default('2025.10') }}
 ARG RIOT_REPO={{ riot_repo | default('https://github.com/RIOT-OS/RIOT.git') }}
 
 ENV RIOTBASE=/riot

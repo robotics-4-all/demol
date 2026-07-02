@@ -166,7 +166,7 @@ class RiotCodeGenerator(BaseCodeGenerator, DockerBuildMixin):
             "module": modules,
             "dependencies": self.get_dependencies(),
             "peripheral_counts": self.get_peripheral_counts(),
-            "riot_version": os.environ.get("DEMOL_RIOT_VERSION", "2024.10"),
+            "riot_version": os.environ.get("DEMOL_RIOT_VERSION", "2025.10"),
             "riot_repo": os.environ.get("DEMOL_RIOT_REPO", "https://github.com/RIOT-OS/RIOT.git"),
         }
         return context
