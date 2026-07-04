@@ -27,7 +27,6 @@ SENSOR[Env] DHT22 WITH
             {package="adafruit-circuitpython-dht", source="pip"},
             {package="libgpiod2", source="apt"}
         ],
-        riotos=["dht22"],
         zephyr=["dht22"]
     ATTRIBUTES
         gpio_modes[dict] = {data = "input"},
