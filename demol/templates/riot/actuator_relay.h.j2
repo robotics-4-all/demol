@@ -1,8 +1,10 @@
-#ifndef {{ name|upper }}_{{ index }}_RELAY_DRIVER_H
-#define {{ name|upper }}_{{ index }}_RELAY_DRIVER_H
+#ifndef {{ name|upper }}_{{ index }}_DRIVER_H
+#define {{ name|upper }}_{{ index }}_DRIVER_H
 
-int relay_init_{{ name }}(void);
-void relay_set_{{ name }}(int state);
-int relay_get_{{ name }}(void);
+#include "mqtt_broker.h"
 
-#endif /* {{ name|upper }}_{{ index }}_RELAY_DRIVER_H */
+int init_actuator_{{ name }}_{{ index }}(void);
+void start_actuator_{{ name }}_{{ index }}(void);
+void {{ name }}_{{ index }}_on_message(MessageData *data);
+
+#endif

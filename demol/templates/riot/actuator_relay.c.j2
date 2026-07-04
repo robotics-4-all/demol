@@ -1,9 +1,16 @@
 #include "actuator_{{ name }}_{{ index }}.h"
+#include "thread.h"
+#include "xtimer.h"
+#include "mqtt_broker.h"
 #include "periph/gpio.h"
+#include <stdio.h>
 
 static gpio_t {{ name }}_{{ index }}_pin;
+char {{ name }}_{{ index }}_stack[THREAD_STACKSIZE_MAIN];
 
-int relay_init_{{ name }}(void)
+void *{{ name }}_{{ index }}_thread(void *args);
+
+int init_actuator_{{ name }}_{{ index }}(void)
 {
     {{ name }}_{{ index }}_pin = GPIO_PIN(0, {{ conn.gpio.pins.IN.id }});
     printf("Initialize relay on pin %d ... ", {{ conn.gpio.pins.IN.id }});
@@ -11,21 +18,41 @@ int relay_init_{{ name }}(void)
         puts("failed");
         return -1;
     }
-    gpio_write({{ name }}_{{ index }}_pin, {{ attributes.initial_state|default(false)|string|lower }} == 'true' ? 1 : 0);
+    gpio_write({{ name }}_{{ index }}_pin, {{ '1' if attributes.initial_state else '0' }});
     puts("OK");
     return 0;
 }
 
-void relay_set_{{ name }}(int state)
+void start_actuator_{{ name }}_{{ index }}(void)
 {
-    if (state) {
-        gpio_set({{ name }}_{{ index }}_pin);
-    } else {
-        gpio_clear({{ name }}_{{ index }}_pin);
+    thread_create({{ name }}_{{ index }}_stack, sizeof({{ name }}_{{ index }}_stack),
+                  THREAD_PRIORITY_MAIN + 1,
+                  THREAD_CREATE_STACKTEST,
+                  {{ name }}_{{ index }}_thread,
+                  NULL, "{{ name }}_{{ index }}_actuator");
+}
+
+void *{{ name }}_{{ index }}_thread(void *args)
+{
+    (void)args;
+    while (1) {
+        xtimer_msleep(1000);
     }
 }
 
-int relay_get_{{ name }}(void)
+void {{ name }}_{{ index }}_on_message(MessageData *data)
 {
-    return gpio_read({{ name }}_{{ index }}_pin);
+    printf("Received message on topic %.*s: %.*s\n",
+           (int)data->topicName->lenstring.len, data->topicName->lenstring.data,
+           (int)data->message->payloadlen, (char *)data->message->payload);
+
+    char payload[64];
+    strncpy(payload, (char *)data->message->payload, data->message->payloadlen);
+    payload[data->message->payloadlen] = '\0';
+
+    if (strstr(payload, "ON") || strstr(payload, "1")) {
+        gpio_set({{ name }}_{{ index }}_pin);
+    } else if (strstr(payload, "OFF") || strstr(payload, "0")) {
+        gpio_clear({{ name }}_{{ index }}_pin);
+    }
 }
