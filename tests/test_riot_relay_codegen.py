@@ -3,7 +3,8 @@
 Verifies that:
 - ``demol generate riot`` exits 0 for ``examples/esp/esp_relay.dev``
 - The generated driver file ``actuator_relay_0.c`` exists
-- The generated ``.c`` contains the ``relay_init`` function
+- The generated ``.c`` contains the ``init_actuator`` function
+- The generated ``.c`` contains the ``on_message`` callback
 """
 
 import subprocess
@@ -64,5 +65,5 @@ def test_relay_generated_driver_contains_init():
 
         driver_file = out / "actuator_relay_0.c"
         content = driver_file.read_text()
-        assert "relay_init" in content, f"Expected 'relay_init' in generated C file.\n{content}"
-        assert "relay_set" in content, f"Expected 'relay_set' in generated C file.\n{content}"
+        assert "init_actuator_relay_0" in content, f"Expected 'init_actuator_relay_0' in generated C file.\n{content}"
+        assert "relay_0_on_message" in content, f"Expected 'relay_0_on_message' in generated C file.\n{content}"
