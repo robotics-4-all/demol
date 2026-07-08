@@ -61,9 +61,17 @@ DEVICE SmartSensor WITH description="Environmental monitoring sensor", author="d
 ```
 
 **Target Operating Systems:**
-- `raspbian` - For Raspberry Pi devices
-- `riotos` - For embedded systems (ESP32, ESP8266, etc.)
-- `zephyr`, `arduino`, `esp-idf`, `esp-idf-rtos` - Other embedded platforms
+
+| OS value | Codegen | Status |
+|----------|---------|--------|
+| `raspbian` | `demol generate rpi` | Supported |
+| `riotos` | `demol generate riot` | Supported |
+| `zephyr` | `demol generate zephyr` | Supported |
+| `arduino` | None | Reserved (use `[Meta-OS-NotSupported]` validator error) |
+| `esp-idf` | None | Reserved |
+| `esp-idf-rtos` | None | Reserved |
+
+> **Note:** Wokwi and Renode backends do not use the `os=` attribute; they are selected via the CLI subcommand.
 
 ### Network Configuration
 

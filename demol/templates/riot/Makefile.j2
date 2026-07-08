@@ -7,12 +7,18 @@ BAUDRATE ?= 115200
 
 DEVELHELP ?= 1
 QUIET ?= 1
+{% if has_constraints -%}
+# User-defined CONSTRAINT runtime: aggregated telemetry + periodic checks.
+SRC += constraint.c
+{% endif -%}
 
 ################## Common #################
 
 USEMODULE += xtimer
+{% if 'esp32' not in board_name.lower() -%}
 USEMODULE += pthread
 USEMODULE += posix_headers
+{% endif -%}
 USEMODULE += ps
 USEMODULE += netdev_default
 

@@ -30,6 +30,16 @@ class RPiCodeGenerator(BaseCodeGenerator, DockerBuildMixin):
 
     OS = "raspbian"
 
+    def _get_constraint_functions(self):
+        # RPi runtime: helpers keep their DSL names so the template can call
+        # plain Python callables (count, sum_power, avg_power, max_power).
+        return {
+            "count": "count",
+            "sum_power": "sum_power",
+            "avg_power": "avg_power",
+            "max_power": "max_power",
+        }
+
     def os_name(self) -> str:
         return self.OS
 
@@ -108,6 +118,8 @@ class RPiCodeGenerator(BaseCodeGenerator, DockerBuildMixin):
         self.generate_common()
         self.generate_messages()
         self.generate_alerts_runtime()
+        self.generate_constraints_runtime()
+        self.generate_broker_specific()
         self.generate_docker_files()
         logger.info("Code generation complete!")
 
@@ -195,6 +207,54 @@ class RPiCodeGenerator(BaseCodeGenerator, DockerBuildMixin):
     def generate_alerts_runtime(self) -> None:
         template = self.env.get_template("alerts.py.j2")
         self._write_template(template, {}, self.output_dir / "alerts.py")
+
+    def generate_constraints_runtime(self) -> None:
+        """Generate the constraints.py runtime module if model has constraints.
+
+        Each constraint's predicate is rendered as a Python expression via
+        :meth:`BaseCodeGenerator.render_constraint_predicate` so the template
+        stays free of AST-walking logic.
+        """
+        constraints = getattr(self.device_model, "constraints", None)
+        if not constraints:
+            return
+        template = self.env.get_template("constraints.py.j2")
+        rendered = []
+        for c in constraints:
+            predicate = self.render_constraint_predicate(c, "raspbian")
+            message = getattr(c, "message", "") or ""
+            rendered.append(
+                {
+                    "name": c.name,
+                    "predicate": predicate,
+                    "message": message,
+                }
+            )
+        context = {"constraints": rendered}
+        self._write_template(template, context, self.output_dir / "constraints.py")
+        self._write_template(template, context, self.output_dir / "constraints.py")
+
+    def generate_broker_specific(self) -> None:
+        """Emit broker-kind-specific wrapper modules.
+
+        RPi supports multi-broker (unlike RIOT), so we walk every broker
+        declared in the model and emit one wrapper per non-MQTT broker.
+        MQTT continues to be served by commlib-py via the standard
+        commlib_msg.py/msg.py path; AMQP and Redis each get a dedicated
+        module that mirrors the commlib-py ``publish()`` signature.
+
+        T40 / T43: AMQP via pika, Redis via redis-py.
+        """
+        for broker in self.get_brokers():
+            cfg = self.get_broker_config(broker)
+            kind = cfg.get("kind", "unknown")
+            if kind == "amqp":
+                template = self.env.get_template("amqp_broker.py.j2")
+                self._write_template(template, {"cfg": cfg}, self.output_dir / "amqp_broker.py")
+            elif kind == "redis":
+                template = self.env.get_template("redis_broker.py.j2")
+                self._write_template(template, {"cfg": cfg}, self.output_dir / "redis_broker.py")
+            # MQTT: commlib-py already covers it via the standard msg.py path.
 
     def generate_peripheral_classes(self) -> None:
         """Generate peripheral class files by querying model."""
@@ -342,9 +402,18 @@ class RPiCodeGenerator(BaseCodeGenerator, DockerBuildMixin):
         needs.
         """
         deps = self.get_dependencies()
+        pip_deps = list(deps["pip"])
+        # T40 / T43: add AMQP / Redis pip dependencies when those brokers
+        # are declared. Versions are pinned to current stable releases
+        # (no upper bound) so Renovate / dependabot can bump them.
+        broker_kinds = {self.get_broker_config(broker).get("kind", "unknown") for broker in self.get_brokers()}
+        if "amqp" in broker_kinds and not any(d.startswith("pika") for d in pip_deps):
+            pip_deps.append("pika>=1.3.0")
+        if "redis" in broker_kinds and not any(d.startswith("redis") for d in pip_deps):
+            pip_deps.append("redis>=5.0.0")
         return {
             "apt_dependencies": deps["apt"],
-            "dependencies": deps["pip"],
+            "dependencies": pip_deps,
             "connections": self.get_connections(),
         }
 

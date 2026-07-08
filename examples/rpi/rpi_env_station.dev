@@ -30,7 +30,7 @@ BROKER[MQTT] Broker WITH
 // All three devices share the I2C bus (GPIO2/GPIO3)
 // BME280 default I2C address: 0x76
 CONNECT EnvSensor WITH
-    POWER VCC -- power_3v3_a, GND -- GND_1
+    POWER vcc -- power_3v3_a, gnd -- GND_1
     DATA i2c[slave_address=0x76] sda sda -- GPIO2, scl scl -- GPIO3
     @ "station/environment";
 

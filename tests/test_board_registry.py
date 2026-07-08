@@ -56,10 +56,10 @@ def test_registry_resolve_rpi5():
 
 
 def test_registry_resolve_unknown_falls_back_to_lowercased_name():
-    """Unknown boards fall back to the lowercased DeMoL name (no error)."""
+    """Unknown boards fall back to the normalized DeMoL name (underscores stripped)."""
     reg = BoardNameRegistry()
-    assert reg.resolve("CustomBoard_42", "zephyr") == "customboard_42"
-    assert reg.resolve("CustomBoard_42", "riotos") == "customboard_42"
+    assert reg.resolve("CustomBoard_42", "zephyr") == "customboard42"
+    assert reg.resolve("CustomBoard_42", "riotos") == "customboard42"
 
 
 def test_registry_get_returns_none_for_unknown():
@@ -93,10 +93,11 @@ def test_registry_register_overwrite_replaces():
 
 
 def test_registry_known_boards_lists_registered_keys():
-    """``known_boards`` returns the registered (lowercased) board names."""
+    """``known_boards`` returns the registered (normalized) board names."""
     reg = BoardNameRegistry()
     known = reg.known_boards()
-    assert "raspberrypi_4_model_b" in known
+    assert "raspberrypi4modelb" in known  # normalized (underscores stripped)
+    assert "raspberrypi_4_model_b" not in known  # original form not preserved
     assert "esp32wroom32" in known
 
 
@@ -114,6 +115,31 @@ def test_registry_mutation_is_isolated_between_instances():
     a.register("IsolatedBoard", "zephyr", "iso_target")
     b = BoardNameRegistry()
     assert "IsolatedBoard" not in b
+
+
+def test_registry_has_mapping_known_board():
+    """``has_mapping`` returns ``True`` for a board with an explicit mapping."""
+    reg = BoardNameRegistry()
+    assert reg.has_mapping("RaspberryPi_4_Model_B", "zephyr") is True
+
+
+def test_registry_has_mapping_unknown_board():
+    """``has_mapping`` returns ``False`` for an unknown board."""
+    reg = BoardNameRegistry()
+    assert reg.has_mapping("UnknownBoard", "zephyr") is False
+
+
+def test_registry_has_mapping_unknown_os():
+    """``has_mapping`` returns ``False`` for a known board but unknown OS."""
+    reg = BoardNameRegistry()
+    assert reg.has_mapping("RaspberryPi_4_Model_B", "future-os") is False
+
+
+def test_registry_has_mapping_case_insensitive():
+    """``has_mapping`` is case-insensitive for board names."""
+    reg = BoardNameRegistry()
+    assert reg.has_mapping("RASPBERRYPI_4_MODEL_B", "zephyr") is True
+    assert reg.has_mapping("raspberrypi_4_model_b", "ZEPHYR") is True
 
 
 # ---------------------------------------------------------------------------

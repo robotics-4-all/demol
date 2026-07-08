@@ -317,7 +317,7 @@ def test_pin_assignment_consistency(generate_pair):
 
     * EnvSensor (BME680)   -> GPIO2, GPIO3 (I2C)
     * DistanceSensor (SRF05) -> GPIO23 (trigger), GPIO24 (echo)
-    * StatusLed (WS2812)   -> GPIO18
+    * StatusLed (WS281X)   -> GPIO18
     * LineTracker (TCRT5000) -> GPIO4
     * UserButton (TactileButton) -> GPIO17
 
@@ -460,3 +460,124 @@ def test_examples_exist():
         SMARTCONNECT_MODEL,
     ):
         assert path.is_file(), f"missing example model: {path}"
+
+
+# ---------------------------------------------------------------------------
+# T46: Cross-backend CONSTRAINT integration test
+# ---------------------------------------------------------------------------
+
+
+def test_constraint_runtime_present_in_rpi_riot_zephyr(tmp_path):
+    """The same .dev model with a CONSTRAINT block must produce a runtime
+    check on every backend that ships CONSTRAINT codegen (RPi, RIOT, Zephyr).
+
+    The test uses examples/esp/wemos_constraint_bme680.dev because it has
+    a CONSTRAINT block AND has an os= that maps to all three target
+    backends. The test re-tags the model via post-processing (the
+    .dev file's os= controls which m2t_<backend> we can invoke on it;
+    for RPi we substitute the WemosD1R32 board with the RPi board by
+    editing the file content).
+    """
+    src_model = ESP_EXAMPLES_DIR / "wemos_constraint_bme680.dev"
+    if not src_model.is_file():
+        pytest.skip(f"missing example: {src_model}")
+    src_text = src_model.read_text()
+
+    constraint_token = "sum_power(PERIPHERAL) < 100"
+    assert constraint_token in src_text, f"source model must contain CONSTRAINT predicate '{constraint_token}'"
+
+    # RPi: substitute board and os=
+    rpi_text = src_text.replace("os=zephyr", "os=raspbian").replace("WemosD1R32", "RaspberryPi_5_8GB")
+    rpi_model_path = tmp_path / "rpi_constraint.dev"
+    rpi_model_path.write_text(rpi_text)
+    rpi_out = tmp_path / "rpi"
+    m2t_rpi(get_device_mm().model_from_file(str(rpi_model_path)), output_dir=str(rpi_out))
+    rpi_files = list(rpi_out.rglob("*.py"))
+    assert any(
+        "constraints" in f.name for f in rpi_files
+    ), f"RPi codegen must emit constraints.py for CONSTRAINT model; got {sorted(f.name for f in rpi_files)}"
+    constraints_py = next(f for f in rpi_files if "constraints" in f.name)
+    assert "check_constraints" in constraints_py.read_text(), "RPi constraints.py must define check_constraints()"
+    assert "100" in constraints_py.read_text(), "RPi constraints.py must contain the predicate threshold 100"
+
+    # RIOT: original model
+    riot_text = src_text.replace("os=zephyr", "os=riotos")
+    riot_model_path = tmp_path / "riot_constraint.dev"
+    riot_model_path.write_text(riot_text)
+    riot_out = tmp_path / "riot"
+    m2t_riot(get_device_mm().model_from_file(str(riot_model_path)), output_dir=str(riot_out))
+    riot_files = list(riot_out.rglob("constraint*"))
+    assert (
+        riot_files
+    ), f"RIOT codegen must emit constraint.c/h for CONSTRAINT model; got output {list(riot_out.rglob('*'))[:5]}"
+    riot_constraint_c = next((f for f in riot_files if f.suffix == ".c"), None)
+    assert riot_constraint_c is not None, f"RIOT must emit constraint.c; got {riot_files}"
+    assert (
+        "check_constraints" in riot_constraint_c.read_text() or "check" in riot_constraint_c.read_text()
+    ), "RIOT constraint.c must include a check_constraints() or check() function"
+
+    # Zephyr: original model
+    zephyr_model_path = tmp_path / "zephyr_constraint.dev"
+    zephyr_model_path.write_text(src_text)
+    zephyr_out = tmp_path / "zephyr"
+    m2t_zephyr(get_device_mm().model_from_file(str(zephyr_model_path)), output_dir=str(zephyr_out))
+    zephyr_files = list(zephyr_out.rglob("constraint*"))
+    assert (
+        zephyr_files
+    ), f"Zephyr codegen must emit constraint.c/h for CONSTRAINT model; got output {list(zephyr_out.rglob('*'))[:5]}"
+    zephyr_constraint_c = next((f for f in zephyr_files if f.suffix == ".c"), None)
+    assert zephyr_constraint_c is not None, f"Zephyr must emit constraint.c; got {zephyr_files}"
+    assert (
+        "check_constraints" in zephyr_constraint_c.read_text() or "check" in zephyr_constraint_c.read_text()
+    ), "Zephyr constraint.c must include a check_constraints() or check() function"
+
+
+def test_constraint_predicate_preserved_across_backends(tmp_path):
+    """The CONSTRAINT predicate text from the source model should appear
+    (in some form) in every backend's emitted constraint runtime.
+
+    This is a cross-backend semantic-equivalence smoke test: the
+    DSL `sum_power(PERIPHERAL) < 100` becomes a Python check on RPi
+    and a C check on RIOT/Zephyr, but the numerical threshold 100
+    must be visible in all three.
+    """
+    src_model = ESP_EXAMPLES_DIR / "wemos_constraint_bme680.dev"
+    if not src_model.is_file():
+        pytest.skip(f"missing example: {src_model}")
+    src_text = src_model.read_text()
+
+    rpi_text = src_text.replace("os=zephyr", "os=raspbian").replace("WemosD1R32", "RaspberryPi_5_8GB")
+    rpi_model_path = tmp_path / "rpi.dev"
+    rpi_model_path.write_text(rpi_text)
+    rpi_out = tmp_path / "rpi"
+    m2t_rpi(get_device_mm().model_from_file(str(rpi_model_path)), output_dir=str(rpi_out))
+    rpi_constraints = next(f for f in rpi_out.rglob("constraints.py"))
+    rpi_content = rpi_constraints.read_text()
+    assert "100" in rpi_content, "RPi runtime must contain the 100 threshold from sum_power(PERIPHERAL) < 100"
+    assert "sum_power" in rpi_content, "RPi runtime must reference sum_power()"
+
+    riot_text = src_text.replace("os=zephyr", "os=riotos")
+    riot_model_path = tmp_path / "riot.dev"
+    riot_model_path.write_text(riot_text)
+    riot_out = tmp_path / "riot"
+    m2t_riot(get_device_mm().model_from_file(str(riot_model_path)), output_dir=str(riot_out))
+    riot_constraint_c = next(
+        (f for f in riot_out.rglob("constraint*.c") if f.suffix == ".c"),
+        None,
+    )
+    assert riot_constraint_c is not None, "RIOT must emit constraint.c"
+    riot_content = riot_constraint_c.read_text()
+    assert "100" in riot_content, "RIOT runtime must contain the 100 threshold"
+    assert "sum_power" in riot_content, "RIOT runtime must reference sum_power()"
+
+    zephyr_model_path = tmp_path / "zephyr.dev"
+    zephyr_model_path.write_text(src_text)
+    zephyr_out = tmp_path / "zephyr"
+    m2t_zephyr(get_device_mm().model_from_file(str(zephyr_model_path)), output_dir=str(zephyr_out))
+    zephyr_constraint_c = next(
+        (f for f in zephyr_out.rglob("constraint*.c") if f.suffix == ".c"),
+        None,
+    )
+    assert zephyr_constraint_c is not None, "Zephyr must emit constraint.c"
+    zephyr_content = zephyr_constraint_c.read_text()
+    assert "100" in zephyr_content, "Zephyr runtime must contain the 100 threshold"

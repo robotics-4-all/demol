@@ -7,11 +7,13 @@ ACTUATOR[Relay] RelayModule WITH
         power.avg=150 mW,
         freq.max=10 hz
     PINS
-        VCC[5V] @ 1,
-        GND[GND] @ 2,
+        vcc[5V] @ 1,
+        gnd[GND] @ 2,
         IN[gpio] @ 3
     TEMPLATES
-        raspbian="relay.py.j2"
+        raspbian="relay.py.j2",
+        riotos="relay.c.j2",
+        zephyr="relay.c.j2"
     DEPENDENCIES
         raspbian=["gpiozero"]
     ATTRIBUTES

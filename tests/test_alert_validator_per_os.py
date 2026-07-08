@@ -59,7 +59,11 @@ ALERT frost ON EnvSensor WHEN
         ("riotos", True),
         ("zephyr", False),
     ],
-    ids=["raspbian-no-warning", "riotos-emits-warning", "zephyr-no-warning"],
+    ids=[
+        "raspbian-no-warning",
+        "riotos-emits-warning",
+        "zephyr-no-warning",
+    ],
 )
 def test_alert_validator_per_os_multi_broker_warning(device_mm, os_key, expects_warning):
     model_str = PREAMBLE.format(os=os_key)
@@ -81,18 +85,27 @@ def test_per_os_capabilities_table_shape():
     assert "raspbian" in PER_OS_CAPABILITIES
     assert "riotos" in PER_OS_CAPABILITIES
     assert "zephyr" in PER_OS_CAPABILITIES
+    assert "arduino" in PER_OS_CAPABILITIES
+    assert "esp-idf" in PER_OS_CAPABILITIES
+    assert "esp-idf-rtos" in PER_OS_CAPABILITIES
 
 
 def test_per_os_capabilities_values():
     assert PER_OS_CAPABILITIES["raspbian"]["multi_broker"] is True
     assert PER_OS_CAPABILITIES["riotos"]["multi_broker"] is False
     assert PER_OS_CAPABILITIES["zephyr"]["multi_broker"] is True
+    assert PER_OS_CAPABILITIES["arduino"]["multi_broker"] is True
+    assert PER_OS_CAPABILITIES["esp-idf"]["multi_broker"] is True
+    assert PER_OS_CAPABILITIES["esp-idf-rtos"]["multi_broker"] is True
 
 
 def test_supports_multi_broker_known_os():
     assert _supports_multi_broker("raspbian") is True
     assert _supports_multi_broker("riotos") is False
     assert _supports_multi_broker("zephyr") is True
+    assert _supports_multi_broker("arduino") is True
+    assert _supports_multi_broker("esp-idf") is True
+    assert _supports_multi_broker("esp-idf-rtos") is True
 
 
 def test_supports_multi_broker_unknown_os_defaults_true():

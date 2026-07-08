@@ -21,6 +21,7 @@
 set -euo pipefail
 
 CANONICAL_EXAMPLES=(
+    esp_bme280
     wemos_bme680
     wemos_bme680_alert
     wemos_button

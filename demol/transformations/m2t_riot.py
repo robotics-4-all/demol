@@ -14,6 +14,7 @@ import jinja2
 
 from demol.definitions import TEMPLATES
 from .base_generator import BaseCodeGenerator
+from .board_registry import BoardNameRegistry
 from .docker_mixin import DockerBuildMixin
 from ._template_mapper import PeripheralTemplateMapper
 
@@ -59,6 +60,19 @@ class RiotCodeGenerator(BaseCodeGenerator, DockerBuildMixin):
         """
         super().__init__(device_model, output_dir)
         self.env = self.setup_template_environment()
+        self._registry = BoardNameRegistry()
+
+    def _resolve_board_name(self, board) -> str:
+        """Resolve DeMoL board name to RIOT target board name.
+
+        1. ``PLATFORMS.riotos.board`` attribute in the ``.hwd`` board file.
+        2. :class:`BoardNameRegistry` lookup.
+        3. Lowercased DeMoL board name (registry fallback).
+        """
+        platform_attrs = self.get_platform_attributes(board, "riotos")
+        if "board" in platform_attrs:
+            return str(platform_attrs["board"])
+        return self._registry.resolve(board.name, self.OS)
 
     def setup_template_environment(self) -> jinja2.Environment:
         """Setup Jinja2 environment with RiotOS-specific templates.
@@ -129,17 +143,7 @@ class RiotCodeGenerator(BaseCodeGenerator, DockerBuildMixin):
         wifi_ssid = getattr(network, "ssid", "")
         wifi_passwd = getattr(network, "passwd", "")
 
-        # Board name mapping for RiotOS
-        board_name = board.name.lower()
-        platform_attrs = self.get_platform_attributes(board, "riotos")
-        if "board" in platform_attrs:
-            board_name = platform_attrs["board"]
-        elif board_name == "esp32wroom32":
-            board_name = "esp32-wroom-32"
-        # Add more mappings as needed or use a more generic approach
-        # For now, let's try to be smart about common patterns
-        elif "_" in board_name:
-            board_name = board_name.replace("_", "-")
+        board_name = self._resolve_board_name(board)
 
         context = {
             "peripheral_name": peripheral_names,
@@ -162,7 +166,7 @@ class RiotCodeGenerator(BaseCodeGenerator, DockerBuildMixin):
             "module": modules,
             "dependencies": self.get_dependencies(),
             "peripheral_counts": self.get_peripheral_counts(),
-            "riot_version": os.environ.get("DEMOL_RIOT_VERSION", "2024.10"),
+            "riot_version": os.environ.get("DEMOL_RIOT_VERSION", "2025.10"),
             "riot_repo": os.environ.get("DEMOL_RIOT_REPO", "https://github.com/RIOT-OS/RIOT.git"),
         }
         return context
@@ -233,6 +237,12 @@ class RiotCodeGenerator(BaseCodeGenerator, DockerBuildMixin):
         self._write_template(template, global_context, script_path)
         # Make script executable
         os.chmod(script_path, 0o755)
+
+        # Generate CONSTRAINT runtime (constraint.c / constraint.h) and
+        # refresh the Makefile so it picks up the constraint.c SRC entry
+        # when the device model declares any user-defined CONSTRAINTs.
+        if getattr(self.device_model, "constraints", None):
+            self._generate_constraints(global_context)
 
         # Generate Dockerfile for the self-contained RIOT build environment
         template = self.env.get_template("Dockerfile.riotbuild.j2")
@@ -366,6 +376,227 @@ class RiotCodeGenerator(BaseCodeGenerator, DockerBuildMixin):
                 }
             )
         return rendered
+
+    # --- CONSTRAINT runtime codegen ------------------------------------------------
+
+    def _generate_constraints(self, global_context: Dict[str, Any]) -> None:
+        """Emit constraint.c / constraint.h and refresh the Makefile.
+
+        Called from ``generate()`` only when ``model.constraints`` is non-empty.
+        The templates expect:
+          * ``peripherals`` — list of dicts with name, kind, connected, power_mW
+          * ``constraints`` — list of dicts with name, message, predicate_c
+        The Makefile is regenerated with the extended context so that
+        ``constraint.c`` appears in ``SRC`` and the module is built into
+        the RIOT firmware image.
+        """
+        ctx = dict(global_context)
+        ctx.update(self._build_constraint_context())
+
+        template = self.env.get_template("constraint.c.j2")
+        self._write_template(template, ctx, self.output_dir / "constraint.c")
+        template = self.env.get_template("constraint.h.j2")
+        self._write_template(template, ctx, self.output_dir / "constraint.h")
+
+        # Re-render the Makefile so it picks up the constraint.c SRC entry.
+        template = self.env.get_template("Makefile.j2")
+        self._write_template(template, ctx, self.output_dir / "Makefile")
+
+    def _build_constraint_context(self) -> Dict[str, Any]:
+        """Build the per-template context for constraint.{c,h}.j2.
+
+        Returns a dict with:
+          * ``has_constraints`` — bool
+          * ``constraint_peripherals`` — list[dict(name, kind, connected, power_mW)]
+          * ``constraint_predicates``  — list[dict(name, message, predicate_c)]
+        """
+        peripherals: List[Dict[str, Any]] = []
+        for conn in self.get_connections():
+            pref = conn.peripheral.ref
+            inst_name = type(pref).__name__.lower()
+            if "sensor" in inst_name:
+                kind = 0
+            elif "actuator" in inst_name:
+                kind = 1
+            else:
+                kind = 2
+            attrs = self.get_peripheral_attributes(conn.peripheral)
+            power_mw = self._power_to_mw(attrs)
+            peripherals.append(
+                {
+                    "name": conn.peripheral.name,
+                    "kind": kind,
+                    "connected": 1,
+                    "power_mW": power_mw,
+                }
+            )
+
+        predicates: List[Dict[str, Any]] = []
+        for c in getattr(self.device_model, "constraints", []) or []:
+            message = getattr(c, "message", None) or f"violation of {c.name}"
+            predicates.append(
+                {
+                    "name": c.name,
+                    "message": message,
+                    "predicate_c": _constraint_renderer.render(c.expr),
+                }
+            )
+
+        return {
+            "has_constraints": bool(predicates),
+            "constraint_peripherals": peripherals,
+            "constraint_predicates": predicates,
+            "peripherals": peripherals,
+            "constraints": predicates,
+        }
+
+    @staticmethod
+    def _power_to_mw(attrs: Dict[str, Any]) -> int:
+        """Look up the operational max power in milliwatts from a peripheral's attrs."""
+        for key in ("max_power", "power", "power_mW", "power_mw"):
+            if key not in attrs:
+                continue
+            val = attrs[key]
+            try:
+                if isinstance(val, (int, float)):
+                    return int(val)
+                sval = str(val).strip()
+                if not sval:
+                    continue
+                num = ""
+                unit = ""
+                for ch in sval:
+                    if ch.isdigit() or ch in (".", "-"):
+                        num += ch
+                    else:
+                        unit += ch
+                v = float(num) if num else 0.0
+                u = unit.strip().lower()
+                if u == "w":
+                    v *= 1000
+                elif u in ("uw", "\u00b5w"):
+                    v *= 0.001
+                return int(round(v))
+            except (TypeError, ValueError):
+                continue
+        return 0
+
+
+_POWER_UNIT_TO_MW = {
+    "w": 1000.0,
+    "mw": 1.0,
+    "uw": 0.001,
+}
+
+
+def _normalize_to_mw(value, unit):
+    """Normalize a numeric literal with optional unit to milliwatts."""
+    if unit is None:
+        return float(value)
+    unit_lower = str(unit).lower()
+    if unit_lower in _POWER_UNIT_TO_MW:
+        return float(value) * _POWER_UNIT_TO_MW[unit_lower]
+    return float(value)
+
+
+class _ConstraintRenderer:
+    """Render a DeMoL CONSTRAINT expression tree as a C boolean expression.
+
+    Supports the four built-ins (count/sum_power/avg_power/max_power with
+    FunctionArg SENSOR|ACTUATOR|PERIPHERAL|CONNECTION) and the standard
+    arithmetic/comparison operators. Property access is stubbed with
+    ``peripheral_get_double()``; numeric literals are emitted as C doubles
+    normalised to mW when a power unit is attached.
+    """
+
+    def render(self, expr) -> str:
+        if expr is None:
+            return "1"
+        return self._render_comparison(expr)
+
+    def _render_comparison(self, expr) -> str:
+        cls = type(expr).__name__
+        if cls == "ComparisonExpr":
+            left = self._render_additive(expr.left)
+            right = self._render_additive(expr.right)
+            return f"((double)({left})) {expr.op} ((double)({right}))"
+        return f"((double)({self._render_additive(expr)}))"
+
+    def _render_additive(self, node) -> str:
+        cls = type(node).__name__
+        if cls == "AdditiveExpr":
+            parts = [self._render_multiplicative(node.operands[0])]
+            for i, op in enumerate(node.operators):
+                right = self._render_multiplicative(node.operands[i + 1])
+                parts.append(f" {op} ")
+                parts.append(right)
+            return "(" + "".join(parts) + ")"
+        return self._render_multiplicative(node)
+
+    def _render_multiplicative(self, node) -> str:
+        cls = type(node).__name__
+        if cls == "MultiplicativeExpr":
+            parts = [self._render_atom(node.operands[0])]
+            for i, op in enumerate(node.operators):
+                right = self._render_atom(node.operands[i + 1])
+                parts.append(f" {op} ")
+                parts.append(right)
+            return "(" + "".join(parts) + ")"
+        return self._render_atom(node)
+
+    def _render_atom(self, atom) -> str:
+        cls = type(atom).__name__
+        if cls == "FunctionCallExpr":
+            return self._render_function(atom)
+        if cls == "NumberLiteral":
+            return self._render_number(atom)
+        if cls == "BoolLiteral":
+            return "1" if getattr(atom, "value", False) else "0"
+        if cls == "StringLiteral":
+            val = str(getattr(atom, "value", "")).replace('"', '\\"')
+            return f'"{val}"'
+        if cls == "PropertyAccessExpr":
+            segs = list(getattr(atom, "segments", []) or [])
+            if len(segs) >= 2:
+                return f'peripheral_get_double("{segs[0]}", "{segs[1]}")'
+            if segs:
+                return f'peripheral_get_double("{segs[0]}", "")'
+            return 'peripheral_get_double("", "")'
+        logger.warning("RIOT constraint: unhandled atom class '%s' — emitting 0", cls)
+        return "0.0"
+
+    def _render_function(self, atom) -> str:
+        func = atom.func
+        arg = atom.arg
+        if func == "count":
+            return {
+                "SENSOR": "((double)count_sensors())",
+                "ACTUATOR": "((double)count_actuators())",
+                "PERIPHERAL": "((double)count_peripherals())",
+                "CONNECTION": "((double)count_connected())",
+            }.get(arg, "0.0")
+        if func == "sum_power":
+            return "((double)sum_power_mW())"
+        if func == "max_power":
+            return "((double)max_power_mW())"
+        if func == "avg_power":
+            return "((double)sum_power_mW())"
+        logger.warning("RIOT constraint: unhandled builtin '%s'", func)
+        return "0.0"
+
+    def _render_number(self, atom) -> str:
+        try:
+            raw = float(atom.value)
+        except (TypeError, ValueError):
+            return "0.0"
+        unit = getattr(atom, "unit", None)
+        if unit is not None:
+            normalized = _normalize_to_mw(atom.value, unit)
+            return f"{normalized}"
+        return f"{raw}"
+
+
+_constraint_renderer = _ConstraintRenderer()
 
 
 def m2t_riot(model, output_dir="."):

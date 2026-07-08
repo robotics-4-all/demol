@@ -28,7 +28,7 @@
   using sysbus
   
   mach create "esp32"
-  machine LoadPlatformDescription @platforms/boards/wemosd1mini.repl
+  machine LoadPlatformDescription @platforms/boards/esp8266.repl
   
   sysbus Tag <0x40013000 0x40014000> "I2C0" 0x40013000 size 0x1000
   sysbus LoadELF @/tmp/firmware.elf
@@ -40,7 +40,7 @@
   using sysbus
   
   mach create "esp32"
-  machine LoadPlatformDescription @platforms/boards/wemosd1mini.repl
+  machine LoadPlatformDescription @platforms/boards/esp8266.repl
   
   
   sysbus LoadELF @/tmp/firmware.elf
@@ -52,7 +52,7 @@
   using sysbus
   
   mach create "esp32"
-  machine LoadPlatformDescription @platforms/boards/wemosd1mini.repl
+  machine LoadPlatformDescription @platforms/boards/esp8266.repl
   
   
   sysbus LoadELF @/tmp/firmware.elf

@@ -1,0 +1,8 @@
+DEVICE WemosHW006 WITH description="Wemos + HW006 IR proximity", author="demol", os=zephyr;
+USE WemosD1R32;
+USE HW006[MyProx];
+NETWORK[WiFi] WITH ssid="test", password="test123";
+BROKER[MQTT] Local WITH host="localhost", port=1883;
+CONNECT MyProx WITH
+    POWER gnd -- GND, vcc -- VCC_5V
+    DATA gpio[mode="input"] DO -- D2;

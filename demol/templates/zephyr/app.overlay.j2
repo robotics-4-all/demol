@@ -2,3 +2,14 @@
 {% for node in i2c_nodes %}
 &{{ node.bus }} { {{ node.name }}@{{ node.addr }} { status = "okay"; reg = <{{ node.addr }}>; compatible = "{{ node.compat }}"; }; };
 {% endfor %}
+{% for node in gpio_nodes %}
+/ {
+    {{ node.name }}_0: {{ node.name }}_0 {
+        compatible = "{{ node.compat }}";
+        status = "okay";
+{% for func, pin in node.gpio_pins.items() %}
+        {{ func }}-gpios = <&{{ node.gpio_ctrl }} {{ pin }} {{ node.gpio_flags }}>;
+{% endfor %}
+    };
+};
+{% endfor %}

@@ -64,6 +64,29 @@ def model_proc(model, metamodel):
     enrich_model(model)
 
     # ========================================================================
+    # Meta: OS Not Supported (reserved OS values with no codegen backend)
+    # ========================================================================
+    from demol.lang.semantics.validators.meta_os import validate_meta_os
+
+    run_rule(
+        "Meta-OS-NotSupported",
+        validate_meta_os,
+        model,
+        desc="OS is a supported codegen target (not arduino/esp-idf/esp-idf-rtos)",
+    )
+
+    # ========================================================================
+    # Board-Platform Compatibility: board PLATFORMS declares target OS
+    # ========================================================================
+    from demol.lang.semantics.validators.board_platform import validate_board_platform
+
+    run_rule(
+        "Board-Platform",
+        validate_board_platform,
+        model,
+        desc="Board declares PLATFORMS support for the model's declared OS",
+    )
+    # ========================================================================
     # Well-Formedness: Single board
     # ========================================================================
     run_rule(

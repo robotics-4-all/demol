@@ -12,10 +12,14 @@ demol/
 ├── definitions.py       # Path constants, env-overridable model repo paths
 ├── grammar/             # 4 textX grammar files defining DSL syntax
 ├── lang/                # Language engine: metamodels, validation, semantics
-├── transformations/     # Code generators: RPi, RiotOS, SVG, docs, pinmap, JSON, SmAuto
-├── builtin_models/      # Hardware library: boards, peripherals, power sources
+│   ├── semantics/       # Modular validator framework (33 validators across 15 files)
+│   └── smart_connection.py  # SMARTCONNECT auto-wiring resolution
+├── transformations/     # M2T generators: rpi, riot, zephyr, wokwi, renode, svg, docs, pinmap, smauto, json
+│   ├── board_registry.py    # BoardNameRegistry: DSL board → target-OS board name
+│   └── docker_mixin.py      # DockerBuildMixin: shared Dockerfile generation
+├── builtin_models/      # Hardware library: boards (.hwd), peripherals (.hwd), power
 ├── templates/           # Jinja2 templates per platform
-└── cli/                 # Click CLI: cli.py, autofix.py, modeldiff.py
+└── cli/                 # Click CLI: validate, generate, analyze, fix, diff
 ```
 
 ## WHERE TO LOOK
@@ -43,10 +47,12 @@ demol/
 - Grammar files use textX syntax (`=`, `*=`, `?=`, `+=` assignments)
 - `common.tx` is imported by all other grammar files
 - Template naming: `<peripheral>.<target_ext>.j2` (e.g., `bme680.py.j2`, `sensor_bme680.c.j2`)
-- Templates organized by platform: `templates/rpi/`, `templates/riot/`, `templates/docs/`, `templates/smauto/`
+- Templates organized by platform: `templates/rpi/`, `templates/riot/`, `templates/zephyr/`, `templates/wokwi/`, `templates/renode/`, `templates/docs/`, `templates/smauto/`
 - `definitions.py` paths are absolute, computed from `__file__`
 
 ## ANTI-PATTERNS
 
 - Do NOT hardcode model repository paths — use `definitions.py` constants
 - Grammar changes require updating both device.tx and corresponding validators
+- NEVER modify `demol/lang/semantics.py` (deleted) — all validators are in `demol/lang/semantics/validators/`
+- NEVER raise `TextXSemanticError` directly — use `raise_validation_error()` from `semantics/core.py`

@@ -1,0 +1,8 @@
+DEVICE EspServo WITH description="ESP32 servo actuator", author="demol", os=riotos;
+USE WemosD1R32;
+USE ServoGeneric[MyServo];
+NETWORK[WiFi] WITH ssid="test", password="test123";
+BROKER[MQTT] Local WITH host="localhost", port=1883;
+CONNECT MyServo WITH
+    POWER gnd -- GND, vcc -- VCC_5V
+    DATA gpio[mode="output"] din -- D1;

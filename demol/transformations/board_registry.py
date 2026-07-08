@@ -57,21 +57,22 @@ class BoardNameRegistry:
     def __init__(self) -> None:
         """Initialize the registry with the default board name mappings."""
         # Deep copy the default mapping so instance mutations are isolated.
+        # Keys are normalized via _normalize() so that e.g. ``wemos_d1_r32``
+        # (from the .hwd filename) matches ``WemosD1R32`` (from USE in a
+        # .dev model) — both resolve to ``wemosd1r32``.
         self._mappings: Dict[str, Dict[str, str]] = {
-            board: dict(os_map) for board, os_map in self._DEFAULT_MAPPINGS.items()
+            self._normalize(board): dict(os_map) for board, os_map in self._DEFAULT_MAPPINGS.items()
         }
 
     @staticmethod
     def _normalize(board_name: str) -> str:
         """Normalize a board name to the registry's canonical key form.
 
-        Args:
-            board_name: A DeMoL board name in any case (e.g. ``ESP32Wroom32``).
-
-        Returns:
-            Lowercased DeMoL board name used as the registry key.
+        Strips underscores and lowercases so that ``WemosD1R32``,
+        ``wemos_d1_r32`` (from .hwd filenames), and ``WemosD1R32``
+        all resolve to the same key ``wemosd1r32``.
         """
-        return board_name.lower() if board_name else ""
+        return board_name.replace("_", "").lower() if board_name else ""
 
     def register(
         self,
@@ -152,3 +153,22 @@ class BoardNameRegistry:
 
     def __contains__(self, board_name: str) -> bool:
         return self._normalize(board_name) in self._mappings
+
+    def has_mapping(self, board_name: str, os_name: str) -> bool:
+        """Return ``True`` if an explicit mapping exists for the given (board, OS) pair.
+
+        Unlike :meth:`resolve`, this method does not fall back to the
+        normalized DeMoL name. It returns ``True`` only when there is an
+        explicit registered mapping for the pair.
+
+        Args:
+            board_name: DeMoL board name (case-insensitive).
+            os_name: Target OS identifier (e.g. ``"zephyr"``).
+
+        Returns:
+            ``True`` if an explicit mapping exists, ``False`` otherwise.
+        """
+        key = self._normalize(board_name)
+        os_key = os_name.lower() if os_name else ""
+        os_map = self._mappings.get(key)
+        return bool(os_map and os_key in os_map)

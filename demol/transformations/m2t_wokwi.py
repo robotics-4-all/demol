@@ -62,7 +62,7 @@ _PERIPHERAL_PART_IDS: Dict[str, str] = {
     "BME280": "wokwi-bme280",
     "LedGeneric": "wokwi-led",
     "TactileButton": "wokwi-pushbutton",
-    "WS2812": "wokwi-neopixel",
+    "WS281X": "wokwi-neopixel",
     "HCSR04": "wokwi-hc-sr04",
     "SRF04": "wokwi-hc-sr04",
     "SRF05": "wokwi-hc-sr05",

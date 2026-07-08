@@ -573,7 +573,10 @@ class TestVIAEdgeCases:
 class TestOSVariants:
     @pytest.mark.parametrize(
         "os_val",
-        ["raspbian", "riotos", "zephyr", "arduino", "esp-idf"],
+        # Only the OS values that have active codegen (raspbian/riotos/zephyr).
+        # arduino/esp-idf/esp-idf-rtos are RESERVED (see T3 / commit a0b2517)
+        # and raise [Meta-OS-NotSupported]; see test_reserved_os_values below.
+        ["raspbian", "riotos", "zephyr"],
     )
     def test_all_valid_os_values(self, device_mm, os_val):
         model = device_mm.model_from_str(
@@ -588,6 +591,33 @@ class TestOSVariants:
             '    @ "test/topic";\n'
         )
         assert model.metadata.os == os_val
+
+    @pytest.mark.parametrize(
+        "reserved_os",
+        ["arduino", "esp-idf", "esp-idf-rtos"],
+    )
+    def test_reserved_os_values_rejected(self, device_mm, reserved_os):
+        """Reserved OS values (no active codegen) must raise [Meta-OS-NotSupported].
+
+        This is the contract established by the [Meta-OS-NotSupported]
+        validator (T3 / commit a0b2517). The OS values are accepted at
+        the GRAMMAR level (they parse) but rejected by the semantic
+        validator because no code generator targets them yet.
+        """
+        from demol.lang.semantics.core import ValidationError
+
+        with pytest.raises(ValidationError, match=r"\[Meta-OS-NotSupported\]"):
+            device_mm.model_from_str(
+                f'DEVICE TestDevice WITH description="test", author="test", os={reserved_os};\n'
+                "USE RaspberryPi_5_8GB;\n"
+                "USE BME680[Sensor1];\n"
+                'NETWORK[WiFi] WITH ssid="n", password="p";\n'
+                'BROKER[MQTT] B WITH host="localhost", port=1883, auth.username="u", auth.password="p";\n'
+                "CONNECT Sensor1 WITH\n"
+                "    POWER gnd -- GND_1, vcc -- power_5v_a\n"
+                "    DATA i2c[slave_address=0x76] sda sda -- GPIO2, scl scl -- GPIO3\n"
+                '    @ "test/topic";\n'
+            )
 
     def test_invalid_os_value(self, device_mm):
         with pytest.raises(TextXSyntaxError):
