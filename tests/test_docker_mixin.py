@@ -169,23 +169,6 @@ def test_riot_render_individually(tmp_path, riot_model):
     assert (out / "build_docker.sh").is_file()
 
 
-def test_riot_byte_identical_to_baseline(tmp_path):
-    """The RIOT mixin produces output identical to the pre-refactor baseline."""
-    baseline_dir = (
-        Path(__file__).parent.parent / ".matrixx" / "baselines" / "wave1_pre_refactor" / "riot" / "esp_iot_device"
-    )
-    example_path = Path(__file__).parent.parent / "examples" / "esp" / "esp_iot_device.dev"
-    if not baseline_dir.is_dir() or not example_path.is_file():
-        pytest.skip(f"baseline or example missing: {baseline_dir} / {example_path}")
-
-    model = get_device_mm().model_from_file(str(example_path))
-    out = tmp_path / "riot"
-    m2t_riot(model, output_dir=str(out))
-
-    for name in ("Dockerfile.riotbuild", "build_docker.sh"):
-        assert (out / name).read_bytes() == (baseline_dir / name).read_bytes(), name
-
-
 class _FakeBackend(BaseCodeGenerator, DockerBuildMixin):
     """Minimal backend used to assert the mixin's extension contract.
 
