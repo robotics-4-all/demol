@@ -24,7 +24,7 @@ on:
     branches: [main, master, devel]
 
 concurrency:
-  group: zephyr-build-${{ github.ref }}-${{ matrix.example }}
+  group: zephyr-build-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
