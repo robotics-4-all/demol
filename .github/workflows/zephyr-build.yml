@@ -119,7 +119,9 @@ jobs:
       - name: Generate Zephyr application
         # Zephyr generator emits <output_dir>/app/ (CMakeLists.txt, prj.conf,
         # src/main.c, boards/<board>.overlay, per-peripheral driver sources).
-        run: demol generate zephyr examples/esp/${{ matrix.example }}.dev --output-dir ./build
+        # --board native_sim names the overlay after the CI build target so
+        # west picks it up (Zephyr only auto-applies <board>.overlay).
+        run: demol generate zephyr examples/esp/${{ matrix.example }}.dev --output-dir ./build --board native_sim
 
       - name: Build for native_sim
         env:
