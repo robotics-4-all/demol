@@ -159,7 +159,7 @@ def test_zephyr_codegen_emits_kconfig_with_bme680(tmp_path, device_mm):
 
 
 def test_zephyr_codegen_emits_devicetree_i2c_node(tmp_path, device_mm):
-    """The devicetree overlay contains the BME680 I2C node at ``0x76``."""
+    """Custom I2C peripherals emit no overlay node (bus-label access)."""
     model = device_mm.model_from_file(str(Path("examples/esp/esp_iot_device.dev").resolve()))
     gen = ZephyrCodeGenerator(model, tmp_path)
     gen.generate()
@@ -167,9 +167,8 @@ def test_zephyr_codegen_emits_devicetree_i2c_node(tmp_path, device_mm):
     overlay_files = list((tmp_path / "app" / "boards").glob("*.overlay"))
     assert overlay_files, "Expected at least one .overlay file"
     overlay = overlay_files[0].read_text(encoding="utf-8")
-    assert "bme680@0x76" in overlay
-    assert "&i2c0" in overlay
-    assert 'compatible = "demol,bme680"' in overlay
+    assert "bme680@0x76" not in overlay
+    assert "hcsr04p_0" in overlay
 
 
 def test_zephyr_codegen_resolves_esp32_to_devkitc(tmp_path, device_mm):

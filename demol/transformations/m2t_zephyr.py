@@ -502,12 +502,18 @@ class ZephyrCodeGenerator(BaseCodeGenerator):
                     i2c_base = self._driver_base_for(conn.peripheral.ref)
                 except AttributeError:
                     i2c_base = None
+                compat = _i2c_compat_for(i2c_base or peripheral_name)
+                if compat.startswith("demol,"):
+                    # Custom I2C peripherals are driven via the bus label
+                    # (DT_NODELABEL) with an explicit address -- no overlay
+                    # node is emitted, so no custom I2C binding is needed.
+                    continue
                 nodes.append(
                     {
                         "bus": bus,
                         "name": peripheral_name.lower(),
                         "addr": addr,
-                        "compat": _i2c_compat_for(i2c_base or peripheral_name),
+                        "compat": compat,
                     }
                 )
         return nodes
