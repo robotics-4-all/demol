@@ -410,7 +410,7 @@
        * from the model (ATTRIBUTES i2c_address). */
       static const struct device *bme680_bus = DEVICE_DT_GET(DT_NODELABEL(i2c0));
       
-      #define BME680_I2C_ADDR (118)
+      #define BME680_I2C_ADDR (0x76)
       
       /* Calibration parameters, decoded once at init (all stored as double,
        * matching the float-based Bosch compensation flow). */
@@ -1299,7 +1299,7 @@
        * from the model (ATTRIBUTES i2c_address). */
       static const struct device *bme680_bus = DEVICE_DT_GET(DT_NODELABEL(i2c0));
       
-      #define BME680_I2C_ADDR (118)
+      #define BME680_I2C_ADDR (0x76)
       
       /* Calibration parameters, decoded once at init (all stored as double,
        * matching the float-based Bosch compensation flow). */
@@ -2534,7 +2534,7 @@
        * from the model (ATTRIBUTES i2c_address). */
       static const struct device *bme680_bus = DEVICE_DT_GET(DT_NODELABEL(i2c0));
       
-      #define BME680_I2C_ADDR (118)
+      #define BME680_I2C_ADDR (0x76)
       
       /* Calibration parameters, decoded once at init (all stored as double,
        * matching the float-based Bosch compensation flow). */
@@ -2852,7 +2852,7 @@
        * from the model (ATTRIBUTES i2c_address). */
       static const struct device *bme680_bus = DEVICE_DT_GET(DT_NODELABEL(i2c0));
       
-      #define BME680_I2C_ADDR (118)
+      #define BME680_I2C_ADDR (0x76)
       
       /* Calibration parameters, decoded once at init (all stored as double,
        * matching the float-based Bosch compensation flow). */
@@ -3329,7 +3329,7 @@
        * from the model (ATTRIBUTES i2c_address). */
       static const struct device *bme680_bus = DEVICE_DT_GET(DT_NODELABEL(i2c0));
       
-      #define BME680_I2C_ADDR (118)
+      #define BME680_I2C_ADDR (0x76)
       
       /* Calibration parameters, decoded once at init (all stored as double,
        * matching the float-based Bosch compensation flow). */
@@ -4537,7 +4537,7 @@
        * from the model (ATTRIBUTES i2c_address). */
       static const struct device *bme680_bus = DEVICE_DT_GET(DT_NODELABEL(i2c0));
       
-      #define BME680_I2C_ADDR (118)
+      #define BME680_I2C_ADDR (0x76)
       
       /* Calibration parameters, decoded once at init (all stored as double,
        * matching the float-based Bosch compensation flow). */
@@ -5096,7 +5096,7 @@
        * from the model (ATTRIBUTES i2c_address). */
       static const struct device *bme680_bus = DEVICE_DT_GET(DT_NODELABEL(i2c0));
       
-      #define BME680_I2C_ADDR (118)
+      #define BME680_I2C_ADDR (0x76)
       
       /* Calibration parameters, decoded once at init (all stored as double,
        * matching the float-based Bosch compensation flow). */

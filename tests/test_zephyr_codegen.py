@@ -153,8 +153,10 @@ def test_bme680_driver_uses_custom_i2c(device_mm, tmp_path, example_path):
         pytest.skip(f"{example_path.name} has no bme680.c (different peripheral set)")
 
     body = bme680.read_text(encoding="utf-8")
-    assert "I2C_DT_SPEC_GET" in body, f"{example_path.name}: bme680.c missing I2C_DT_SPEC_GET"
-    assert "demol_bme680" in body, f"{example_path.name}: bme680.c missing demol_bme680 compatible"
+    assert "DT_NODELABEL(i2c0)" in body, f"{example_path.name}: bme680.c missing bus-label I2C access"
+    assert "i2c_write_read" in body, f"{example_path.name}: bme680.c missing plain I2C transfer calls"
+    assert "0x76" in body, f"{example_path.name}: bme680.c missing 0x76 slave address"
+    assert "DT_INST(0, demol_bme680)" not in body, f"{example_path.name}: stale custom-node DT_INST"
     assert "sensor/bme680.h" not in body, f"{example_path.name}: stale upstream bme680 include"
     assert (output_dir / "app" / "src" / "bme680.h").is_file(), "Missing bme680.h"
 
@@ -163,8 +165,10 @@ def test_synthetic_bme680_driver_emits_custom_i2c(synthetic_bme680_dir):
     bme680 = synthetic_bme680_dir / "app" / "src" / "bme680.c"
     assert bme680.is_file(), "Synthetic bme680 model did not emit app/src/bme680.c"
     body = bme680.read_text(encoding="utf-8")
-    assert "I2C_DT_SPEC_GET" in body
-    assert "demol_bme680" in body
+    assert "DT_NODELABEL(i2c0)" in body
+    assert "i2c_write_read" in body
+    assert "0x76" in body
+    assert "DT_INST(0, demol_bme680)" not in body
     assert "sensor/bme680.h" not in body
     assert (synthetic_bme680_dir / "app" / "src" / "bme680.h").is_file()
     prj = (synthetic_bme680_dir / "app" / "prj.conf").read_text(encoding="utf-8")
