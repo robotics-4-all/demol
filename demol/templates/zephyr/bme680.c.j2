@@ -25,8 +25,12 @@
 #define BME680_REG_DATA       0x1F
 #define BME680_OS_1X          0x01
 
-static const struct i2c_dt_spec bme680_i2c =
-	I2C_DT_SPEC_GET(DT_INST(0, demol_bme680));
+/* I2C bus access deliberately avoids DT_INST on the custom demol,bme680
+ * devicetree node: only the bus label is needed. The slave address comes
+ * from the model (ATTRIBUTES i2c_address). */
+static const struct device *bme680_bus = DEVICE_DT_GET(DT_NODELABEL(i2c0));
+
+#define BME680_I2C_ADDR ({{ attributes.i2c_address|default(118) }})
 
 /* Calibration parameters, decoded once at init (all stored as double,
  * matching the float-based Bosch compensation flow). */
@@ -41,14 +45,14 @@ static bool calib_valid;
 
 static int bme680_reg_read(uint8_t reg, uint8_t *buf, size_t len)
 {
-	return i2c_write_read_dt(&bme680_i2c, &reg, 1, buf, len);
+	return i2c_write_read(bme680_bus, &reg, 1, buf, len, BME680_I2C_ADDR);
 }
 
 static int bme680_reg_write(uint8_t reg, uint8_t val)
 {
 	uint8_t buf[2] = {reg, val};
 
-	return i2c_write_dt(&bme680_i2c, buf, sizeof(buf));
+	return i2c_write(bme680_bus, buf, sizeof(buf), BME680_I2C_ADDR);
 }
 
 static uint16_t u16_le(const uint8_t *b)
@@ -132,7 +136,7 @@ int bme680_init(void)
 {
 	uint8_t chip_id;
 
-	if (!device_is_ready(bme680_i2c.bus)) {
+	if (!device_is_ready(bme680_bus)) {
 		return -ENODEV;
 	}
 	if (bme680_reg_read(BME680_REG_CHIP_ID, &chip_id, 1) < 0) {
