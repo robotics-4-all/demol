@@ -89,7 +89,10 @@ int main(void)
 		k_msleep({{ min_period_ms }});
 {% for s in samplings -%}
 {% if s.mode == 'continuous' %}
-		{{ s.peripheral }}_read();
+		{
+			static struct {{ s.peripheral }}_data reading;
+			{{ s.peripheral }}_read(&reading);
+		}
 {% elif s.mode == 'on_change' %}
 		{
 			struct {{ s.peripheral }}_data current;

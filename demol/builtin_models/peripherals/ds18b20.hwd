@@ -15,10 +15,10 @@ SENSOR[Temperature] DS18B20 WITH
         // SCALE 100 converts DSL literals (e.g. 38.5 celsius) into the integer
         // raw value the driver emits.
         temperature -> "raw_temperature" : int32 SCALE 100 FOR riotos,
-        // Zephyr maxim,ds18b20 driver exposes temperature via sensor API as a
-        // double (degC) through sensor_value_to_double / SENSOR_CHAN_AMBIENT_TEMP.
-        // main.c is expected to allocate the struct; alert codegen references
-        // its fields directly. No SCALE for the Zephyr path.
+        // Zephyr demol,ds18b20 driver (custom 1-Wire bit-bang driver) exposes
+        // temperature via struct ds18b20_data as a double (degC). main.c is
+        // expected to allocate the struct; alert codegen references its fields
+        // directly. No SCALE for the Zephyr path.
         temperature -> "ds18b20_data.temperature" : double FOR zephyr
     TEMPLATES
         raspbian="ds18b20.py.j2",
@@ -29,7 +29,7 @@ SENSOR[Temperature] DS18B20 WITH
             {package="w1thermsensor", source="pip"}
         ],
         riotos=["ds18b20"],
-        zephyr=["ds18b20"]
+        zephyr=["gpio"]
     ATTRIBUTES
         gpio_modes[dict] = {data = "input"},
         frequency[float] = 1.0,

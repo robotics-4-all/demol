@@ -37,14 +37,6 @@ static const struct gpio_dt_spec dht22_data =
 #define DHT22_RECOVERY_MS         1
 
 /* ------------------------------------------------------------------
- * Data structure returned by dht22_read().
- * ---------------------------------------------------------------- */
-struct dht22_data {
-    double temperature;
-    double humidity;
-};
-
-/* ------------------------------------------------------------------
  * dht22_init — configure the data pin, pull high (idle state).
  * ---------------------------------------------------------------- */
 int dht22_init(void)

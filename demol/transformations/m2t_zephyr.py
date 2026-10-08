@@ -107,14 +107,14 @@ int main(void)
 def _i2c_compat_for(peripheral_name: str) -> str:
     """Build a devicetree ``compatible`` string for a peripheral.
 
-    Zephyr convention is ``vendor,part`` lowercased. The BME680 has a
-    well-known ``bosch,bme680`` binding; other peripherals fall back to
-    their lowercased component name which downstream bindings may match
-    on the ``,<part>`` token.
+    Zephyr convention is ``vendor,part`` lowercased for peripherals with an
+    upstream binding (``bosch,bme280``, ``rohm,bh1750``). Peripherals without
+    an upstream driver use the custom ``demol,<part>`` convention and get a
+    locally generated binding under ``app/dts/bindings/``.
     """
     lowered = peripheral_name.lower()
     if lowered == "bme680":
-        return "bosch,bme680"
+        return "demol,bme680"
     if lowered == "bme280":
         return "bosch,bme280"
     if lowered == "bh1750":
@@ -126,17 +126,11 @@ def _gpio_compat_for(peripheral_name: str) -> str:
     """Build a devicetree ``compatible`` string for a GPIO peripheral.
 
     GPIO peripherals that implement custom bit-bang protocols use the
-    ``demol,<name>`` convention. Standard Zephyr GPIO bindings
-    (e.g. ``gpio_keys``) are returned as-is, and no custom devicetree
-    overlay node is generated for them.
+    ``demol,<name>`` convention and get a locally generated binding plus
+    overlay node.
     """
     lowered = peripheral_name.lower()
-    # Known standard Zephyr GPIO bindings — no custom overlay needed
-    known_standard = {
-        "button": "gpio_keys",
-    }
-    if lowered in known_standard:
-        return known_standard[lowered]
+    # No standard-binding exceptions: every GPIO peripheral gets a custom node.
     return f"demol,{lowered}"
 
 
@@ -338,7 +332,7 @@ class ZephyrCodeGenerator(BaseCodeGenerator):
                     result.append(
                         {
                             "name": a.name,
-                            "peripheral": str(getattr(pref, "name", "")).lower(),
+                            "peripheral": self._driver_base_for(pref) or str(getattr(pref, "name", "")).lower(),
                             "condition_c": condition_c,
                             "cooldown_ms": cooldown_ms,
                             "action": "publish",
@@ -357,7 +351,7 @@ class ZephyrCodeGenerator(BaseCodeGenerator):
                     result.append(
                         {
                             "name": a.name,
-                            "peripheral": str(getattr(pref, "name", "")).lower(),
+                            "peripheral": self._driver_base_for(pref) or str(getattr(pref, "name", "")).lower(),
                             "condition_c": condition_c,
                             "cooldown_ms": cooldown_ms,
                             "action": "activate",
@@ -455,7 +449,7 @@ class ZephyrCodeGenerator(BaseCodeGenerator):
 
             result.append(
                 {
-                    "peripheral": str(type_name).lower(),
+                    "peripheral": self._driver_base_for(ref) or str(type_name).lower(),
                     "rate": rate_hz,
                     "mode": mode,
                     "period_ms": period_ms,
@@ -504,12 +498,16 @@ class ZephyrCodeGenerator(BaseCodeGenerator):
                 peripheral_name = self._peripheral_short_name(conn)
                 if not peripheral_name:
                     continue
+                try:
+                    i2c_base = self._driver_base_for(conn.peripheral.ref)
+                except AttributeError:
+                    i2c_base = None
                 nodes.append(
                     {
                         "bus": bus,
                         "name": peripheral_name.lower(),
                         "addr": addr,
-                        "compat": _i2c_compat_for(peripheral_name),
+                        "compat": _i2c_compat_for(i2c_base or peripheral_name),
                     }
                 )
         return nodes
@@ -532,7 +530,14 @@ class ZephyrCodeGenerator(BaseCodeGenerator):
             peripheral_name = self._peripheral_short_name(conn)
             if not peripheral_name:
                 continue
-            compat = _gpio_compat_for(peripheral_name)
+            try:
+                gpio_base = self._driver_base_for(conn.peripheral.ref)
+            except AttributeError:
+                gpio_base = None
+            if gpio_base:
+                compat = f"demol,{gpio_base}"
+            else:
+                compat = _gpio_compat_for(peripheral_name)
             # Skip standard Zephyr bindings -- they don't need custom nodes
             if not compat.startswith("demol,"):
                 continue
@@ -553,6 +558,7 @@ class ZephyrCodeGenerator(BaseCodeGenerator):
                     "name": peripheral_name.lower(),
                     "compat": compat,
                     "gpio_pins": gpio_pins,
+                    "first_pin": next(iter(gpio_pins.values())),
                     "gpio_ctrl": "gpio0",
                     "gpio_flags": "GPIO_ACTIVE_HIGH",
                 }
@@ -615,6 +621,22 @@ class ZephyrCodeGenerator(BaseCodeGenerator):
             name = None
         return str(name) if name else ""
 
+    def _driver_base_for(self, pref: Any) -> Optional[str]:
+        """Return the rendered driver base name for a peripheral ref.
+
+        Resolves the peripheral's Zephyr template via
+        :class:`PeripheralTemplateMapper` and strips the suffix, exactly as
+        :meth:`_render_peripheral_drivers` does. Returns ``None`` when the
+        peripheral has no Zephyr template so callers can fall back.
+        """
+        try:
+            tmpl = PeripheralTemplateMapper.get_template(pref, self.OS)
+        except Exception:
+            return None
+        if not tmpl:
+            return None
+        return _strip_zephyr_template_suffix(tmpl)
+
     def _collect_source_names(self) -> List[str]:
         """Collect peripheral source names for the CMake target list.
 
@@ -629,14 +651,12 @@ class ZephyrCodeGenerator(BaseCodeGenerator):
                 peripheral = conn.peripheral.ref
             except AttributeError:
                 continue
-            templates = getattr(peripheral, "templates", None) or []
-            has_zephyr = any(str(getattr(t, "os", "")).lower() == self.OS for t in templates)
-            if not has_zephyr:
+            base = self._driver_base_for(peripheral)
+            if not base:
                 continue
-            name = getattr(peripheral, "name", None)
-            if not name:
-                continue
-            sources.append(str(name).lower())
+            if base not in sources:
+                sources.append(base)
+        return sources
         return sources
 
     def _render_kconfig(self) -> str:
@@ -750,6 +770,18 @@ class ZephyrCodeGenerator(BaseCodeGenerator):
                 continue
 
             self._write_template(template, context, app_src_dir / f"{base_name}.c")
+
+            header_tmpl = f"{base_name}.h.j2"
+            try:
+                header_template = self.env.get_template(header_tmpl)
+            except jinja2.TemplateNotFound:
+                logger.debug(
+                    "No Zephyr header template '%s'; skipping.",
+                    header_tmpl,
+                )
+            else:
+                self._write_template(header_template, context, app_src_dir / f"{base_name}.h")
+                logger.debug("Generated Zephyr driver header: %s", base_name)
             logger.debug("Generated Zephyr driver: %s", base_name)
 
     def _collect_constraints(self) -> List[Dict[str, str]]:
@@ -952,18 +984,53 @@ class ZephyrCodeGenerator(BaseCodeGenerator):
         if not gpio_nodes:
             return
         for node in gpio_nodes:
-            pin_name = next(iter(node["gpio_pins"]), "data")
             compat = node["compat"]
             yaml_name = compat.replace(",", "-") + ".yaml"
+            prop_lines = (
+                "  gpios:\n"
+                "    type: phandle-array\n"
+                "    required: true\n"
+                "    description: Canonical GPIO pin (first pin)\n"
+            )
+            for pin_name in node["gpio_pins"]:
+                prop_lines += (
+                    f"  {pin_name}-gpios:\n"
+                    "    type: phandle-array\n"
+                    "    required: true\n"
+                    f"    description: GPIO {pin_name} pin\n"
+                )
             yaml_content = (
                 f"description: {node['name'].title()} sensor\n"
                 f'compatible: "{compat}"\n'
                 "\n"
                 "properties:\n"
-                f"  {pin_name}-gpios:\n"
-                "    type: phandle-array\n"
-                "    required: true\n"
-                f"    description: GPIO {pin_name} pin\n"
+                f"{prop_lines}"
+            )
+            (bindings_dir / yaml_name).write_text(yaml_content, encoding="utf-8")
+            logger.debug("Generated devicetree binding: %s", yaml_name)
+
+    def _render_i2c_bindings(self, bindings_dir: Path) -> None:
+        """Emit custom devicetree binding YAML files for I2C peripherals.
+
+        Each I2C-connected peripheral whose overlay compat uses the
+        ``demol,*`` convention gets a minimal binding that includes
+        ``i2c-device.yaml`` so the standard ``reg`` property is known.
+        Upstream compatibles already ship bindings with Zephyr and are
+        skipped.
+        """
+        nodes = self._collect_i2c_nodes()
+        for node in nodes:
+            compat = node["compat"]
+            if not compat.startswith("demol,"):
+                continue
+            yaml_name = compat.replace(",", "-") + ".yaml"
+            if (bindings_dir / yaml_name).is_file():
+                continue
+            yaml_content = (
+                f"description: {node['name'].title()} I2C sensor\n"
+                f'compatible: "{compat}"\n'
+                "\n"
+                "include: i2c-device.yaml\n"
             )
             (bindings_dir / yaml_name).write_text(yaml_content, encoding="utf-8")
             logger.debug("Generated devicetree binding: %s", yaml_name)
@@ -975,6 +1042,7 @@ class ZephyrCodeGenerator(BaseCodeGenerator):
             app/CMakeLists.txt
             app/prj.conf
             app/src/main.c
+            app/src/<driver>.c + app/src/<driver>.h (one pair per peripheral)
             app/src/constraint.{c,h}        (only when model has CONSTRAINTs)
             app/boards/<board>.overlay
             app/dts/bindings/.gitkeep
@@ -1030,6 +1098,7 @@ class ZephyrCodeGenerator(BaseCodeGenerator):
         app_dts_bindings_dir.mkdir(parents=True, exist_ok=True)
         (app_dts_bindings_dir / ".gitkeep").write_text("", encoding="utf-8")
         self._render_gpio_bindings(app_dts_bindings_dir)
+        self._render_i2c_bindings(app_dts_bindings_dir)
 
         logger.info("Zephyr code generation complete!")
 

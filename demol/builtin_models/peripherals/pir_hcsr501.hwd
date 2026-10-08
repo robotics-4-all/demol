@@ -22,7 +22,7 @@ SENSOR[Proximity] PIR_HCSR501 WITH
         zephyr="pir_hcsr501.c.j2"
     DEPENDENCIES
         raspbian=["gpiozero"],
-        zephyr=["pir_hcsr501"]
+        zephyr=["gpio"]
     ATTRIBUTES
         gpio_modes[dict] = {OUT = "input"},
         frequency[float] = 10.0,
