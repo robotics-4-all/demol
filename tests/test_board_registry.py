@@ -148,17 +148,18 @@ def test_registry_has_mapping_case_insensitive():
 
 
 def test_zephyr_codegen_emits_kconfig_with_bme680(tmp_path, device_mm):
-    """``prj.conf`` for the ESP IoT example contains ``CONFIG_BME680=y``."""
+    """``prj.conf`` enables ``CONFIG_I2C`` (custom BME680 driver has no Kconfig symbol)."""
     model = device_mm.model_from_file(str(Path("examples/esp/esp_iot_device.dev").resolve()))
     gen = ZephyrCodeGenerator(model, tmp_path)
     gen.generate()
 
     prj_conf = (tmp_path / "app" / "prj.conf").read_text(encoding="utf-8")
-    assert "CONFIG_BME680=y" in prj_conf
+    assert "CONFIG_I2C=y" in prj_conf
+    assert "CONFIG_BME680" not in prj_conf
 
 
 def test_zephyr_codegen_emits_devicetree_i2c_node(tmp_path, device_mm):
-    """The devicetree overlay contains the BME680 I2C node at ``0x76``."""
+    """Custom I2C peripherals emit no overlay node (bus-label access)."""
     model = device_mm.model_from_file(str(Path("examples/esp/esp_iot_device.dev").resolve()))
     gen = ZephyrCodeGenerator(model, tmp_path)
     gen.generate()
@@ -166,9 +167,8 @@ def test_zephyr_codegen_emits_devicetree_i2c_node(tmp_path, device_mm):
     overlay_files = list((tmp_path / "app" / "boards").glob("*.overlay"))
     assert overlay_files, "Expected at least one .overlay file"
     overlay = overlay_files[0].read_text(encoding="utf-8")
-    assert "bme680@0x76" in overlay
-    assert "&i2c0" in overlay
-    assert 'compatible = "bosch,bme680"' in overlay
+    assert "bme680@0x76" not in overlay
+    assert "hcsr04p_0" in overlay
 
 
 def test_zephyr_codegen_resolves_esp32_to_devkitc(tmp_path, device_mm):
@@ -187,7 +187,7 @@ def test_zephyr_codegen_emits_cmakelists(tmp_path, device_mm):
     cmake = (tmp_path / "app" / "CMakeLists.txt").read_text(encoding="utf-8")
     assert "project(esp32_devkitc)" in cmake
     assert "target_sources(app PRIVATE src/main.c" in cmake
-    assert "target_include_directories(app PRIVATE src/include)" in cmake
+    assert "target_include_directories(app PRIVATE src)" in cmake
 
 
 def test_zephyr_codegen_board_override_takes_precedence(tmp_path, device_mm):

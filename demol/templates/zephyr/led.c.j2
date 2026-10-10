@@ -8,7 +8,7 @@
 
 #include "{{ name }}.h"
 
-static const struct gpio_dt_spec led = GPIO_DT_SPEC_GET(DT_INST(0, gpio_leds), gpios);
+static const struct gpio_dt_spec led = GPIO_DT_SPEC_GET(DT_INST(0, demol_led), gpios);
 
 int led_init(void)
 {

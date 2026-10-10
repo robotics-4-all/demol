@@ -17,6 +17,13 @@
 
 #include "constraint.h"
 
+/* Forward declarations: predicates below call these helpers before their
+ * definitions (Zephyr builds with -Werror, so implicit declarations fail). */
+static uint8_t _count_kind(uint8_t kind);
+static uint8_t _count_connected(void);
+static int32_t _sum_power_mW(void);
+static int32_t _max_power_mW(void);
+
 LOG_MODULE_REGISTER(constraint, LOG_LEVEL_WRN);
 
 #define CONSTRAINT_CHECK_INTERVAL_S 10

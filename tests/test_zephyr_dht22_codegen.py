@@ -66,12 +66,14 @@ def test_dht22_driver_uses_zephyr_gpio_api(device_mm, tmp_path):
 
 
 def test_dht22_prj_conf_has_kconfig(device_mm, tmp_path):
-    """The generated prj.conf enables CONFIG_DHT22."""
+    """The generated prj.conf enables GPIO (custom bit-bang driver needs no
+    DHT22 Kconfig symbol -- upstream Zephyr has no such driver)."""
     model = device_mm.model_from_str(SYNTHETIC_DHT22_MODEL)
     m2t_zephyr(model, output_dir=str(tmp_path))
 
     prj_conf = (tmp_path / "app" / "prj.conf").read_text(encoding="utf-8")
-    assert "CONFIG_DHT22=y" in prj_conf, "Missing CONFIG_DHT22 in prj.conf"
+    assert "CONFIG_GPIO=y" in prj_conf, "Missing CONFIG_GPIO in prj.conf"
+    assert "CONFIG_DHT22" not in prj_conf, "Stale CONFIG_DHT22 in prj.conf"
 
 
 def test_dht22_cmakelists_lists_source(device_mm, tmp_path):

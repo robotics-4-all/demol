@@ -45,8 +45,8 @@ def test_ds18b20_app_tree_is_emitted(device_mm, tmp_path):
     assert overlays, "Missing board overlay"
 
 
-def test_ds18b20_driver_uses_zephyr_sensor_api(device_mm, tmp_path):
-    """The generated ds18b20.c contains Zephyr sensor API calls."""
+def test_ds18b20_driver_uses_custom_onewire(device_mm, tmp_path):
+    """The generated ds18b20.c is a custom 1-Wire bit-bang driver."""
     model = device_mm.model_from_str(SYNTHETIC_DS18B20_MODEL)
     m2t_zephyr(model, output_dir=str(tmp_path))
 
@@ -54,22 +54,22 @@ def test_ds18b20_driver_uses_zephyr_sensor_api(device_mm, tmp_path):
     assert ds18b20_c.is_file()
 
     body = ds18b20_c.read_text(encoding="utf-8")
-    assert "sensor_sample_fetch" in body, "Missing sensor_sample_fetch"
-    assert "DEVICE_DT_GET" in body, "Missing DEVICE_DT_GET"
-    assert "maxim_ds18b20" in body, "Missing maxim_ds18b20 compatible"
-    assert "sensor_channel_get" in body, "Missing sensor_channel_get"
-    assert "sensor_value_to_double" in body, "Missing sensor_value_to_double"
+    assert "demol_ds18b20" in body, "Missing demol_ds18b20 compatible"
+    assert "GPIO_DT_SPEC_GET" in body, "Missing GPIO_DT_SPEC_GET"
+    assert "data_gpios" in body, "Missing data_gpios"
+    assert "k_busy_wait" in body, "Missing k_busy_wait for 1-Wire timing"
     assert "struct ds18b20_data" in body, "Missing ds18b20_data struct"
-    assert "SENSOR_CHAN_AMBIENT_TEMP" in body, "Missing SENSOR_CHAN_AMBIENT_TEMP"
+    assert (tmp_path / "app" / "src" / "ds18b20.h").is_file(), "Missing ds18b20.h"
 
 
 def test_ds18b20_prj_conf_has_kconfig(device_mm, tmp_path):
-    """The generated prj.conf enables CONFIG_DS18B20."""
+    """The generated prj.conf enables GPIO (no upstream DS18B20 symbol)."""
     model = device_mm.model_from_str(SYNTHETIC_DS18B20_MODEL)
     m2t_zephyr(model, output_dir=str(tmp_path))
 
     prj_conf = (tmp_path / "app" / "prj.conf").read_text(encoding="utf-8")
-    assert "CONFIG_DS18B20=y" in prj_conf, "Missing CONFIG_DS18B20 in prj.conf"
+    assert "CONFIG_GPIO=y" in prj_conf, "Missing CONFIG_GPIO in prj.conf"
+    assert "CONFIG_DS18B20" not in prj_conf, "Stale CONFIG_DS18B20 in prj.conf"
 
 
 def test_ds18b20_cmakelists_lists_source(device_mm, tmp_path):
