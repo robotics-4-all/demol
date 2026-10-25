@@ -14,15 +14,25 @@ SENSOR[Env] BME680 WITH
         // RIOT BME680 driver stores temperature in 0.01 degC, pressure in Pa,
         // humidity in 0.001 %RH. SCALE converts DSL literals (e.g. 38.5 celsius)
         // into the integer raw value the driver emits.
+        // Zephyr demol,bme680 driver (custom I2C forced-mode driver) exposes
+        // struct bme680_data { temperature, pressure, humidity } as doubles.
+        // main.c is expected to allocate the struct; alert codegen references
+        // its fields directly. No SCALE for the Zephyr path because the driver
+        // emits physical units (degC, Pa, %RH).
+        temperature -> "bme680_data.temperature" : double FOR zephyr,
+        pressure    -> "bme680_data.pressure"    : double FOR zephyr,
+        humidity    -> "bme680_data.humidity"    : double FOR zephyr,
         temperature -> "data.temperature" : int32 SCALE 100 FOR riotos,
         pressure    -> "data.pressure"    : uint32 FOR riotos,
         humidity    -> "data.humidity"    : int32 SCALE 1000 FOR riotos
     TEMPLATES
         raspbian="bme680.py.j2",
-        riotos="bme680.c.j2"
+        riotos="bme680.c.j2",
+        zephyr="bme680.c.j2"
     DEPENDENCIES
         raspbian=["bme680"],
-        riotos=["bme680"]
+        riotos=["bme680"],
+        zephyr=["i2c"]
     ATTRIBUTES
         i2c_address[int] = 118,
         poll_period[int] = 10,

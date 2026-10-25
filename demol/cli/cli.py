@@ -15,6 +15,9 @@ from demol.transformations import (
     m2t_docs,
     m2t_rpi,
     m2t_riot,
+    m2t_zephyr,
+    m2t_wokwi,
+    m2t_renode,
     m2m_smauto,
     m2t_infrastructure_svg,
     demol_to_json,
@@ -219,6 +222,86 @@ def generate_riot(model_filepath, output_dir, skip_semantics):
     if model:
         m2t_riot(model, output_dir=output_dir)
         print("[✓] RiotOS code generated successfully.")
+
+
+@generate.command("wokwi")
+@click.argument("model_filepath")
+@click.option("--output-dir", default=".", help="Output directory for generated Wokwi project")
+@click.option(
+    "--skip-semantics",
+    is_flag=True,
+    help="Build model even if semantic rules are failing",
+)
+def generate_wokwi(model_filepath, output_dir, skip_semantics):
+    """Generate a Wokwi simulation project (diagram.json + wokwi.toml)"""
+    print(f"[*] Generating Wokwi project for model {model_filepath}")
+    model = handle_build_model(model_filepath, skip_semantics=skip_semantics)
+    if model:
+        m2t_wokwi(model, output_dir=output_dir)
+        print("[✓] Wokwi project generated successfully.")
+
+
+@generate.command("renode")
+@click.argument("model_filepath")
+@click.option(
+    "--output-dir",
+    required=True,
+    help="Output directory for generated Renode simulation project",
+)
+@click.option(
+    "--elf-path",
+    default=None,
+    help="Path to pre-built firmware ELF for direct simulation boot (optional)",
+)
+@click.option(
+    "--skip-semantics",
+    is_flag=True,
+    help="Build model even if semantic rules are failing",
+)
+def generate_renode(model_filepath, output_dir, elf_path, skip_semantics):
+    """Generate a Renode simulation project (device.repl + test_device.py)
+
+    Transforms a DeMoL device model into a Renode simulation project
+    containing a platform description (device.repl) and a pyrenode3-based
+    test driver (test_device.py).
+
+    Examples:
+
+        demol generate renode examples/esp/esp_bme680.dev --output-dir ./renode_out
+
+        demol generate renode examples/esp/esp_bme680.dev \\
+            --output-dir ./renode_out --elf-path ./build/firmware.elf
+    """
+    print(f"[*] Generating Renode project for model {model_filepath}")
+    model = handle_build_model(model_filepath, skip_semantics=skip_semantics)
+    if model:
+        m2t_renode(model, output_dir=output_dir, elf_path=elf_path)
+        print("[✓] Renode project generated successfully.")
+
+
+@generate.command("zephyr")
+@click.argument("model_filepath")
+@click.option("--output-dir", default=".", help="Output directory for generated code")
+@click.option(
+    "--board",
+    default=None,
+    help="Override Zephyr board name (e.g., esp32_devkitc)",
+)
+@click.option(
+    "--skip-semantics",
+    is_flag=True,
+    help="Build model even if semantic rules are failing",
+)
+def generate_zephyr(model_filepath, output_dir, board, skip_semantics):
+    """Generate Zephyr application skeleton
+
+    Usage: demol generate zephyr <file> --output-dir <dir> [--board <name>]
+    """
+    print(f"[*] Generating Zephyr application for model {model_filepath}")
+    model = handle_build_model(model_filepath, skip_semantics=skip_semantics)
+    if model:
+        m2t_zephyr(model, output_dir=output_dir, board_override=board)
+        print("[✓] Zephyr application skeleton generated successfully.")
 
 
 @generate.command("smauto")

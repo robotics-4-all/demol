@@ -7,7 +7,7 @@ USE RaspberryPi_5_8GB;
 
 USE BME680[EnvSensor], 
     SRF05[DistanceSensor], 
-    WS2812[StatusLed], 
+    WS281X[StatusLed], 
     TCRT5000[LineTracker],
     TactileButton[UserButton];
 
@@ -43,10 +43,10 @@ CONNECT DistanceSensor WITH
 // RGB LED Ring (GPIO)
 CONNECT StatusLed WITH
     POWER 
-        GND -- GND_3, 
-        VCC -- power_5v_b
+        gnd -- GND_3, 
+        vcc -- power_5v_b
     DATA 
-        gpio[mode="output"] DIN -- GPIO18
+        gpio[mode="output"] data_in -- GPIO18
     @ "actuators/status_led";
 
 // Line Tracker (GPIO)

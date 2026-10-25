@@ -6,18 +6,41 @@ Generates professional, styled SVG diagrams and hardware documentation from DeMo
 """
 
 import os
+from pathlib import Path
+
+import jinja2
+
+from .base_generator import BaseCodeGenerator
 from .device_to_svg import device_to_svg
 from .infrastructure_to_svg import infrastructure_to_svg
-from jinja2 import Environment, FileSystemLoader
+
+
+class DocsGenerator(BaseCodeGenerator):
+    """
+    Generates hardware documentation (Markdown) from a device model.
+    The SVG diagrams are produced by the dedicated device_to_svg /
+    infrastructure_to_svg generators; this class owns the markdown half.
+    """
+
+    OS = ""
+
+    def __init__(self, device_model, output_dir="."):
+        self.output_dir = Path(output_dir)
+        super().__init__(device_model, self.output_dir)
+        self.env = self.setup_template_environment()
+        self.doc_path = self.output_dir / f"{self.device_model.metadata.name}_hardware_doc.md"
+
+    def setup_template_environment(self) -> jinja2.Environment:
+        templates_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "templates", "docs")
+        return jinja2.Environment(loader=jinja2.FileSystemLoader(templates_dir))
+
+    def generate(self) -> None:
+        template = self.env.get_template("hardware_doc.md.j2")
+        self._write_template(template, {"model": self.device_model}, self.doc_path)
 
 
 def generate_documentation(model, output_dir="."):
     """Generates the high-level system diagram and hardware documentation."""
-
-    # Setup Jinja2 Environment
-    # Templates are located in ../templates relative to this file
-    templates_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "templates", "docs")
-    env = Environment(loader=FileSystemLoader(templates_dir))
 
     if output_dir != "." and not os.path.exists(output_dir):
         os.makedirs(output_dir, exist_ok=True)
@@ -44,13 +67,10 @@ def generate_documentation(model, output_dir="."):
 
     # 3. Hardware Documentation
     try:
-        template_doc = env.get_template("hardware_doc.md.j2")
-        doc_content = template_doc.render(model=model)
-        doc_filename = os.path.join(output_dir, f"{model.metadata.name}_hardware_doc.md")
-        with open(doc_filename, "w") as f:
-            f.write(doc_content)
-        print(f"Generated Hardware Documentation: {doc_filename}")
-        generated_files.append(doc_filename)
+        docs_generator = DocsGenerator(model, Path(output_dir))
+        docs_generator.generate()
+        print(f"Generated Hardware Documentation: {docs_generator.doc_path}")
+        generated_files.append(str(docs_generator.doc_path))
     except Exception as e:
         print(f"Error generating hardware documentation: {e}")
 

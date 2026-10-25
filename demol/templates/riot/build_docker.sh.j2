@@ -13,7 +13,7 @@ set -euo pipefail
 
 # --- Configuration ----------------------------------------------------------
 BOARD="${BOARD:-{{ board_name }}}"
-RIOT_VERSION="${RIOT_VERSION:-{{ riot_version | default('2024.10') }}}"
+RIOT_VERSION="${RIOT_VERSION:-{{ riot_version | default('2025.10') }}}"
 IMAGE_TAG="${IMAGE_TAG:-demol/riotbuild:${RIOT_VERSION}}"
 APP_DIR="$(cd "$(dirname "$0")" && pwd)"
 DOCKERFILE="${APP_DIR}/Dockerfile.riotbuild"

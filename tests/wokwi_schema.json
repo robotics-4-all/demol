@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://demol.local/schemas/wokwi-diagram.json",
+  "title": "Wokwi diagram.json",
+  "description": "Minimal JSON Schema for validating the diagram.json file produced by the DeMoL Wokwi code generator. The schema is a strict subset of the Wokwi diagram format (https://docs.wokwi.com/diagram-format) and intentionally allows additional optional fields (e.g. top/left/attrs metadata on parts) to remain forward-compatible with the Wokwi simulator.",
+  "type": "object",
+  "required": ["version", "author", "editor", "parts", "connections"],
+  "additionalProperties": true,
+  "properties": {
+    "version": {
+      "description": "Diagram format version. The current Wokwi format is v1.",
+      "type": "integer",
+      "enum": [1]
+    },
+    "author": {
+      "description": "Author/owner of the diagram. Set to 'demol' by the DeMoL generator.",
+      "type": "string",
+      "minLength": 1
+    },
+    "editor": {
+      "description": "Editor identifier. Set to 'wokwi' by the DeMoL generator.",
+      "type": "string",
+      "minLength": 1
+    },
+    "parts": {
+      "description": "List of parts placed on the Wokwi breadboard (controller + peripherals).",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["type", "id"],
+        "additionalProperties": true,
+        "properties": {
+          "type": {
+            "description": "Wokwi part type id (e.g. 'wokwi-pi-pico', 'wokwi-bme280').",
+            "type": "string",
+            "minLength": 1
+          },
+          "id": {
+            "description": "Local instance id used as a reference target in 'connections'.",
+            "type": "string",
+            "minLength": 1
+          },
+          "attrs": {
+            "description": "Free-form per-part attributes (pin overrides, colour, etc.).",
+            "type": "object"
+          }
+        }
+      }
+    },
+    "connections": {
+      "description": "Wokwi connection tuples: [from, to, color, [wires]].",
+      "type": "array",
+      "items": {
+        "type": "array",
+        "minItems": 4,
+        "maxItems": 4,
+        "items": { "type": "string" },
+        "prefixItems": [
+          { "description": "'<partId>:<pin>' source endpoint.", "type": "string", "pattern": "^[^:]+:.+$" },
+          { "description": "'<partId>:<pin>' destination endpoint.", "type": "string", "pattern": "^[^:]+:.+$" },
+          { "description": "CSS colour name (e.g. 'red', 'black', 'blue').", "type": "string", "minLength": 1 },
+          { "description": "Optional list of wire override colours (empty array == use default).", "type": "array", "items": { "type": "string" } }
+        ]
+      }
+    }
+  }
+}

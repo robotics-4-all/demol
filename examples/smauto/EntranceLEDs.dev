@@ -1,7 +1,7 @@
 DEVICE EntranceLEDs WITH description="Embedded device with SRF and LEDs", author="maria", os=raspbian;
 
 USE RaspberryPi_5_8GB;
-USE SRF05[EntranceSRF], WS2812[RoomLights];
+USE SRF05[EntranceSRF], WS281X[RoomLights];
 
 NETWORK[WiFi] WITH ssid="Wifi_2.4GHz", password="guest";
 
@@ -18,8 +18,8 @@ CONNECT EntranceSRF WITH
 
 CONNECT RoomLights WITH
     POWER
-        GND -- GND_2,
-        VCC -- power_5v_b
+        gnd -- GND_2,
+        vcc -- power_5v_b
     DATA
-        gpio[mode="output"] DIN -- GPIO10
+        gpio[mode="output"] data_in -- GPIO10
 ;

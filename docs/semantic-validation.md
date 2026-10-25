@@ -73,6 +73,10 @@ Critical safety validations to prevent hardware damage:
 - Ensures proper electrical reference and signal integrity
 - Emits warnings when ground connection is missing
 
+**Meta-OS Validation:**
+- Checks that the selected `os=` value is supported by the toolchain
+- Unsupported operating systems produce a clear error with suggested alternatives
+
 **Example Errors:**
 ```
 [Safety-Pin-Conflicts] Pin conflict detected: Board pin 'GPIO4' is already 
@@ -83,6 +87,9 @@ peripheral(s): BME680. Cannot reuse for peripheral 'TempSensor'.
 
 [Safety-IO-Voltage] IO Voltage Incompatibility: Board 'RaspberryPi_5_8GB' 
 operates at 5.0V (IO), but peripheral 'BME680' operates at 3.3V (IO).
+
+[Meta-OS-NotSupported] Operating system 'freertos' is not supported. 
+Supported values: raspbian, riotos, zephyr, arduino, esp-idf.
 ```
 
 ### Well-Formedness Rules
@@ -192,7 +199,7 @@ Found 4 validation error(s):
 
 ## Implementation
 
-All semantic validations are implemented in `demol/lang/semantics.py` based on the formal semantics specification. The validation system uses:
+All semantic validations are implemented in `demol/lang/semantics/validators/` (33 validators across 15 files) based on the formal semantics specification. The validation system uses:
 
 - **Type checking** for pin functionality verification
 - **Constraint validation** for safety properties

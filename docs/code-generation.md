@@ -45,6 +45,9 @@ demol generate [GENERATOR] [MODEL_FILE] --output-dir [DIR]
 |-----------|--------|-------------|
 | `rpi` | Python | Raspberry Pi code (RPi.GPIO, smbus2, spidev) |
 | `riot` | C | RiotOS code for embedded systems |
+| `zephyr` | C + devicetree | Zephyr RTOS code with CMakeLists.txt, prj.conf, devicetree overlay |
+| `wokwi` | diagram.json + wokwi.toml | Wokwi web simulator project |
+| `renode` | .repl + pyrenode3 | Renode hardware emulator |
 | `svg` | SVG | Wiring diagram |
 | `svg --infrastructure` | SVG | Infrastructure diagram (Edge/Communication/Application layers) |
 | `docs` | Markdown | Hardware construction guide with BOM and wiring tables |
@@ -65,17 +68,22 @@ The code generation system uses an abstract `BaseCodeGenerator` class that provi
 ```
 Device Model → BaseCodeGenerator (abstract)
                     ↓
-            ┌───────┴────────┐
-            ↓                ↓
-    RPiCodeGenerator    RiotCodeGenerator
-            ↓                ↓
-        Templates        Templates
+            ┌───────┴────────────────────┐
+            ↓                ↓            ↓
+    RPiCodeGenerator    RiotCodeGenerator  ZephyrCodeGenerator
+            ↓                ↓            ↓
+    WokwiCodeGenerator    RenodeCodeGenerator
+            ↓                ↓            ↓
+        Templates        Templates      Templates
 ```
 
 ### Supported Generators
 
-- **Raspberry Pi (Python)**: Generates Python code using `RPi.GPIO`, `smbus2`, and `spidev`.
-- **RiotOS (C)**: Generates C code for RiotOS-supported boards.
+- **Raspberry Pi (Python)**: Generates Python code using `RPi.GPIO`, `smbus2`, and `spidev`. Full AMQP (pika) and Redis (redis-py) broker support. CONSTRAINT runtime via `constraints.py`.
+- **RiotOS (C)**: Generates C code for RiotOS-supported boards. CONSTRAINT runtime via `constraint.c`/`constraint.h`. Broker stubs with TODO markers.
+- **Zephyr RTOS (C)**: Generates a complete Zephyr application: `CMakeLists.txt`, `prj.conf`, devicetree overlay, `main.c`, and one driver source file per peripheral. 18 driver templates covering BME680, BME280, BH1750, DS18B20, DHT22, PIR_HCSR501, relay, servo, ADS1115, SHTC3, HW006, button, HCSR04, LED, MPL3115A2, SRF04, SRF05, WS281X. CONSTRAINT runtime via `constraint.c`/`constraint.h`. Broker stubs.
+- **Wokwi (diagram.json)**: Generates a `diagram.json` + `wokwi.toml` for the Wokwi web simulator. Maps device model parts to standard Wokwi component IDs.
+- **Renode (.repl)**: Generates a `.repl` platform description + `pyrenode3` test script for the Renode hardware emulator.
 
 ### Running Code Generation
 
@@ -97,6 +105,33 @@ This will:
    - `docker-compose.yml`: For orchestrating the device and its broker
    - `requirements.txt`: For Python dependencies
    - `install_deps.sh`: A standalone bash script to install all `apt` and `pip` dependencies directly on the host system (non-Docker deployment)
+
+## CONSTRAINT Code Generation
+
+The CONSTRAINT block generates platform-specific runtime check code:
+
+- **RPi (Python)**: Emits `constraints.py` with a `ConstraintEvaluator` class that evaluates `count()` and `sum_power()` expressions against live sensor data
+- **RIOT (C)**: Emits `constraint.c`/`constraint.h` with static evaluation functions using `xtimer` for periodic checks
+- **Zephyr (C)**: Emits `constraint.c`/`constraint.h` with Zephyr-native timer integration
+
+```sh
+demol generate rpi examples/rpi/rpi_constraint_bme.dev --output-dir ./output
+demol generate riot examples/esp/wemos_constraint_bme680.dev --output-dir ./output
+demol generate zephyr examples/esp/wemos_constraint_bme680.dev --output-dir ./output
+```
+
+## Broker Support
+
+The BROKER block generates transport-specific connection code:
+
+- **MQTT**: Full support on all platforms (default broker)
+- **AMQP**: Full support on RPi (via `pika`), stubs on RIOT/Zephyr
+- **Redis**: Full support on RPi (via `redis-py`), stubs on RIOT/Zephyr
+
+```sh
+demol generate rpi examples/rpi/rpi_amqp_bme680.dev --output-dir ./output
+demol generate rpi examples/rpi/rpi_redis_bme680.dev --output-dir ./output
+```
 
 ## Pin-Mapping Reports
 

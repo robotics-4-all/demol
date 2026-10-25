@@ -1,0 +1,23 @@
+/*
+ * Zephyr Redis broker stub (T45).
+ */
+
+#ifndef REDIS_BROKER_H
+#define REDIS_BROKER_H
+
+#include <stdbool.h>
+#include <stddef.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+int redis_broker_init(void);
+int redis_publish(const char *channel, const void *payload, size_t len);
+bool redis_is_available(void);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* REDIS_BROKER_H */

@@ -1,0 +1,56 @@
+#include "sensor_{{ name }}_{{ index }}.h"
+#include "thread.h"
+#include "xtimer.h"
+#include "json_handler.h"
+#include "mqtt_broker.h"
+#include "periph/i2c.h"
+#include "shtc1.h"
+
+static shtc1_t {{ name }}_{{ index }}_dev;
+static {{ name }}_{{ index }}_callback {{ name }}_{{ index }}_cb;
+char {{ name }}_{{ index }}_stack[THREAD_STACKSIZE_MAIN];
+
+void *{{ name }}_{{ index }}_thread(void *args);
+
+int init_sensor_{{ name }}_{{ index }}(void)
+{
+    printf("Initialize {{ name|upper }} sensor ... ");
+    if (shtc1_init(&{{ name }}_{{ index }}_dev, I2C_DEV({{ conn.i2c.bus|default(0) }}),
+                   0x{{ conn.i2c.slave_address|default('70') }}) != SHTC1_OK) {
+        puts("failed");
+        return -1;
+    }
+    puts("OK");
+    return 0;
+}
+
+void start_sensor_{{ name }}_{{ index }}({{ name }}_{{ index }}_callback callback)
+{
+    {{ name }}_{{ index }}_cb = callback;
+    thread_create({{ name }}_{{ index }}_stack, sizeof({{ name }}_{{ index }}_stack),
+                  (THREAD_PRIORITY_MAIN + 1),
+                  THREAD_CREATE_STACKTEST,
+                  {{ name }}_{{ index }}_thread,
+                  NULL, "{{ name }}_{{ index }}_sensor");
+};
+
+void *{{ name }}_{{ index }}_thread(void *args)
+{
+    (void)args;
+    int16_t temp_centi;
+    uint16_t hum_centi;
+    char json[128];
+
+    while (1) {
+        if (shtc1_read(&{{ name }}_{{ index }}_dev, &temp_centi, &hum_centi) == SHTC1_OK) {
+            json_dumps(json, JSON_START,
+                       JSON_KEY, "Temperature", JSON_INT, temp_centi,
+                       JSON_KEY, "Humidity", JSON_INT, hum_centi,
+                       JSON_STOP);
+            {{ name }}_{{ index }}_cb(json);
+        } else {
+            printf("[{{ name }}]: read failed\n");
+        }
+        xtimer_msleep({{ name|upper }}_{{ index }}_FREQ);
+    }
+};

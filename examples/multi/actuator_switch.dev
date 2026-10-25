@@ -1,0 +1,43 @@
+// Actuator + switch example — board + 1 actuator (LED) + 1 sensor (button).
+//
+// Combines a digital output (LED) and a digital input (TactileButton) on
+// the same board. Tests GPIO-in / GPIO-out pin semantics across the five
+// backends and exercises the actuator + sensor code paths simultaneously.
+// The button is sampled on_change; the LED is driven from a local
+// topic-driven handler in the generated MQTT subscriber.
+
+DEVICE ActuatorSwitchDevice WITH
+    description="ESP32 with status LED + tactile button (all 5 backends)",
+    author="demol",
+    os=riotos;
+
+NETWORK[WiFi] WITH
+    ssid="DemoWifi",
+    password="demopass";
+
+BROKER[MQTT] LocalBroker WITH
+    host="broker.local",
+    port=1883,
+    auth.username="demo",
+    auth.password="demopass";
+
+USE ESP32Wroom32;
+
+USE LedGeneric[StatusLed], TactileButton[UserButton];
+
+SAMPLING UserButton WITH rate=20 hz, mode=on_change, threshold=1;
+
+CONNECT StatusLed WITH
+    POWER
+        gnd -- GND_1,
+        vcc -- VCC_3V3
+    DATA
+        gpio[mode="output"] vin -- GPIO2
+    @ "actuators.status_led";
+
+CONNECT UserButton WITH
+    POWER
+        gnd -- GND_2
+    DATA
+        gpio[mode="input", pullup=true] state -- GPIO4
+    @ "sensors.user_button";

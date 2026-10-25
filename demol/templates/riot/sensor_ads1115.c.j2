@@ -1,0 +1,57 @@
+#include "sensor_{{ name }}_{{ index }}.h"
+#include "thread.h"
+#include "xtimer.h"
+#include "json_handler.h"
+#include "mqtt_broker.h"
+#include "periph/i2c.h"
+#include "ads1x1x.h"
+
+static ads1x1x_t {{ name }}_{{ index }}_dev;
+static {{ name }}_{{ index }}_callback {{ name }}_{{ index }}_cb;
+char {{ name }}_{{ index }}_stack[THREAD_STACKSIZE_MAIN];
+
+void *{{ name }}_{{ index }}_thread(void *args);
+
+int init_sensor_{{ name }}_{{ index }}(void)
+{
+    printf("Initialize {{ name|upper }} ADC ... ");
+    if (ads1x1x_init(&{{ name }}_{{ index }}_dev, I2C_DEV({{ conn.i2c.bus|default(0) }}),
+                     0x{{ conn.i2c.slave_address|default('48') }}, ADS111X) != ADS1X1X_OK) {
+        puts("failed");
+        return -1;
+    }
+    puts("OK");
+    return 0;
+}
+
+void start_sensor_{{ name }}_{{ index }}({{ name }}_{{ index }}_callback callback)
+{
+    {{ name }}_{{ index }}_cb = callback;
+    thread_create({{ name }}_{{ index }}_stack, sizeof({{ name }}_{{ index }}_stack),
+                  (THREAD_PRIORITY_MAIN + 1),
+                  THREAD_CREATE_STACKTEST,
+                  {{ name }}_{{ index }}_thread,
+                  NULL, "{{ name }}_{{ index }}_sensor");
+};
+
+void *{{ name }}_{{ index }}_thread(void *args)
+{
+    (void)args;
+    int16_t values[4] = {0};
+    char json[256];
+
+    while (1) {
+        if (ads1x1x_read(&{{ name }}_{{ index }}_dev, values) == ADS1X1X_OK) {
+            json_dumps(json, JSON_START,
+                       JSON_KEY, "A0", JSON_INT, values[0],
+                       JSON_KEY, "A1", JSON_INT, values[1],
+                       JSON_KEY, "A2", JSON_INT, values[2],
+                       JSON_KEY, "A3", JSON_INT, values[3],
+                       JSON_STOP);
+            {{ name }}_{{ index }}_cb(json);
+        } else {
+            printf("[{{ name }}]: ADC read failed\n");
+        }
+        xtimer_msleep({{ name|upper }}_{{ index }}_FREQ);
+    }
+};

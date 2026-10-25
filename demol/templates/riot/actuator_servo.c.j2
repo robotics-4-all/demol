@@ -1,0 +1,62 @@
+#include "actuator_{{ name }}_{{ index }}.h"
+#include "thread.h"
+#include "xtimer.h"
+#include "json_handler.h"
+#include "mqtt_broker.h"
+#include "periph/gpio.h"
+#include "periph/pwm.h"
+
+#if PWM_0_EN
+static pwm_t {{ name }}_{{ index }}_pwm = PWM_0;
+#else
+static pwm_t {{ name }}_{{ index }}_pwm = PWM_DEV(0);
+#endif
+static int {{ name }}_{{ index }}_current_angle = 0;
+char {{ name }}_{{ index }}_stack[THREAD_STACKSIZE_MAIN];
+
+void *{{ name }}_{{ index }}_thread(void *args);
+
+int init_actuator_{{ name }}_{{ index }}(void)
+{
+    printf("Initialize {{ name|upper }} servo on PWM ... ");
+    if (pwm_init({{ name }}_{{ index }}_pwm, PWM_LEFT, 50, 20000000UL) < 0) {
+        puts("failed");
+        return -1;
+    }
+    puts("OK");
+    return 0;
+}
+
+void start_actuator_{{ name }}_{{ index }}(void)
+{
+    thread_create({{ name }}_{{ index }}_stack, sizeof({{ name }}_{{ index }}_stack),
+                  (THREAD_PRIORITY_MAIN + 1),
+                  THREAD_CREATE_STACKTEST,
+                  {{ name }}_{{ index }}_thread,
+                  NULL, "{{ name }}_{{ index }}_actuator");
+};
+
+void *{{ name }}_{{ index }}_thread(void *args)
+{
+    (void)args;
+    while (1) {
+        xtimer_msleep(1000);
+    }
+};
+
+void {{ name }}_{{ index }}_on_message(MessageData *data)
+{
+    char payload[64];
+    strncpy(payload, (char *)data->message->payload, data->message->payloadlen);
+    payload[data->message->payloadlen] = '\0';
+
+    int angle = atoi(payload);
+    if (angle < {{ attributes.min_angle|default(-90) }}) angle = {{ attributes.min_angle|default(-90) }};
+    if (angle > {{ attributes.max_angle|default(90) }}) angle = {{ attributes.max_angle|default(90) }};
+
+    /* Map angle to pulse width: 1.0ms (-90) to 2.0ms (+90) over 20ms frame */
+    int pulse_us = 1500 + (angle * 500 / 90);
+    pwm_set({{ name }}_{{ index }}_pwm, 0, 20000, pulse_us);
+    {{ name }}_{{ index }}_current_angle = angle;
+    printf("[{{ name|upper }}]: servo angle = %d (pulse %d us)\n", angle, pulse_us);
+}

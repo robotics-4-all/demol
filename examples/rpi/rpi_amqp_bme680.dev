@@ -1,0 +1,20 @@
+DEVICE RpiAmqpBme680 WITH description="Raspberry Pi + BME680 + AMQP broker", author="demol", os=raspbian;
+
+USE RaspberryPi_5_8GB;
+USE BME680[MyBME];
+
+NETWORK[WiFi] WITH ssid="wifi", password="pass";
+
+BROKER[AMQP] RabbitMQ WITH
+    host="rabbit.local",
+    port=5672,
+    vhost="/iot",
+    topicExchange="iot.sensors",
+    ssl=false,
+    auth.username="iot",
+    auth.password="iotpass";
+
+CONNECT MyBME WITH
+    POWER gnd -- GND_1, vcc -- power_5v_a
+    DATA i2c[slave_address=0x76] sda sda -- GPIO2, scl scl -- GPIO3
+    @ "iot.sensors.bme680";

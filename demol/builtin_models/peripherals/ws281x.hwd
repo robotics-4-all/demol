@@ -16,7 +16,9 @@ ACTUATOR[LedArray] WS281X WITH
         pixel_count -> "pixel_count" : int32 FOR riotos
     TEMPLATES
         raspbian="ws281x.py.j2",
-        riotos="ws281x_riot.c.j2"
+        riotos="ws281x_riot.c.j2",
+        zephyr="ws281x.c.j2"
     DEPENDENCIES
-        riotos=["ws281x"]
+        riotos=["ws281x"],
+        zephyr=["ws281x"]
 ;

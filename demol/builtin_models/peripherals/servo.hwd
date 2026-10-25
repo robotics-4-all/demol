@@ -12,7 +12,9 @@ ACTUATOR[ServoController] ServoGeneric WITH
         din[gpio] @ 2,
         vcc[5V] @ 3
     TEMPLATES
-        raspbian="servo.py.j2"
+        raspbian="servo.py.j2",
+        riotos="servo.c.j2",
+        zephyr="servo.c.j2"
     DEPENDENCIES
         raspbian=["gpiozero"]
     ATTRIBUTES

@@ -94,13 +94,14 @@ def test_smartconnect_gpio_actuator(device_mm):
         assert mode_props[0].value == "output"
 
 
-def test_smartconnect_ws2812_as_gpio(device_mm):
-    """WS2812 DIN pin resolves as GPIO (not SPI) with mode=output."""
-    model = device_mm.model_from_str(make_model("USE WS2812[Led];", 'SMARTCONNECT Led @ "actuators/led";'))
+def test_smartconnect_ws281x_as_gpio(device_mm):
+    """WS281X data_in pin resolves as GPIO (not SPI) with mode=output."""
+    model = device_mm.model_from_str(make_model("USE WS281X[Led];", 'SMARTCONNECT Led @ "actuators/led";'))
     conn = model.connections[0]
     gpio_conns = [dc for dc in conn.dataConns if dc.type == "gpio"]
-    assert len(gpio_conns) == 1
-    assert gpio_conns[0].pins[0].fromPin == "DIN"
+    # WS281X has data_in + optional data_out
+    assert len(gpio_conns) == 2
+    assert gpio_conns[0].pins[0].fromPin == "data_in"
 
     mode = [p.value for p in gpio_conns[0].props if p.name == "mode"][0]
     assert mode == "output"

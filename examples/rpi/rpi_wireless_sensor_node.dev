@@ -38,7 +38,7 @@ CONNECT Battery WITH
 
 // BME280 on I2C — 0x76 (SDO low)
 CONNECT EnvSensor WITH
-    POWER VCC -- power_3v3_a, GND -- GND_2
+    POWER vcc -- power_3v3_a, gnd -- GND_2
     DATA i2c[slave_address=0x76] sda sda -- GPIO2, scl scl -- GPIO3
     @ "node/env/primary";
 

@@ -1,0 +1,49 @@
+/*
+ * Zephyr Redis broker stub (T45).
+ *
+ * A real implementation would build RESP frames over
+ * <zephyr/net/socket.h>. Until a real Redis client is integrated, this
+ * stub records the config and logs the call.
+ */
+
+#include "redis_broker.h"
+
+#include <zephyr/kernel.h>
+#include <zephyr/net/socket.h>
+#include <zephyr/sys/printk.h>
+
+static const char *_redis_host = "{{ cfg.host }}";
+static uint16_t _redis_port = {{ cfg.port }};
+static int _redis_db = {{ cfg.db }};
+static const char *_redis_user = "{{ cfg.username }}";
+static const char *_redis_pass = "{{ cfg.password }}";
+
+static int _redis_fd = -1;
+static bool _redis_connected = false;
+
+int redis_broker_init(void)
+{
+    printk("redis_broker_init: host=%s port=%d db=%d\n",
+           _redis_host, _redis_port, _redis_db);
+    (void)_redis_user;
+    (void)_redis_pass;
+    return 0;
+}
+
+int redis_publish(const char *channel, const void *payload, size_t len)
+{
+    if (channel == NULL || payload == NULL) {
+        return -EINVAL;
+    }
+    /* TODO: build *2\r\n$7\r\nPUBLISH\r\n$<len(channel)>\r\n<channel>\r\n
+     *       $<len(payload)>\r\n<payload>\r\n, send, parse integer reply. */
+    (void)channel;
+    (void)payload;
+    (void)len;
+    return 0;
+}
+
+bool redis_is_available(void)
+{
+    return _redis_connected;
+}

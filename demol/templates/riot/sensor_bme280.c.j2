@@ -1,0 +1,159 @@
+#include "sensor_{{ name }}_{{ index }}.h"
+#include "thread.h"
+#include "xtimer.h"
+#include "json_handler.h"
+#include "mqtt_broker.h"
+#include "bmx280.h"
+
+static bmx280_t {{ name }}_{{ index }}_dev;
+static {{ name }}_{{ index }}_callback {{ name }}_{{ index }}_cb;
+
+char {{ name }}_{{ index }}_json_payload[165] = "";
+char {{ name }}_{{ index }}_stack[THREAD_STACKSIZE_MAIN];
+
+void *{{ name }}_{{ index }}_thread(void *args);
+
+int init_sensor_{{ name }}_{{ index }}(void)
+{
+    bmx280_params_t params;
+    params.i2c_dev = I2C_DEV({{ conn.i2c.bus|default(0) }});
+    params.i2c_addr = 0x{{ conn.i2c.slave_address|default('77') }};
+    params.t_sb = BMX280_SB_0_5;
+    params.filter = BMX280_FILTER_{{ attributes.filter_coefficient|default('OFF') }};
+    params.run_mode = BMX280_MODE_NORMAL;
+    params.temp_oversample = BMX280_OSRS_X{{ attributes.temperature_oversample|default(1) }};
+    params.press_oversample = BMX280_OSRS_X{{ attributes.pressure_oversample|default(1) }};
+    params.humid_oversample = BMX280_OSRS_X{{ attributes.humidity_oversample|default(1) }};
+
+    printf("Initialize {{ name|upper }} sensor ... ");
+    if (bmx280_init(&{{ name }}_{{ index }}_dev, &params) != BMX280_OK)
+    {
+        puts("failed");
+        return -1;
+    }
+    else
+    {
+        puts("OK");
+        return 0;
+    }
+}
+
+void start_sensor_{{ name }}_{{ index }}({{ name }}_{{ index }}_callback callback)
+{
+    {{ name }}_{{ index }}_cb = callback;
+    thread_create({{ name }}_{{ index }}_stack, sizeof({{ name }}_{{ index }}_stack),
+                  (THREAD_PRIORITY_MAIN + 1),
+                  THREAD_CREATE_STACKTEST,
+                  {{ name }}_{{ index }}_thread,
+                  NULL, "{{ name }}_{{ index }}_sensor");
+};
+
+void *{{ name }}_{{ index }}_thread(void *args)
+{
+    (void)args;
+    /* Read values stored in a data struct so alert conditions can reference
+     * data.temperature, data.pressure, data.humidity via the PROPERTIES block. */
+    struct {
+        int32_t temperature;
+        uint32_t pressure;
+        int32_t humidity;
+    } data;
+{% if source_alerts %}
+    /* ALERT cooldown trackers (function-scope statics persist across loop iterations) */
+{% for a in source_alerts %}
+    static uint64_t last_fire_{{ a.c_safe_name }} = 0;
+{% endfor %}
+{% endif %}
+{% if sampling and sampling.mode == "on_change" %}
+    int32_t prev_temperature = 0;
+    uint32_t prev_pressure = 0;
+    int32_t prev_humidity = 0;
+    int first_reading = 1;
+{% endif %}
+{% if sampling and sampling.mode == "batch" %}
+    int batch_count = 0;
+{% endif %}
+
+    while (1)
+    {
+        /* Read temperature first (triggers a measurement cycle), then pressure
+         * and humidity using the cached measurement data. */
+        data.temperature = bmx280_read_temperature(&{{ name }}_{{ index }}_dev);
+
+        if (data.temperature != INT16_MIN)
+        {
+            data.pressure = bmx280_read_pressure(&{{ name }}_{{ index }}_dev);
+            data.humidity = bme280_read_humidity(&{{ name }}_{{ index }}_dev);
+
+{% if source_alerts %}
+            /* ALERT triggers — evaluated on every successful read, independent of sampling mode */
+            uint64_t _now_sec = xtimer_now_usec64() / 1000000ULL;
+{% for a in source_alerts %}
+            if ({{ a.condition_c }}) {
+                if ((_now_sec - last_fire_{{ a.c_safe_name }}) >= {{ a.cooldown_sec }}ULL) {
+                    last_fire_{{ a.c_safe_name }} = _now_sec;
+{% for act in a.actions %}
+                    publish_alert("{{ act.payload_c }}", "{{ act.topic }}");
+{% endfor %}
+                }
+            }
+{% endfor %}
+{% endif %}
+{% if sampling and sampling.mode == "on_change" %}
+            int changed = first_reading;
+            if (!first_reading) {
+                int32_t threshold = (int32_t)({{ name|upper }}_{{ index }}_THRESHOLD * 100);
+                if (abs(data.temperature - prev_temperature) > threshold ||
+                    abs((int32_t)(data.pressure - prev_pressure)) > threshold ||
+                    abs(data.humidity - prev_humidity) > threshold) {
+                    changed = 1;
+                }
+            }
+            if (changed) {
+                first_reading = 0;
+                prev_temperature = data.temperature;
+                prev_pressure = data.pressure;
+                prev_humidity = data.humidity;
+
+                json_dumps({{ name }}_{{ index }}_json_payload,
+                           JSON_START,
+                           JSON_KEY, "Temperature", JSON_INT, data.temperature,
+                           JSON_KEY, "Pressure", JSON_INT, data.pressure,
+                           JSON_KEY, "Humidity", JSON_INT, data.humidity,
+                           JSON_STOP);
+
+                {{ name }}_{{ index }}_cb({{ name }}_{{ index }}_json_payload);
+            }
+{% elif sampling and sampling.mode == "batch" %}
+            batch_count++;
+            if (batch_count >= {{ name|upper }}_{{ index }}_BATCH_SIZE) {
+                json_dumps({{ name }}_{{ index }}_json_payload,
+                           JSON_START,
+                           JSON_KEY, "Temperature", JSON_INT, data.temperature,
+                           JSON_KEY, "Pressure", JSON_INT, data.pressure,
+                           JSON_KEY, "Humidity", JSON_INT, data.humidity,
+                           JSON_KEY, "batch_count", JSON_INT, batch_count,
+                           JSON_STOP);
+
+                {{ name }}_{{ index }}_cb({{ name }}_{{ index }}_json_payload);
+                batch_count = 0;
+            }
+{% else %}
+            json_dumps({{ name }}_{{ index }}_json_payload,
+                       JSON_START,
+                       JSON_KEY, "Temperature", JSON_INT, data.temperature,
+                       JSON_KEY, "Pressure", JSON_INT, data.pressure,
+                       JSON_KEY, "Humidity", JSON_INT, data.humidity,
+                       JSON_STOP);
+
+            {{ name }}_{{ index }}_cb({{ name }}_{{ index }}_json_payload);
+{% endif %}
+        }
+        else
+        {
+            printf("[{{ name }}]: read failed\n");
+        }
+
+        xtimer_msleep(({{ name|upper }}_{{ index }}_FREQ));
+    }
+};

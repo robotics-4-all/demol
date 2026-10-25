@@ -1,0 +1,184 @@
+# serializer version: 1
+# name: test_diagram_json_golden[esp_iot_device.dev]
+  '''
+  {
+    "version": 1,
+    "author": "demol",
+    "editor": "wokwi",
+    "parts": [
+      { "type": "wokwi-pi-pico", "id": "board", "attrs": {  } },
+      { "type": "wokwi-resistor", "id": "MySonar", "attrs": {  } },
+      { "type": "wokwi-resistor", "id": "MyBME", "attrs": {  } }
+    ],
+    "connections": [
+      [ "board:GPIO13", "MySonar:trigger", "red", []],
+      [ "board:GPIO14", "MySonar:echo", "red", []],
+      [ "board:GND_1", "MySonar:GND", "black", []],
+      [ "board:VCC_3V3", "MySonar:VCC", "red", []],
+      [ "board:GPIO21", "MyBME:SDA", "blue", []],
+      [ "board:GPIO22", "MyBME:SCL", "blue", []],
+      [ "board:GND_2", "MyBME:gnd", "black", []],
+      [ "board:VCC_5V", "MyBME:vcc", "red", []]
+    ]
+  }
+  
+  '''
+# ---
+# name: test_diagram_json_golden[wemos_a.dev]
+  '''
+  {
+    "version": 1,
+    "author": "demol",
+    "editor": "wokwi",
+    "parts": [
+      { "type": "wokwi-pi-pico", "id": "board", "attrs": {  } },
+      { "type": "wokwi-resistor", "id": "Sonar", "attrs": {  } }
+    ],
+    "connections": [
+      [ "board:d3", "Sonar:trigger", "red", []],
+      [ "board:d4", "Sonar:echo", "red", []],
+      [ "board:gnd", "Sonar:GND", "black", []],
+      [ "board:power_3v3", "Sonar:VCC", "red", []]
+    ]
+  }
+  
+  '''
+# ---
+# name: test_diagram_json_golden[wemos_bme680.dev]
+  '''
+  {
+    "version": 1,
+    "author": "demol",
+    "editor": "wokwi",
+    "parts": [
+      { "type": "wokwi-pi-pico", "id": "board", "attrs": {  } },
+      { "type": "wokwi-resistor", "id": "BME", "attrs": {  } }
+    ],
+    "connections": [
+      [ "board:d2", "BME:SDA", "blue", []],
+      [ "board:d1", "BME:SCL", "blue", []],
+      [ "board:gnd", "BME:gnd", "black", []],
+      [ "board:power_5v", "BME:vcc", "red", []]
+    ]
+  }
+  
+  '''
+# ---
+# name: test_diagram_json_golden[wemos_button.dev]
+  '''
+  {
+    "version": 1,
+    "author": "demol",
+    "editor": "wokwi",
+    "parts": [
+      { "type": "wokwi-pi-pico", "id": "board", "attrs": {  } },
+      { "type": "wokwi-resistor", "id": "Btn", "attrs": {  } }
+    ],
+    "connections": [
+      [ "board:d2", "Btn:state", "red", []],
+      [ "board:gnd", "Btn:gnd", "black", []]
+    ]
+  }
+  
+  '''
+# ---
+# name: test_diagram_json_golden[wemos_srf05.dev]
+  '''
+  {
+    "version": 1,
+    "author": "demol",
+    "editor": "wokwi",
+    "parts": [
+      { "type": "wokwi-pi-pico", "id": "board", "attrs": {  } },
+      { "type": "wokwi-resistor", "id": "Range", "attrs": {  } }
+    ],
+    "connections": [
+      [ "board:d3", "Range:trigger", "red", []],
+      [ "board:d4", "Range:echo", "red", []],
+      [ "board:gnd", "Range:GND", "black", []],
+      [ "board:power_5v", "Range:VCC", "red", []]
+    ]
+  }
+  
+  '''
+# ---
+# name: test_wokwi_toml_golden[esp_iot_device.dev]
+  '''
+  [wokwi]
+  version = 1
+  
+  [net]
+  i2c = "blue"
+  spi = "green"
+  uart = "yellow"
+  gpio = "red"
+  pwm = "red"
+  gnd = "black"
+  vcc = "red"
+  
+  '''
+# ---
+# name: test_wokwi_toml_golden[wemos_a.dev]
+  '''
+  [wokwi]
+  version = 1
+  
+  [net]
+  i2c = "blue"
+  spi = "green"
+  uart = "yellow"
+  gpio = "red"
+  pwm = "red"
+  gnd = "black"
+  vcc = "red"
+  
+  '''
+# ---
+# name: test_wokwi_toml_golden[wemos_bme680.dev]
+  '''
+  [wokwi]
+  version = 1
+  
+  [net]
+  i2c = "blue"
+  spi = "green"
+  uart = "yellow"
+  gpio = "red"
+  pwm = "red"
+  gnd = "black"
+  vcc = "red"
+  
+  '''
+# ---
+# name: test_wokwi_toml_golden[wemos_button.dev]
+  '''
+  [wokwi]
+  version = 1
+  
+  [net]
+  i2c = "blue"
+  spi = "green"
+  uart = "yellow"
+  gpio = "red"
+  pwm = "red"
+  gnd = "black"
+  vcc = "red"
+  
+  '''
+# ---
+# name: test_wokwi_toml_golden[wemos_srf05.dev]
+  '''
+  [wokwi]
+  version = 1
+  
+  [net]
+  i2c = "blue"
+  spi = "green"
+  uart = "yellow"
+  gpio = "red"
+  pwm = "red"
+  gnd = "black"
+  vcc = "red"
+  
+  '''
+# ---

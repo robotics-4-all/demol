@@ -6,18 +6,36 @@ SENSOR[Env] BME280 WITH
         power.max=3.6 mW,
         power.avg=1.0 mW
     PINS
-        VCC[3V3] @ 1,
-        GND[GND] @ 2,
+        vcc[3V3] @ 1,
+        gnd[GND] @ 2,
         sda[sda-0] @ 3,
         scl[scl-0] @ 4,
         ? sdo[gpio] @ 5,
         ? csb[cs-0] @ 6
+    PROPERTIES
+        // Zephyr bosch,bme280 driver exposes struct bme280_data { temperature,
+        // pressure, humidity } as doubles. main.c is expected to allocate the
+        // struct; alert codegen references its fields directly. No SCALE for the
+        // Zephyr path because the driver emits physical units (degC, Pa, %RH).
+        temperature -> "bme280_data.temperature" : double FOR zephyr,
+        pressure    -> "bme280_data.pressure"    : double FOR zephyr,
+        humidity    -> "bme280_data.humidity"    : double FOR zephyr,
+        // RIOT bmx280 driver stores temperature in 0.01 degC (int16_t centi°C),
+        // pressure in Pa (uint32_t), humidity in 0.01 %RH (uint16_t centi%RH).
+        // SCALE converts DSL literals into the integer raw value the driver emits.
+        temperature -> "data.temperature" : int32 SCALE 100 FOR riotos,
+        pressure    -> "data.pressure"    : uint32 FOR riotos,
+        humidity    -> "data.humidity"    : int32 SCALE 1000 FOR riotos
     TEMPLATES
-        raspbian="bme280.py.j2"
+        raspbian="bme280.py.j2",
+        riotos="bme280.c.j2",
+        zephyr="bme280.c.j2"
     DEPENDENCIES
         raspbian=[
             {package="adafruit-circuitpython-bme280", source="pip"}
-        ]
+        ],
+        riotos=["bme280_i2c"],
+        zephyr=["bme280"]
     ATTRIBUTES
         i2c_address[int] = 118,
         poll_period[int] = 10,

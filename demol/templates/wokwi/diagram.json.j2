@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "author": "demol",
+  "editor": "wokwi",
+  "parts": [
+{% for part in parts %}
+    { "type": "{{ part.type }}", "id": "{{ part.id }}", "attrs": { {{ part.attrs }} } }{% if not loop.last %},{% endif %}
+
+{% endfor %}
+  ],
+  "connections": [
+{% for conn in connections %}
+    [ "{{ conn.from }}", "{{ conn.to }}", "{{ conn.color }}", []]{% if not loop.last %},{% endif %}
+
+{% endfor %}
+  ]
+}

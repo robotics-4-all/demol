@@ -41,6 +41,10 @@ def model_proc(model, metamodel):
         report_passed_rule,
     )
 
+    if getattr(metamodel, "_skip_semantics", False):
+        enrich_model(model)
+        return
+
     logger.info("Processing model: %s", model._tx_filename)
 
     # Reset validation results for this run
@@ -59,6 +63,29 @@ def model_proc(model, metamodel):
     # ========================================================================
     enrich_model(model)
 
+    # ========================================================================
+    # Meta: OS Not Supported (reserved OS values with no codegen backend)
+    # ========================================================================
+    from demol.lang.semantics.validators.meta_os import validate_meta_os
+
+    run_rule(
+        "Meta-OS-NotSupported",
+        validate_meta_os,
+        model,
+        desc="OS is a supported codegen target (not arduino/esp-idf/esp-idf-rtos)",
+    )
+
+    # ========================================================================
+    # Board-Platform Compatibility: board PLATFORMS declares target OS
+    # ========================================================================
+    from demol.lang.semantics.validators.board_platform import validate_board_platform
+
+    run_rule(
+        "Board-Platform",
+        validate_board_platform,
+        model,
+        desc="Board declares PLATFORMS support for the model's declared OS",
+    )
     # ========================================================================
     # Well-Formedness: Single board
     # ========================================================================
@@ -530,6 +557,7 @@ def get_device_mm(debug: bool = False, global_repo: bool = False, skip_semantics
     mm.referenced_languages["component"] = component_mm
 
     mm.register_model_processor(model_proc)
+    mm._skip_semantics = skip_semantics
 
     mm.register_obj_processors(
         {

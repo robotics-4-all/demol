@@ -1,0 +1,30 @@
+/*
+ * Zephyr AMQP broker stub (T42). Zephyr's mainline tree does not include
+ * a native AMQP client. A real implementation would either pull in an
+ * out-of-tree binding (e.g. from the Zephyr Discord/Discord's #networking
+ * channel) or encode AMQP frames manually over <zephyr/net/socket.h>.
+ *
+ * This stub provides the same API surface as the RIOT and RPi variants
+ * so the rest of the codegen can dispatch on broker kind without
+ * per-callsite changes.
+ */
+
+#ifndef AMQP_BROKER_H
+#define AMQP_BROKER_H
+
+#include <stdbool.h>
+#include <stddef.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+int amqp_broker_init(void);
+int amqp_publish(const char *topic, const void *payload, size_t len);
+bool amqp_is_available(void);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* AMQP_BROKER_H */

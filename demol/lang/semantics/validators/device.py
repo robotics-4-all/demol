@@ -325,21 +325,6 @@ def validate_topic_format(model):
     TopicFormatValidator.validate(model)
 
 
-def validate_mqtt_topic(topic: str) -> Tuple[bool, Optional[str]]:
-    """Validate MQTT topic format."""
-    return TopicFormatValidator.validate_mqtt_topic(topic)
-
-
-def validate_amqp_topic(topic: str) -> Tuple[bool, Optional[str]]:
-    """Validate AMQP topic format."""
-    return TopicFormatValidator.validate_amqp_topic(topic)
-
-
-def validate_redis_topic(topic: str) -> Tuple[bool, Optional[str]]:
-    """Validate Redis topic format."""
-    return TopicFormatValidator.validate_redis_topic(topic)
-
-
 __all__ = [
     "BrokerRequirementsValidator",
     "NetworkRequirementsValidator",
@@ -349,7 +334,4 @@ __all__ = [
     "validate_network_requirements",
     "validate_broker_security",
     "validate_topic_format",
-    "validate_mqtt_topic",
-    "validate_amqp_topic",
-    "validate_redis_topic",
 ]

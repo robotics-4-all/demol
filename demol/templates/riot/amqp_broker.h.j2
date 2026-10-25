@@ -1,0 +1,30 @@
+/*
+ * RIOT AMQP broker header (T41). Public API surface — the rest of the
+ * codegen calls amqp_broker_init() once at startup and amqp_publish()
+ * for every broker-bound sample / alert.
+ */
+
+#ifndef AMQP_BROKER_H
+#define AMQP_BROKER_H
+
+#include <stdbool.h>
+#include <stddef.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/** Open the AMQP connection and declare the configured exchange. */
+int amqp_broker_init(void);
+
+/** Publish a payload to the configured exchange, topic as routing key. */
+int amqp_publish(const char *topic, const void *payload, size_t len);
+
+/** Probe whether the AMQP stack is connected (caller may fall back to MQTT). */
+bool amqp_is_available(void);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* AMQP_BROKER_H */

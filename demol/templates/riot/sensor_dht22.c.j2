@@ -1,0 +1,273 @@
+#include "sensor_{{ name }}_{{ index }}.h"
+#include "thread.h"
+#include "xtimer.h"
+#include "json_handler.h"
+#include "mqtt_broker.h"
+#include "periph/gpio.h"
+
+/*
+ * DHT22 timing-sensitive GPIO bit-bang driver.
+ *
+ * Protocol summary:
+ *   1. MCU pulls data line LOW for >18ms (start signal)
+ *   2. MCU pulls HIGH for 20-40us
+ *   3. DHT22 responds: LOW ~80us, then HIGH ~80us
+ *   4. Data: 40 bits (MSB first), each bit:
+ *      - 50us LOW (start)
+ *      - 26-28us HIGH = "0", 70us HIGH = "1"
+ *   5. Checksum = lower 8 bits of (byte0 + byte1 + byte2 + byte3)
+ *
+ * Temperature raw: 16 bits, 0.1 degC resolution, bit 15 = sign (0=+ / 1=-)
+ *   -> stored in centidegrees (int32_t) after x10 for SCALE 100.
+ * Humidity raw: 16 bits, 0.1 %%RH resolution
+ *   -> stored in thousandths of %%RH (int32_t) after x100 for SCALE 1000.
+ */
+
+/* --- Timing constants (microseconds) --- */
+#define DHT22_START_LOW_US      20000U   /* > 18 ms */
+#define DHT22_START_HIGH_US         30U   /* 20-40 us */
+#define DHT22_RESP_TIMEOUT_US     300U   /* max wait for response edges */
+#define DHT22_BIT_TIMEOUT_US      200U   /* max wait per bit edge */
+#define DHT22_HIGH_THRESHOLD_US     40U   /* >40 us = 1, <=40 us = 0 */
+
+static gpio_t {{ name }}_{{ index }}_pin;
+static {{ name }}_{{ index }}_callback {{ name }}_{{ index }}_cb;
+
+char {{ name }}_{{ index }}_json_payload[165] = "";
+char {{ name }}_{{ index }}_stack[THREAD_STACKSIZE_MAIN];
+
+void *{{ name }}_{{ index }}_thread(void *args);
+
+/* ------------------------------------------------------------------ */
+/*  Internal helpers                                                   */
+/* ------------------------------------------------------------------ */
+
+static int _wait_for(gpio_t pin, int expected, uint32_t timeout_us)
+{
+    uint32_t start = xtimer_now_usec64();
+    while ((int)gpio_read(pin) != expected) {
+        if ((xtimer_now_usec64() - start) > timeout_us) {
+            return -1;
+        }
+    }
+    return 0;
+}
+
+/* Read one DHT22 bit by measuring the HIGH pulse width. */
+static int _read_bit(gpio_t pin)
+{
+    /* Wait for rising edge (end of 50 us LOW) */
+    if (_wait_for(pin, 1, DHT22_BIT_TIMEOUT_US) < 0) {
+        return -1;
+    }
+
+    /* Measure HIGH pulse width */
+    uint32_t start = xtimer_now_usec64();
+    if (_wait_for(pin, 0, DHT22_BIT_TIMEOUT_US) < 0) {
+        return -1;
+    }
+    uint32_t width = xtimer_now_usec64() - start;
+
+    return (width > DHT22_HIGH_THRESHOLD_US) ? 1 : 0;
+}
+
+/* Read one byte (MSB first) from the DHT22. */
+static int _read_byte(gpio_t pin)
+{
+    int val = 0;
+    for (int i = 0; i < 8; i++) {
+        int bit = _read_bit(pin);
+        if (bit < 0) {
+            return -1;
+        }
+        val = (val << 1) | bit;
+    }
+    return val;
+}
+
+/*
+ * Perform a full DHT22 read cycle.
+ *
+ * Returns 0 on success with *temperature and *humidity populated
+ * in raw 0.1-unit resolution (e.g. 385 = 38.5 degC, 655 = 65.5 %%RH).
+ * Returns -1 on failure (timeout, checksum error, no response).
+ */
+static int _dht22_read(gpio_t pin, int16_t *temperature, int16_t *humidity)
+{
+    uint8_t data[5] = {0};
+
+    /* --- Send start signal --- */
+    gpio_init(pin, GPIO_OUT);
+    gpio_write(pin, 0);
+    xtimer_usleep(DHT22_START_LOW_US);
+    gpio_write(pin, 1);
+    xtimer_usleep(DHT22_START_HIGH_US);
+
+    /* --- Switch to input; DHT22 pulls line low --- */
+    gpio_init(pin, GPIO_IN);
+
+    /* Wait for DHT22 response: LOW ~80 us */
+    if (_wait_for(pin, 0, DHT22_RESP_TIMEOUT_US) < 0) {
+        gpio_init(pin, GPIO_OUT);
+        gpio_write(pin, 1);
+        return -1;
+    }
+    /* Wait for DHT22 response: HIGH ~80 us */
+    if (_wait_for(pin, 1, DHT22_RESP_TIMEOUT_US) < 0) {
+        gpio_init(pin, GPIO_OUT);
+        gpio_write(pin, 1);
+        return -1;
+    }
+
+    /* --- Read 40 data bits (5 bytes) --- */
+    for (int i = 0; i < 5; i++) {
+        int byte = _read_byte(pin);
+        if (byte < 0) {
+            gpio_init(pin, GPIO_OUT);
+            gpio_write(pin, 1);
+            return -1;
+        }
+        data[i] = (uint8_t)byte;
+    }
+
+    /* Return pin to idle HIGH */
+    gpio_init(pin, GPIO_OUT);
+    gpio_write(pin, 1);
+
+    /* Verify checksum */
+    uint8_t sum = data[0] + data[1] + data[2] + data[3];
+    if (sum != data[4]) {
+        return -1;
+    }
+
+    /* Parse raw values (16-bit, MSB first, 0.1-unit resolution) */
+    *humidity    = (int16_t)((data[0] << 8) | data[1]);
+    *temperature = (int16_t)((data[2] << 8) | data[3]);
+
+    return 0;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Public API                                                         */
+/* ------------------------------------------------------------------ */
+
+int init_sensor_{{ name }}_{{ index }}(void)
+{
+    {{ name }}_{{ index }}_pin = GPIO_PIN(0, {{ conn.gpio.pins.data.id }});
+
+    printf("Initialize {{ name|upper }} sensor on pin %d ... ",
+           {{ conn.gpio.pins.data.id }});
+    if (gpio_init({{ name }}_{{ index }}_pin, GPIO_OUT) < 0) {
+        puts("failed");
+        return -1;
+    }
+    gpio_write({{ name }}_{{ index }}_pin, 1);
+    puts("OK");
+    return 0;
+}
+
+void start_sensor_{{ name }}_{{ index }}({{ name }}_{{ index }}_callback callback)
+{
+    {{ name }}_{{ index }}_cb = callback;
+    thread_create({{ name }}_{{ index }}_stack, sizeof({{ name }}_{{ index }}_stack),
+                  (THREAD_PRIORITY_MAIN + 1),
+                  THREAD_CREATE_STACKTEST,
+                  {{ name }}_{{ index }}_thread,
+                  NULL, "{{ name }}_{{ index }}_sensor");
+};
+
+void *{{ name }}_{{ index }}_thread(void *args)
+{
+    (void)args;
+    int16_t temperature;
+    int16_t humidity;
+{% if source_alerts %}
+    /* ALERT cooldown trackers (function-scope statics persist across loop iterations) */
+{% for a in source_alerts %}
+    static uint64_t last_fire_{{ a.c_safe_name }} = 0;
+{% endfor %}
+{% endif %}
+{% if sampling and sampling.mode == "on_change" %}
+    int32_t prev_temperature = 0;
+    int32_t prev_humidity = 0;
+    int first_reading = 1;
+{% endif %}
+{% if sampling and sampling.mode == "batch" %}
+    int batch_count = 0;
+{% endif %}
+
+    while (1)
+    {
+        int res = _dht22_read({{ name }}_{{ index }}_pin, &temperature, &humidity);
+
+        if (res == 0)
+        {
+            /* Scale to centidegrees (x10) and thousandths of %%RH (x100)
+             * for ALERT SCALE alignment (PROPERTIES: temperature SCALE 100,
+             * humidity SCALE 1000). */
+            int32_t data_temperature = (int32_t)temperature * 10;
+            int32_t data_humidity    = (int32_t)humidity * 100;
+{% if source_alerts %}
+            /* ALERT triggers — evaluated on every successful read, independent of sampling mode */
+            uint64_t _now_sec = xtimer_now_usec64() / 1000000ULL;
+{% for a in source_alerts %}
+            if ({{ a.condition_c }}) {
+                if ((_now_sec - last_fire_{{ a.c_safe_name }}) >= {{ a.cooldown_sec }}ULL) {
+                    last_fire_{{ a.c_safe_name }} = _now_sec;
+{% for act in a.actions %}
+                    publish_alert("{{ act.payload_c }}", "{{ act.topic }}");
+{% endfor %}
+                }
+            }
+{% endfor %}
+{% endif %}
+{% if sampling and sampling.mode == "on_change" %}
+            int changed = first_reading;
+            if (!first_reading) {
+                int32_t threshold = (int32_t)({{ name|upper }}_{{ index }}_THRESHOLD * 100);
+                if (abs(data_temperature - prev_temperature) > threshold ||
+                    abs(data_humidity - prev_humidity) > threshold) {
+                    changed = 1;
+                }
+            }
+            if (changed) {
+                first_reading = 0;
+                prev_temperature = data_temperature;
+                prev_humidity = data_humidity;
+
+                json_dumps({{ name }}_{{ index }}_json_payload,
+                           JSON_START,
+                           JSON_KEY, "Temperature", JSON_INT, data_temperature,
+                           JSON_KEY, "Humidity", JSON_INT, data_humidity,
+                           JSON_STOP);
+                {{ name }}_{{ index }}_cb({{ name }}_{{ index }}_json_payload);
+            }
+{% elif sampling and sampling.mode == "batch" %}
+            batch_count++;
+            if (batch_count >= {{ name|upper }}_{{ index }}_BATCH_SIZE) {
+                json_dumps({{ name }}_{{ index }}_json_payload,
+                           JSON_START,
+                           JSON_KEY, "Temperature", JSON_INT, data_temperature,
+                           JSON_KEY, "Humidity", JSON_INT, data_humidity,
+                           JSON_KEY, "batch_count", JSON_INT, batch_count,
+                           JSON_STOP);
+                {{ name }}_{{ index }}_cb({{ name }}_{{ index }}_json_payload);
+                batch_count = 0;
+            }
+{% else %}
+            json_dumps({{ name }}_{{ index }}_json_payload,
+                       JSON_START,
+                       JSON_KEY, "Temperature", JSON_INT, data_temperature,
+                       JSON_KEY, "Humidity", JSON_INT, data_humidity,
+                       JSON_STOP);
+            {{ name }}_{{ index }}_cb({{ name }}_{{ index }}_json_payload);
+{% endif %}
+        }
+        else
+        {
+            printf("[{{ name }}]: read data failed\n");
+        }
+
+        xtimer_msleep(({{ name|upper }}_{{ index }}_FREQ));
+    }
+};

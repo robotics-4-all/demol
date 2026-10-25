@@ -1,0 +1,131 @@
+"""Redis pub/sub broker support for the RPi backend (T43).
+
+When the device model declares a BROKER[Redis], this module is emitted
+alongside msg.py. The commlib-py based MQTTPublisher used for MQTT does
+not cover Redis, so we provide a thin redis-py based wrapper that mirrors
+the commlib-py's ``publish()`` API surface.
+
+For Redis pub/sub, a "topic" maps to a "channel" and a "payload" maps to
+the message body. Application code can call ``redis_publish(topic, payload)``
+without knowing whether the underlying broker is Redis or MQTT.
+"""
+
+from __future__ import annotations
+
+import json
+import logging
+import os
+import threading
+import time
+from typing import Any, Optional
+
+try:
+    import redis
+    _REDIS_AVAILABLE = True
+except ImportError:  # pragma: no cover
+    redis = None
+    _REDIS_AVAILABLE = False
+
+
+LOG = logging.getLogger(__name__)
+
+
+# --- Configuration --------------------------------------------------------
+
+REDIS_HOST: str = os.environ.get("REDIS_HOST", "{{ cfg.host }}")
+REDIS_PORT: int = int(os.environ.get("REDIS_PORT", "{{ cfg.port }}"))
+REDIS_DB: int = int(os.environ.get("REDIS_DB", "{{ cfg.db }}"))
+REDIS_USERNAME: str = os.environ.get("REDIS_USERNAME", "{{ cfg.username }}")
+REDIS_PASSWORD: str = os.environ.get("REDIS_PASSWORD", "{{ cfg.password }}")
+REDIS_USE_SSL: bool = os.environ.get("REDIS_USE_SSL", "{{ cfg.ssl }}").lower() in ("1", "true", "yes")
+
+
+# --- Connection management -----------------------------------------------
+
+_client: Optional["redis.Redis"] = None
+_lock = threading.Lock()
+_last_publish_at: float = 0.0
+_PUBLISH_COOLDOWN_SEC = 0.01  # 10ms — Redis is local-network fast
+
+
+def _ensure_client() -> "redis.Redis":
+    """Open (or re-open) the Redis client with the configured credentials."""
+    global _client
+    if _client is not None:
+        return _client
+    if not _REDIS_AVAILABLE:
+        raise RuntimeError("redis not installed; add redis>=5.0 to requirements.txt")
+    _client = redis.Redis(
+        host=REDIS_HOST,
+        port=REDIS_PORT,
+        db=REDIS_DB,
+        username=REDIS_USERNAME or None,
+        password=REDIS_PASSWORD or None,
+        ssl=REDIS_USE_SSL,
+        socket_connect_timeout=5,
+        socket_timeout=5,
+        health_check_interval=30,
+        decode_responses=True,
+    )
+    return _client
+
+
+# --- Public API -----------------------------------------------------------
+
+
+def redis_publish(topic: str, payload: Any) -> bool:
+    """Publish a payload to the Redis channel identified by topic.
+
+    Returns True on successful PUBLISH (any non-zero subscriber count is OK),
+    False on any failure. Failures are logged and the client is reset for
+    the next call.
+    """
+    global _last_publish_at
+    with _lock:
+        wait = _PUBLISH_COOLDOWN_SEC - (time.monotonic() - _last_publish_at)
+        if wait > 0:
+            time.sleep(wait)
+        try:
+            client = _ensure_client()
+            body = payload if isinstance(payload, (bytes, str)) else json.dumps(payload)
+            client.publish(topic, body)
+            _last_publish_at = time.monotonic()
+            return True
+        except Exception as exc:  # pragma: no cover
+            LOG.warning("Redis publish failed for topic=%s: %s", topic, exc)
+            _reset_client()
+            return False
+
+
+def redis_subscribe(topic: str) -> None:
+    """Subscribe to a channel and block until interrupted.
+
+    Convenience helper for the test harness — production code should
+    build a dedicated subscriber thread.
+    """
+    if not _REDIS_AVAILABLE:
+        raise RuntimeError("redis not installed")
+    client = _ensure_client()
+    pubsub = client.pubsub()
+    pubsub.subscribe(topic)
+    LOG.info("Subscribed to Redis channel %s", topic)
+    for message in pubsub.listen():
+        if message.get("type") != "message":
+            continue
+        LOG.info("Redis message on %s: %s", topic, message.get("data"))
+
+
+def _reset_client() -> None:
+    global _client
+    try:
+        if _client is not None:
+            _client.close()
+    except Exception:  # pragma: no cover
+        pass
+    _client = None
+
+
+def is_redis_available() -> bool:
+    """Probe whether redis-py is importable. Used by application code to fall
+    back to MQTT when Redis support is not installed."""
+    return _REDIS_AVAILABLE

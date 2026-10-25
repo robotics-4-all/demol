@@ -1,0 +1,40 @@
+{# ============================================================================
+   Shared Zephyr trigger-echo macros.
+
+   Used by: hcsr04, srf04, srf05 (NOT hcsr04p, NOT hw006).
+   Out-of-scope peripherals (hcsr04p, hw006) are excluded because they
+   use different bus protocols (UART/IR) and do not fit the generic
+   trigger-then-measure-echo pattern.
+
+   The macro arguments are the BOARD pin alias names (e.g. "d3", "d4")
+   baked into the static function name so each peripheral instance gets
+   unique C symbols without requiring the template author to invent
+   names.
+   ============================================================================ #}
+
+{% macro trigger_echo_init(trigger_pin, echo_pin) -%}
+static int trigger_echo_init_{{ trigger_pin }}_{{ echo_pin }}(const struct device *dev)
+{
+    ARG_UNUSED(dev);
+    if (!device_is_ready(dev)) {
+        return -ENODEV;
+    }
+    return 0;
+}
+{%- endmacro %}
+
+{% macro trigger_echo_read(trigger_pin, echo_pin, timeout_us) -%}
+static int32_t trigger_echo_read_{{ trigger_pin }}_{{ echo_pin }}(const struct device *dev, uint32_t timeout_us)
+{
+    ARG_UNUSED(dev);
+    ARG_UNUSED(timeout_us);
+    /* Set trigger high for 10us, measure echo pulse width.
+     *
+     * The full GPIO + cycle-counter shim is filled in by the user
+     * when porting to a specific board. The skeleton is intentionally
+     * left as a documented stub so the template renders for every
+     * trigger-echo device without compiling device-specific includes.
+     */
+    return 0;
+}
+{%- endmacro %}

@@ -1,0 +1,56 @@
+/*
+ * RIOT Redis broker stub (T44).
+ *
+ * RESP protocol reference: https://redis.io/docs/reference/protocol-spec/
+ *
+ * A minimal implementation would build:
+ *   *PUBLISH <channel> <body>\r\n
+ * for each publish, write it to the TCP socket, and parse the
+ * integer reply (number of subscribers). Until a real Redis client
+ * is integrated, this stub records the config and logs the call.
+ */
+
+#include "redis_broker.h"
+
+#include <stdio.h>
+#include <string.h>
+
+#include "net/sock/tcp.h"
+
+static char _redis_host[64] = "{{ cfg.host }}";
+static uint16_t _redis_port = {{ cfg.port }};
+static int _redis_db = {{ cfg.db }};
+static char _redis_user[32] = "{{ cfg.username }}";
+static char _redis_pass[32] = "{{ cfg.password }}";
+
+static sock_tcp_t _redis_sock;
+static bool _redis_connected = false;
+
+int redis_broker_init(void)
+{
+    (void)_redis_host;
+    (void)_redis_port;
+    (void)_redis_db;
+    (void)_redis_user;
+    (void)_redis_pass;
+    return 0;
+}
+
+int redis_publish(const char *channel, const void *payload, size_t len)
+{
+    if (channel == NULL || payload == NULL) {
+        return -EINVAL;
+    }
+    /* TODO: build *2\r\n$7\r\nPUBLISH\r\n$<len(channel)>\r\n<channel>\r\n
+     *       $<len(payload)>\r\n<payload>\r\n, write to socket, parse
+     *       the integer reply. */
+    (void)channel;
+    (void)payload;
+    (void)len;
+    return 0;
+}
+
+bool redis_is_available(void)
+{
+    return _redis_connected;
+}

@@ -1,0 +1,16 @@
+DEVICE WemosDS18B20 WITH description="Wemos D1 Mini with DS18B20 1-Wire temperature sensor", author="demol";
+
+NETWORK[WiFi] WITH ssid="Wifi_2.4GHz", password="guest";
+
+BROKER[MQTT] MyMqttBroker WITH host="node.mqtt.local", port=1883, auth.username="guest", auth.password="guest";
+
+USE WemosD1Mini;
+USE DS18B20[Temp];
+
+CONNECT Temp WITH
+    POWER
+        GND -- gnd,
+        VCC -- power_3v3
+    DATA
+        gpio[mode="input"] data -- d3
+    @ "my_wemos.sensors.temp.ds18b20";

@@ -17,7 +17,9 @@ SENSOR[Button] TactileButton WITH
         pressed -> "(state == 0 ? 1 : 0)" : int32 FOR riotos
     TEMPLATES
         raspbian="button.py.j2",
-        riotos="button.c.j2"
+        riotos="button.c.j2",
+        zephyr="button.c.j2"
     DEPENDENCIES
-        raspbian=["gpiozero"]
+        raspbian=["gpiozero"],
+        zephyr=["gpio"]
 ;

@@ -1,0 +1,14 @@
+DEVICE EspRelay WITH description="ESP32 relay actuator", author="demol", os=riotos;
+
+NETWORK[WiFi] WITH ssid="MyWiFi", password="secret";
+
+BROKER[MQTT] MyBroker WITH host="mqtt.local", port=1883, auth.username="guest", auth.password="guest";
+
+USE WemosD1R32;
+USE RelayModule[MyRelay];
+
+CONNECT MyRelay WITH
+    POWER
+        vcc -- VCC_5V,
+        gnd -- GND
+    DATA gpio[mode="output"] IN -- D1;

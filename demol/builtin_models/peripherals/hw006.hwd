@@ -13,7 +13,8 @@ SENSOR[Proximity] HW006 WITH
         proximity -> "val" : int32 FOR riotos
     TEMPLATES
         raspbian="hw006.py.j2",
-        riotos="hw006.c.j2"
+        riotos="hw006.c.j2",
+        zephyr="hw006.c.j2"
     DEPENDENCIES
         raspbian=["gpiozero"]
     ATTRIBUTES

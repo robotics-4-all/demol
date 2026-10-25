@@ -1,0 +1,36 @@
+// Simple sensor example — board + 1 sensor (BME680).
+//
+// This example is intentionally minimal: one board, one peripheral, one
+// I2C connection. It exercises the cross-backend code path (rpi, riot,
+// zephyr, wokwi, renode) for the most common DeMoL use case — reading
+// environmental data from a single I2C sensor — and serves as a
+// smoke-test target for new backends.
+
+DEVICE SimpleSensorDevice WITH
+    description="Minimal ESP32 + BME680 sensor example (all 5 backends)",
+    author="demol",
+    os=riotos;
+
+NETWORK[WiFi] WITH
+    ssid="DemoWifi",
+    password="demopass";
+
+BROKER[MQTT] LocalBroker WITH
+    host="broker.local",
+    port=1883,
+    auth.username="demo",
+    auth.password="demopass";
+
+USE ESP32Wroom32;
+
+USE BME680[EnvSensor];
+
+SAMPLING EnvSensor WITH rate=10 hz, mode=continuous;
+
+CONNECT EnvSensor WITH
+    POWER
+        gnd -- GND_1,
+        vcc -- VCC_5V
+    DATA
+        i2c[slave_address=0x76] sda sda -- GPIO21, scl scl -- GPIO22
+    @ "sensors.environment.bme680";

@@ -5,7 +5,7 @@ USE VL53L1X[MyToF], TCRT5000[MyTracker], TFMini[MyTFMini], BME680[MyBME], SRF05[
         resolution = 18,
         gain = 1,
         channel = 8
-    , WS2812[MyLedRing] WITH 
+    , WS281X[MyLedRing] WITH 
         colors = ['0xFF0000', '0x00FF00', '0x0000FF', '0xFFFF00', '0xFF00FF', '0x00FFFF', '0xFFFFFF', '0x800000', '0x008000', '0x000080', '0xFFA500', '0x800080']
     , PCA9685[MyServoController] WITH 
         channel = 2,
@@ -69,11 +69,11 @@ CONNECT MyADC WITH
 
 CONNECT MyLedRing WITH
     POWER
-        GND -- GND_4,
-        VCC -- power_5v_b
+        gnd -- GND_4,
+        vcc -- power_5v_b
     DATA
-        gpio[mode="output"] DIN -- GPIO10
-    @ "my_raspi.actuators.ws2812.MyLedRing";
+        gpio[mode="output"] data_in -- GPIO10
+    @ "my_raspi.actuators.ws281x.MyLedRing";
 
 CONNECT MyServoController WITH
     POWER

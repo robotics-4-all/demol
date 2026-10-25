@@ -1,0 +1,186 @@
+# serializer version: 1
+# name: test_device_repl_golden[esp_bme680.dev]
+  '''
+  using sysbus
+  
+  mach create "esp32"
+  machine LoadPlatformDescription @platforms/boards/esp32_devkitc.repl
+  
+  sysbus Tag <0x40013000 0x40014000> "I2C0" 0x40013000 size 0x1000
+  sysbus LoadELF @/tmp/firmware.elf
+  
+  '''
+# ---
+# name: test_device_repl_golden[esp_iot_device.dev]
+  '''
+  using sysbus
+  
+  mach create "esp32"
+  machine LoadPlatformDescription @platforms/boards/esp32_devkitc.repl
+  
+  sysbus Tag <0x40013000 0x40014000> "I2C0" 0x40013000 size 0x1000
+  sysbus LoadELF @/tmp/firmware.elf
+  
+  '''
+# ---
+# name: test_device_repl_golden[wemos_bme680.dev]
+  '''
+  using sysbus
+  
+  mach create "esp32"
+  machine LoadPlatformDescription @platforms/boards/wemosd1mini.repl
+  
+  sysbus Tag <0x40013000 0x40014000> "I2C0" 0x40013000 size 0x1000
+  sysbus LoadELF @/tmp/firmware.elf
+  
+  '''
+# ---
+# name: test_device_repl_golden[wemos_button.dev]
+  '''
+  using sysbus
+  
+  mach create "esp32"
+  machine LoadPlatformDescription @platforms/boards/wemosd1mini.repl
+  
+  
+  sysbus LoadELF @/tmp/firmware.elf
+  
+  '''
+# ---
+# name: test_device_repl_golden[wemos_srf05.dev]
+  '''
+  using sysbus
+  
+  mach create "esp32"
+  machine LoadPlatformDescription @platforms/boards/wemosd1mini.repl
+  
+  
+  sysbus LoadELF @/tmp/firmware.elf
+  
+  '''
+# ---
+# name: test_test_device_py_golden[esp_bme680.dev]
+  '''
+  """Auto-generated Renode test script for ESPBME680."""
+  import pyrenode3
+  from pyrenode3 import Antmicro
+  import time
+  
+  def test_ESPBME680_loads():
+      """Test that ESPBME680 Renode model loads without error."""
+      with Antmicro() as ant:
+          ant.load_repl("device.repl")
+          ant.start()
+          # Wait for sensor initialization
+          time.sleep(0.5)
+          assert True
+  
+  def test_ESPBME680_peripherals_present():
+      """Test that all 1 peripherals are declared."""
+      with Antmicro() as ant:
+          ant.load_repl("device.repl")
+          ant.start()
+          assert True
+  
+  '''
+# ---
+# name: test_test_device_py_golden[esp_iot_device.dev]
+  '''
+  """Auto-generated Renode test script for MyESP32Device."""
+  import pyrenode3
+  from pyrenode3 import Antmicro
+  import time
+  
+  def test_MyESP32Device_loads():
+      """Test that MyESP32Device Renode model loads without error."""
+      with Antmicro() as ant:
+          ant.load_repl("device.repl")
+          ant.start()
+          # Wait for sensor initialization
+          time.sleep(0.5)
+          assert True
+  
+  def test_MyESP32Device_peripherals_present():
+      """Test that all 2 peripherals are declared."""
+      with Antmicro() as ant:
+          ant.load_repl("device.repl")
+          ant.start()
+          assert True
+  
+  '''
+# ---
+# name: test_test_device_py_golden[wemos_bme680.dev]
+  '''
+  """Auto-generated Renode test script for MyWemos."""
+  import pyrenode3
+  from pyrenode3 import Antmicro
+  import time
+  
+  def test_MyWemos_loads():
+      """Test that MyWemos Renode model loads without error."""
+      with Antmicro() as ant:
+          ant.load_repl("device.repl")
+          ant.start()
+          # Wait for sensor initialization
+          time.sleep(0.5)
+          assert True
+  
+  def test_MyWemos_peripherals_present():
+      """Test that all 1 peripherals are declared."""
+      with Antmicro() as ant:
+          ant.load_repl("device.repl")
+          ant.start()
+          assert True
+  
+  '''
+# ---
+# name: test_test_device_py_golden[wemos_button.dev]
+  '''
+  """Auto-generated Renode test script for WemosButton."""
+  import pyrenode3
+  from pyrenode3 import Antmicro
+  import time
+  
+  def test_WemosButton_loads():
+      """Test that WemosButton Renode model loads without error."""
+      with Antmicro() as ant:
+          ant.load_repl("device.repl")
+          ant.start()
+          # Wait for sensor initialization
+          time.sleep(0.5)
+          assert True
+  
+  def test_WemosButton_peripherals_present():
+      """Test that all 1 peripherals are declared."""
+      with Antmicro() as ant:
+          ant.load_repl("device.repl")
+          ant.start()
+          assert True
+  
+  '''
+# ---
+# name: test_test_device_py_golden[wemos_srf05.dev]
+  '''
+  """Auto-generated Renode test script for WemosSRF05."""
+  import pyrenode3
+  from pyrenode3 import Antmicro
+  import time
+  
+  def test_WemosSRF05_loads():
+      """Test that WemosSRF05 Renode model loads without error."""
+      with Antmicro() as ant:
+          ant.load_repl("device.repl")
+          ant.start()
+          # Wait for sensor initialization
+          time.sleep(0.5)
+          assert True
+  
+  def test_WemosSRF05_peripherals_present():
+      """Test that all 1 peripherals are declared."""
+      with Antmicro() as ant:
+          ant.load_repl("device.repl")
+          ant.start()
+          assert True
+  
+  '''
+# ---

@@ -597,3 +597,46 @@ def test_rpi_smartconnect_multi_peripheral(tmp_path):
     # LedGeneric — PWM, GPIO18 (first PWM-capable pin)
     driver_led = (output_dir / "ledgeneric_statusled.py").read_text()
     assert '_PIN = "GPIO18"' in driver_led
+
+
+def test_rpi_transformation_sampling_on_demand(tmp_path):
+    """Test RPi code generation with SAMPLING on_demand mode.
+
+    Verifies that a read_on_demand() method is emitted for RPC-style
+    external invocation.
+    """
+    demol_str = """
+    DEVICE SamplingTest WITH
+        description="Sampling Test",
+        author="Tester",
+        os=raspbian;
+
+    USE RaspberryPi_5_8GB;
+    USE BME680 [EnvSensor];
+
+    NETWORK [WiFi] WITH ssid="ssid", password="pass";
+
+    BROKER [MQTT] MyBroker WITH
+        host="localhost",
+        port=1883,
+        auth.username="user",
+        auth.password="pass";
+
+    CONNECT EnvSensor WITH
+        POWER gnd -- GND_1, vcc -- power_5v_a
+        DATA i2c [slave_address=0x77] sda sda -- GPIO2, scl scl -- GPIO3;
+
+    SAMPLING EnvSensor WITH rate = 5 hz, mode = on_demand;
+    """
+    mm = get_device_mm()
+    model = mm.model_from_str(demol_str)
+
+    output_dir = tmp_path / "rpi_sampling_on_demand"
+    m2t_rpi(model, output_dir=str(output_dir))
+
+    node_content = (output_dir / "envsensor_node.py").read_text()
+    assert "_FREQUENCY = 5.0" in node_content
+    assert '_SAMPLING_MODE = "on_demand"' in node_content
+    assert "def read_on_demand(self):" in node_content
+    assert "self._read()" in node_content
+    assert "self._send()" in node_content

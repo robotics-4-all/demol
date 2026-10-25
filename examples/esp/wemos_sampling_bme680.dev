@@ -1,0 +1,28 @@
+// DeMoL example: Wemos D1 R32 (ESP32) + BME680 environmental sensor
+// with SAMPLING block demonstrating continuous sampling at 10 Hz.
+//
+// Backends: Zephyr (primary), RIOT, Wokwi, Renode
+
+DEVICE WemosSamplingBME680 WITH
+    description="Wemos D1 R32 + BME680 with SAMPLING",
+    author="demol",
+    os=zephyr;
+
+NETWORK[WiFi] WITH ssid="test", password="test123";
+
+BROKER[MQTT] MyMqttBroker WITH
+    host="node.mqtt.local", port=1883,
+    auth.username="guest", auth.password="guest";
+
+USE WemosD1R32;
+USE BME680[MyBME];
+
+CONNECT MyBME WITH
+    POWER
+        gnd -- GND,
+        vcc -- VCC_5V
+    DATA
+        i2c[slave_address=0x76] sda sda -- SDA, scl scl -- SCL
+    @ "my_wemos.sensors.env.bme680";
+
+SAMPLING MyBME WITH rate = 10 hz, mode = continuous;

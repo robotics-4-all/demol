@@ -50,6 +50,6 @@ BOARD[ESP] WemosD1R32 WITH
         GND[GND] @ 25
         // RESET[RESET] @ 26
     PLATFORMS
-        riotos.board = "esp32-wemos-d1-r32"
+        riotos.board = "esp32-wroom-32"
 
 ;

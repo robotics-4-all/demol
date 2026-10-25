@@ -6,19 +6,28 @@ This directory contains the refactored validation framework for DeMoL, organized
 
 ```
 semantics/
-├── __init__.py              # Public API exports (maintains backward compatibility)
-├── core.py                  # Core validation infrastructure
-├── utils.py                 # Helper functions
+├── __init__.py               # Public API exports (backward compatibility)
+├── core.py                   # Core validation infrastructure
+├── utils.py                  # Helper functions
 ├── validators/
 │   ├── __init__.py
-│   ├── base.py              # Base validator class
-│   ├── power.py             # Power connection validators
-│   ├── communication.py     # I2C, SPI, UART, PWM, GPIO validators
-│   ├── peripheral.py        # Peripheral-specific validators
-│   ├── board.py             # Board-specific validators
-│   ├── device.py            # Device-level validators (network, broker)
-│   └── general.py           # General/cross-cutting validators
-└── README.md                # This file
+│   ├── base.py               # BaseValidator abstract class
+│   ├── alert.py              # ALERT trigger validation
+│   ├── board.py              # Board-level validators
+│   ├── communication.py      # GPIO, I2C, SPI, UART, PWM validators
+│   ├── device.py             # Device-level validators (broker, network)
+│   ├── general.py            # General/cross-cutting validators
+│   ├── multi_broker.py       # Multi-broker VIA routing validation
+│   ├── peripheral.py         # Peripheral connectivity validators
+│   ├── peripheral_properties.py  # Peripheral property validation
+│   ├── pin_oversubscription.py   # Pin function oversubscription warnings
+│   ├── power.py              # Power connection validators
+│   ├── power_budget.py       # Power budget analysis
+│   ├── protocol_frequency.py # Bus speed constraint validation
+│   ├── sampling.py           # SAMPLING block validation
+│   ├── smart_connection.py   # SMARTCONNECT resolution validation
+│   └── user_constraints.py   # CONSTRAINT expression validation
+└── README.md                 # This file
 ```
 
 ## Module Responsibilities
@@ -91,15 +100,76 @@ Cross-cutting validation concerns:
 - Dependency sources validation
 - Other general validations
 
+### `validators/power_budget.py` - Power Budget Validators
+Validates power budget against declared power sources:
+- Power budget vs POWERSOURCE capacity
+- Battery runtime estimation
+- Power constraints validation
+
+### `validators/sampling.py` - Sampling Validators
+Validates SAMPLING block configuration:
+- Sampling rate validation
+- Sampling mode validation (continuous, on_change, batch, on_demand)
+- Buffer configuration validation
+
+### `validators/alert.py` - Alert Validators
+Validates ALERT trigger configuration:
+- Threshold condition validation
+- PUBLISH target validation
+- COOLDOWN period validation
+- Per-OS capability validation
+
+### `validators/user_constraints.py` - User Constraint Validators
+Validates CONSTRAINT expression blocks:
+- `count()` function validation
+- `sum_power()` function validation
+- Arithmetic expression validation
+- Cross-entity constraint checking
+
+### `validators/multi_broker.py` - Multi-Broker Validators
+Validates multi-broker VIA routing:
+- Broker reference validation
+- VIA routing consistency
+- Per-OS multi-broker capability
+
+### `validators/smart_connection.py` - SmartConnect Validators
+Validates SMARTCONNECT declarations:
+- Automatic pin assignment validation
+- Connectivity resolution
+
+### `validators/pin_oversubscription.py` - Pin Oversubscription Validators
+Warns about pin function overuse:
+- Pin function oversubscription detection
+- Usage warnings for shared pins
+
+### `validators/protocol_frequency.py` - Protocol Frequency Validators
+Validates bus speed and frequency constraints:
+- Bus speed constraint validation
+- Protocol frequency compatibility
+
+### `validators/peripheral_properties.py` - Peripheral Property Validators
+Validates peripheral hardware properties:
+- Property completeness checking
+- Hardware property constraints
+
 ## Adding a New Validator
 
 ### Step 1: Choose the Right Module
 Determine which category your validator belongs to:
 - **Power-related?** → `validators/power.py`
+- **Power budget/runtime?** → `validators/power_budget.py`
 - **Communication protocol?** → `validators/communication.py`
+- **Protocol frequency/speed?** → `validators/protocol_frequency.py`
 - **Peripheral-specific?** → `validators/peripheral.py`
+- **Peripheral property completeness?** → `validators/peripheral_properties.py`
 - **Board-specific?** → `validators/board.py`
+- **Pin oversubscription warnings?** → `validators/pin_oversubscription.py`
 - **Device/network/broker?** → `validators/device.py`
+- **Multi-broker VIA routing?** → `validators/multi_broker.py`
+- **SAMPLING block?** → `validators/sampling.py`
+- **CONSTRAINT expression?** → `validators/user_constraints.py`
+- **ALERT trigger?** → `validators/alert.py`
+- **SMARTCONNECT resolution?** → `validators/smart_connection.py`
 - **General/cross-cutting?** → `validators/general.py`
 
 ### Step 2: Create Your Validator Class
@@ -158,10 +228,16 @@ from demol.lang.semantics.validators.power import PowerConnectionValidator
 
 ## Testing
 
-Each validator module should have corresponding tests in `tests/`:
-- `test_power_semantics.py` → tests for `validators/power.py`
-- `test_i2c_spi_semantics.py` → tests for communication validators
-- etc.
+Each validator module has corresponding tests in `tests/` named with the `test_<category>_semantics` convention:
+- `test_power_semantics` — power and board validators
+- `test_i2c_spi_semantics` — communication validators
+- `test_user_constraint_semantics` — CONSTRAINT expressions
+- `test_alert_semantics` — ALERT triggers
+- `test_sampling_semantics` — SAMPLING blocks
+- `test_smart_connections` — SMARTCONNECT resolution
+- `test_power_budget_semantics` — power budget analysis
+- `test_protocol_frequency_semantics` — protocol frequency
+- `test_general_semantics` — general validators
 
 ## Benefits of This Structure
 
@@ -172,24 +248,46 @@ Each validator module should have corresponding tests in `tests/`:
 5. **Reduced Coupling**: Validators are more independent
 6. **Maintainability**: Smaller files are easier to understand
 
-## Migration Status
+## Migration Complete
 
-This is a work in progress. The refactoring is being done incrementally to maintain stability.
+Migration complete: the legacy monolith was deleted in commit `ebc85bbe`; all 33 validator
+classes now live in `demol/lang/semantics/validators/` across 15 files. The `__init__.py`
+package re-exports all public symbols for backward compatibility.
 
-### Completed:
-- ✅ Directory structure created
-- ✅ `core.py` - Validation infrastructure
-- ✅ `utils.py` - Helper functions
-- ✅ `validators/base.py` - Base validator class
-- ✅ README documentation
+### Per-Validator Index
 
-### In Progress:
-- ⏳ Migrating validators from old `semantics.py`
-- ⏳ Creating validator classes
-- ⏳ Updating imports in `device.py`
-
-### TODO:
-- ⬜ Complete all validator migrations
-- ⬜ Update `__init__.py` with all exports
-- ⬜ Run full test suite
-- ⬜ Update documentation
+| Validator Class | File | Purpose | OS-Keyed |
+|-----------------|------|---------|:--------:|
+| `AlertValidator` | `alert.py` | ALERT trigger conditions, PUBLISH, COOLDOWN | Y |
+| `SingleBoardValidator` | `board.py` | Single board requirement | N |
+| `PinConflictsValidator` | `board.py` | Pin conflict detection | N |
+| `UniquePinNumbersValidator` | `board.py` | Unique pin numbers | N |
+| `BoardPortsValidator` | `board.py` | Board ports validation | N |
+| `GPIOConnectionValidator` | `communication.py` | GPIO connection validation | N |
+| `I2CConnectionValidator` | `communication.py` | I2C connection validation | N |
+| `I2CAddressUniquenessValidator` | `communication.py` | I2C address uniqueness (0x00-0x7F) | N |
+| `SPIConnectionValidator` | `communication.py` | SPI connection validation | N |
+| `UARTConnectionValidator` | `communication.py` | UART connection validation | N |
+| `PWMConnectionValidator` | `communication.py` | PWM connection validation | N |
+| `BrokerRequirementsValidator` | `device.py` | Broker declaration requirements | N |
+| `NetworkRequirementsValidator` | `device.py` | Network declaration requirements | N |
+| `BrokerSecurityValidator` | `device.py` | Broker security configuration | N |
+| `TopicFormatValidator` | `device.py` | Topic format (MQTT, AMQP, Redis) | N |
+| `DependencySourcesValidator` | `general.py` | Dependency sources validation | N |
+| `ConnectionsOrchestratorValidator` | `general.py` | Connection orchestration | N |
+| `MultiBrokerValidator` | `multi_broker.py` | Multi-broker VIA routing | Y |
+| `PeripheralPropertyValidator` | `peripheral_properties.py` | Peripheral hardware properties | N |
+| `PeripheralConnectivityValidator` | `peripheral.py` | All peripherals connected | N |
+| `EssentialPinsValidator` | `peripheral.py` | Essential pins connected | N |
+| `UniquePeripheralNamesValidator` | `peripheral.py` | Unique peripheral names | N |
+| `PinOversubscriptionValidator` | `pin_oversubscription.py` | Pin function oversubscription warnings | N |
+| `PowerConnectionValidator` | `power.py` | Power connection validation | N |
+| `VoltageLimitsValidator` | `power.py` | Voltage limits checking | N |
+| `IOVoltageCompatibilityValidator` | `power.py` | IO voltage compatibility (0.5V tolerance) | N |
+| `CommonGroundValidator` | `power.py` | Common ground validation | N |
+| `PowerPathValidator` | `power.py` | Power path validation | N |
+| `PowerBudgetValidator` | `power_budget.py` | Power budget vs POWERSOURCE, battery runtime | N |
+| `ProtocolFrequencyValidator` | `protocol_frequency.py` | Bus speed constraint validation | N |
+| `SamplingValidator` | `sampling.py` | SAMPLING rate, mode, buffering | N |
+| `SmartConnectValidator` | `smart_connection.py` | SMARTCONNECT resolution validation | N |
+| `UserConstraintValidator` | `user_constraints.py` | CONSTRAINT count(), sum_power(), arithmetic | N |

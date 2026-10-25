@@ -1,0 +1,16 @@
+DEVICE ESPBME680 WITH description="ESP-based BME680 I2C sensor test device", author="klpanagi";
+
+NETWORK[WiFi] WITH ssid="Wifi_2.4GHz", password="guest";
+
+BROKER[MQTT] MyMqttBroker WITH host="node.mqtt.local", port=1883, auth.username="guest", auth.password="guest";
+
+USE ESP32Wroom32;
+USE BME680[BME];
+
+CONNECT BME WITH
+    POWER
+        gnd -- GND_1,
+        vcc -- VCC_5V
+    DATA
+        i2c[slave_address=0x76] sda sda -- GPIO21, scl scl -- GPIO22
+    @ "my_esp.sensors.env.bme680";

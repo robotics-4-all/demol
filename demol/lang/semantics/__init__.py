@@ -23,7 +23,6 @@ from .core import (
     raise_validation_warning,
     check_validation_errors,
     ValidationError,
-    get_location,
 )
 
 # Helper utilities
@@ -97,9 +96,6 @@ from .validators.device import (
     validate_network_requirements,
     validate_broker_security,
     validate_topic_format,
-    validate_mqtt_topic,
-    validate_amqp_topic,
-    validate_redis_topic,
 )
 
 # General validators
@@ -164,6 +160,12 @@ from .validators.peripheral_properties import (
     validate_peripheral_properties,
 )
 
+# Meta-OS validators (reserved OS rejection)
+from .validators.meta_os import (
+    MetaOsNotSupportedValidator,
+    validate_meta_os,
+)
+
 # Base validator class
 from .validators.base import BaseValidator
 
@@ -178,7 +180,6 @@ __all__ = [
     "raise_validation_warning",
     "check_validation_errors",
     "ValidationError",
-    "get_location",
     # Helper utilities
     "get_connection_target",
     "get_connection_endpoints",
@@ -236,9 +237,6 @@ __all__ = [
     "validate_network_requirements",
     "validate_broker_security",
     "validate_topic_format",
-    "validate_mqtt_topic",
-    "validate_amqp_topic",
-    "validate_redis_topic",
     # General validators
     "DependencySourcesValidator",
     "ConnectionsOrchestratorValidator",
@@ -271,4 +269,7 @@ __all__ = [
     # Peripheral properties validators
     "PeripheralPropertyValidator",
     "validate_peripheral_properties",
+    # Meta-OS validators
+    "MetaOsNotSupportedValidator",
+    "validate_meta_os",
 ]
