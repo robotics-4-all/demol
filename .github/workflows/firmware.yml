@@ -1,54 +1,108 @@
 # =============================================================================
-# Zephyr Build (native_sim)
+# Firmware gates (RIOT + Zephyr native_sim)
 # -----------------------------------------------------------------------------
-# CI gate for the Zephyr backend. For each of the 8 ESP device models under
+# Single home for every firmware compile gate. Rationale: the Python CI
+# workflow stays fast while firmware builds (minutes each, heavyweight
+# runners) fan out here with per-example fault isolation.
 #
-#   1. Installs `west` (the Zephyr meta-tool).
-#   2. Initialises a Zephyr 3.5 LTS workspace at `~/zephyrproject` and fetches
-#      the Zephyr source tree + modules (`west update`).
-#   3. Installs `demol` and generates a Zephyr application for the example.
-#   4. Builds the generated application for the `native_sim` board
-#      (`west build -b native_sim app`).
-#
-# `native_sim` is the POSIX-emulated Zephyr board — no cross-toolchain, no
-# QEMU, no real hardware. Only `west`, the Zephyr source tree, CMake, and a
-# host C toolchain are required; all are available on `ubuntu-latest`.
+# Event policy (see `setup` job):
+#   - pull_request : smoke subset (fast feedback, ~4 Zephyr + 6 RIOT jobs)
+#   - push to devel, nightly schedule, manual dispatch : FULL matrices
 # =============================================================================
 
-name: Zephyr Build (native_sim)
+name: Firmware
 
 on:
-  push:
-    branches: [main, master, devel]
   pull_request:
     branches: [main, master, devel]
+  push:
+    branches: [devel]
+  schedule:
+    - cron: "0 2 * * *"
+  workflow_dispatch: {}
 
 concurrency:
-  group: zephyr-build-${{ github.ref }}
+  group: firmware-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
+  # ---------------------------------------------------------------------------
+  # Matrix selector: smoke subset on PRs, full matrices everywhere else.
+  # ---------------------------------------------------------------------------
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      zephyr-matrix: ${{ steps.set.outputs.zephyr }}
+    steps:
+      - id: set
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            # Smoke subset: one example per driver class (upstream I2C
+            # sensor, custom GPIO bit-bang, trigger-echo, CONSTRAINT +
+            # custom I2C). Covers headers, bindings, prj.conf, CMakeLists.
+            MATRIX='["wemos_bme280","wemos_dht22","wemos_srf05","wemos_constraint_bme680"]'
+          else
+            MATRIX='["esp_bme680","esp_iot_device","wemos_bh1750","wemos_bme280","wemos_button","wemos_constraint_bme680","wemos_dht22","wemos_ds18b20","wemos_mqtt_bme680","wemos_pir_hcsr501","wemos_sampling_bme680","wemos_srf05","wemos_bme680"]'
+          fi
+          echo "zephyr=${MATRIX}" >> "$GITHUB_OUTPUT"
+
+  # ===========================================================================
+  # RIOT End-to-End Compile Gate
+  # Generates code from a canonical ESP example and compiles it inside the
+  # generated, self-contained Docker build environment. This catches template
+  # regressions that pure substring tests cannot detect.
+  #
+  # The compile+verify logic lives in scripts/test_riot_compile.sh so that
+  # `make test-riot` runs the same gate locally before pushing.
+  # ===========================================================================
+  riot-build:
+    name: RIOT Compile Gate (${{ matrix.example }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        example:
+          - esp_bme280
+          - esp_dht22
+          - esp_relay
+          - wemos_bme680_alert
+          - wemos_button
+          - wemos_srf05
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install demol
+        run: |
+          pip install --upgrade pip
+          pip install -e .
+      - name: Run RIOT compile gate
+        run: ./scripts/test_riot_compile.sh ${{ matrix.example }}
+
+  # ===========================================================================
+  # Zephyr Build (native_sim)
+  # CI gate for the Zephyr backend. For each matrix example:
+  #   1. Installs `west` (the Zephyr meta-tool).
+  #   2. Initialises a Zephyr 3.5 LTS workspace at `~/zephyrproject`.
+  #   3. Installs `demol` and generates a Zephyr application for the example
+  #      (targeting the native_sim build board via --board native_sim so the
+  #      generated overlay is picked up).
+  #   4. Builds the generated application for the `native_sim` board
+  #      (`west build -b native_sim app`) with the host toolchain
+  #      (ZEPHYR_TOOLCHAIN_VARIANT=host — no SDK download needed).
+  # ===========================================================================
   zephyr-build:
     name: Zephyr native_sim (${{ matrix.example }})
+    needs: setup
     runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
-        example:
-          - esp_bme680
-          - esp_iot_device
-          - wemos_bme680
-          - wemos_button
-          - wemos_constraint_bme680
-          - wemos_mqtt_bme680
-          - wemos_sampling_bme680
-          - wemos_srf05
-          - wemos_bh1750
-          - wemos_bme280
-          - wemos_ds18b20
-          - wemos_dht22
-          - wemos_pir_hcsr501
+        example: ${{ fromJSON(needs.setup.outputs.zephyr-matrix) }}
     steps:
       - uses: actions/checkout@v4
 
@@ -87,6 +141,8 @@ jobs:
 
       - name: Install host build dependencies
         # Zephyr needs CMake >= 3.20, ninja, gperf, dtc, etc. on the host.
+        # gcc-multilib / g++-multilib / libsdl2-dev are required for the
+        # native_sim host-toolchain build (ZEPHYR_TOOLCHAIN_VARIANT=host).
         run: |
           sudo apt-get update
           sudo apt-get install -y cmake ninja-build gperf \
