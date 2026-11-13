@@ -16,6 +16,31 @@ pytest tests/test_board_semantics.py
 make test-cov
 ```
 
+## Firmware Build Gates (local)
+
+The RIOT and Zephyr compile gates are **not** run on GitHub Actions (they are
+slow, heavyweight builds). Run them locally before pushing changes that touch
+templates, codegen, or example models:
+
+```bash
+make test-riot                     # RIOT: compile canonical wemos examples in Docker (~30s each)
+make test-zephyr                   # Zephyr: build canonical examples for native_sim (minutes each)
+make test-firmware                 # both gates
+```
+
+Underlying scripts (accept an explicit list of example names, or `all`):
+
+```bash
+scripts/test_riot_compile.sh wemos_bme680
+scripts/test_zephyr_build.sh all
+```
+
+`test_zephyr_build.sh` requires `west` and a Zephyr workspace (auto-initialised
+at `~/zephyrproject`, override with `WEST_WORKSPACE`), plus host build deps
+(`cmake`, `ninja-build`, `gperf`, `device-tree-compiler`, multilib GCC,
+`libsdl2-dev`). Builds use `ZEPHYR_TOOLCHAIN_VARIANT=host`, so no Zephyr SDK
+download is needed. Set `KEEP_BUILD=1` to retain the generated output.
+
 ## Test Structure
 
 Test files are located in `tests/` with model fixtures in `tests/models/valid/` and `tests/models/invalid/`. The test suite uses session-scoped fixtures (`device_mm`, `component_mm`) defined in `tests/conftest.py` for metamodel reuse across tests.

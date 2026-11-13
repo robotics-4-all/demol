@@ -1,4 +1,4 @@
-.PHONY: help install install-dev clean test test-perf test-riot test-validation test-transformations test-all test-local lint format format-check type-check generate-examples ci ci-check validate-examples \
+.PHONY: help install install-dev clean test test-perf test-riot test-zephyr test-firmware test-validation test-transformations test-all test-local lint format format-check type-check generate-examples ci ci-check validate-examples \
         build rebuild up down restart logs shell docker-clean dist release docs info
 
 # ── Variables ─────────────────────────────────────────────────────────────────
@@ -83,6 +83,12 @@ test-perf: ## Run performance benchmarks only (timing-sensitive; run on quiet ma
 test-riot: ## Compile generated RIOT firmware for the canonical wemos examples (requires Docker, ~30s each)
 	@echo "Running RIOT compile gate..."
 	./scripts/test_riot_compile.sh
+
+test-zephyr: ## Build generated Zephyr apps for the canonical examples on native_sim (requires west + Zephyr workspace; minutes each)
+	@echo "Running Zephyr build gate..."
+	./scripts/test_zephyr_build.sh
+
+test-firmware: test-riot test-zephyr ## Run both firmware build gates locally (RIOT + Zephyr)
 
 test-validation: ## Run validation tests
 	@echo "Running validation tests..."

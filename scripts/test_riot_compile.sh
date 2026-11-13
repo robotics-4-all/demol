@@ -2,9 +2,9 @@
 # scripts/test_riot_compile.sh
 #
 # Compile generated RIOT firmware for the canonical wemos examples and
-# assert that a .elf artifact is produced. This is the local-CI
-# equivalent of the GitHub Actions `riot-build` matrix job; running it
-# before pushing catches template regressions (missing #includes,
+# assert that a .elf artifact is produced. This is the local build gate
+# that replaced the removed GitHub Actions `riot-build` matrix job; run it
+# before pushing to catch template regressions (missing #includes,
 # undeclared functions, unused variables) that pytest cannot detect.
 #
 # Usage:
@@ -45,7 +45,7 @@ YELLOW='\033[0;33m'
 NC='\033[0m'
 
 log()  { echo -e "$@"; }
-fail() { log "${RED}  ✗${NC} $1"; return 1; }
+fail() { log "${RED}  ✗${NC} $1"; return 0; }  # non-fatal: caller counts and continues
 pass() { log "${GREEN}  ✓${NC} $1"; }
 
 # build_docker.sh bind-mounts the output dir into a container that runs
@@ -157,7 +157,11 @@ for i in "${!examples[@]}"; do
 done
 
 log ""
-log "${CYAN}== result ==${NC}  ${GREEN}${passed} passed${NC} / ${failed:+${RED}${failed} failed${NC} }${failed:-(none failed)}"
+if [[ $failed -eq 0 ]]; then
+    log "${CYAN}== result ==${NC}  ${GREEN}${passed} passed${NC} / 0 failed"
+else
+    log "${CYAN}== result ==${NC}  ${GREEN}${passed} passed${NC} / ${RED}${failed} failed${NC}"
+fi
 
 if [[ $failed -gt 0 ]]; then
     log ""

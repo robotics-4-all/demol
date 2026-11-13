@@ -144,6 +144,11 @@ make test                           # pytest tests/
 make test-local                     # pytest + validation + transformations
 make test-cov                       # with coverage
 
+# Firmware compile gates (local-only; removed from GitHub Actions)
+make test-riot                      # RIOT: Docker compile of canonical ESP examples (~30s each)
+make test-zephyr                    # Zephyr: west build -b native_sim (needs west + host deps; minutes each)
+make test-firmware                  # both
+
 # Quality
 make lint                           # flake8
 make format                         # black
@@ -165,7 +170,7 @@ make docker-test                    # Tests in container
 - 50+ test files covering ~790 test cases; CI runs across Python 3.9–3.13 matrix
 - `demol/lang/smart_connection.py` (514 lines) handles SMARTCONNECT auto-wiring resolution (verified OS-agnostic)
 - RIOT codegen emits a warning and skips a peripheral when no template exists. Set `DEMOL_RIOT_SKIP_MISSING=1` to silence the warning. Code at `m2t_riot.py:91-93` is the source of truth.
-- RIOT codegen ships **8 driver pairs** (bme680, hw006, mpl3115a2, srf04, srf05, led, ws281x, button); CI matrix compiles 3 ESP examples per push (wemos_bme680, wemos_button, wemos_srf05)
+- RIOT codegen ships **8 driver pairs** (bme680, hw006, mpl3115a2, srf04, srf05, led, ws281x, button); firmware compile gates are **local-only** (removed from GitHub Actions): `make test-riot` → `scripts/test_riot_compile.sh`
 - Zephyr codegen mirrors the RIOT set with **8 driver templates** + shared `trigger_echo_init`/`trigger_echo_read` macros for ultrasonic sensors (hcsr04, srf04, srf05); hcsr04p stays RIOT-only, hw006 is IR proximity (no trigger-echo macro); uses Zephyr modern devicetree API (`DEVICE_DT_GET`, `gpio_dt_spec`, `sensor_sample_fetch`)
 - `OperatingSystem` enum: `raspbian`, `riotos`, `zephyr`, `arduino`, `esp-idf`, `esp-idf-rtos` (freertos removed as phantom value)
 - `BoardNameRegistry` resolves DSL board names to target-OS board names across RPi (raspbian), RIOT, Zephyr, and Wokwi
@@ -173,7 +178,7 @@ make docker-test                    # Tests in container
 - `DockerBuildMixin` consolidates Dockerfile + compose + install_deps generation; mixed into RPiCodeGenerator and RiotCodeGenerator
 - `AlertValidator` uses a `PER_OS_CAPABILITIES` dict (e.g. `riotos: {multi_broker: False}`) replacing the prior RIOT-specific check
 - Golden-file testing via `syrupy==5.1.0` for all 3 new backends (Zephyr, Wokwi, Renode); goldens live in `tests/goldens/{zephyr,wokwi,renode}/`
-- CI: `.github/workflows/zephyr-build.yml` runs `west build -b native_sim` for 5 ESP examples (matrix strategy, ubuntu-latest)
+- Zephyr build gate is **local-only** (removed from GitHub Actions): `make test-zephyr` → `scripts/test_zephyr_build.sh` runs `west build -b native_sim` (host toolchain, auto-inits `~/zephyrproject`); `make test-firmware` runs both firmware gates
 - Zephyr value added to `OperatingSystem` enum (was `freertos`); backward compat preserved by keeping rule name `[Safety-Alert-RiotMultiBroker]`
 - `OperationalPeripheral` simplified: removed dead `riotTpl`/`piTpl` keys (the canonical path was already `TEMPLATES raspbian=... riotos=...` via `TemplateMapping`)
 - 3 new multi-backend example devices in `examples/multi/`: `simple_sensor.dev`, `actuator_switch.dev`, `iot_mqtt.dev` (each generates for all 5 backends)
