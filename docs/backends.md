@@ -63,9 +63,11 @@ demol generate rpi <model.dev> --output-dir <dir> [--skip-semantics]
 <output-dir>/
 ├── <peripheral>_<instance>.py     # one driver file per peripheral instance
 ├── <instance>_node.py             # one commlib node per instance
+├── peripheral.py                  # shared Peripheral/Sensor/Actuator bases
 ├── msg.py                         # message classes (per topic)
 ├── common.py                      # shared helpers
 ├── alerts.py                      # ALERT trigger runtime
+├── constraints.py                 # CONSTRAINT runtime (only when the model uses one)
 ├── Dockerfile                     # Python deployment image
 ├── docker-compose.yml             # broker + app composition
 ├── requirements.txt               # pinned Python dependencies
