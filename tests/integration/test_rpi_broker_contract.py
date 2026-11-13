@@ -74,9 +74,7 @@ def _fake_env_reading(temperature=21.5):
 
 def test_continuous_sensor_publishes_expected_payload(device_mm, mqtt_broker, tmp_path):
     out_dir = _prepare(device_mm, tmp_path, "ContinuousDemo", mqtt_broker)
-    write_fake_driver(
-        out_dir / "bme680_envsensor.py", "BME680_EnvSensor", _fake_env_reading()
-    )
+    write_fake_driver(out_dir / "bme680_envsensor.py", "BME680_EnvSensor", _fake_env_reading())
 
     collector = MqttCollector(mqtt_broker["host"], mqtt_broker["port"])
     try:
@@ -99,16 +97,13 @@ def test_continuous_sensor_publishes_expected_payload(device_mm, mqtt_broker, tm
     assert stamps == sorted(stamps), "messages were published out of order"
 
 
-def test_on_change_publishes_only_when_threshold_is_crossed(
-    device_mm, mqtt_broker, tmp_path
-):
+def test_on_change_publishes_only_when_threshold_is_crossed(device_mm, mqtt_broker, tmp_path):
     extra = "SAMPLING EnvSensor WITH rate = 20 hz, mode = on_change, threshold = 2.0;"
     out_dir = _prepare(device_mm, tmp_path, "OnChangeDemo", mqtt_broker, extra=extra)
     write_fake_driver(
         out_dir / "bme680_envsensor.py",
         "BME680_EnvSensor",
-        "temperature = 21.5 if self._reads < 3 else 30.0\n"
-        + _fake_env_reading("temperature"),
+        "temperature = 21.5 if self._reads < 3 else 30.0\n" + _fake_env_reading("temperature"),
     )
 
     collector = MqttCollector(mqtt_broker["host"], mqtt_broker["port"])
@@ -129,9 +124,7 @@ def test_on_change_publishes_only_when_threshold_is_crossed(
 def test_batch_publishes_complete_buffers(device_mm, mqtt_broker, tmp_path):
     extra = "SAMPLING EnvSensor WITH rate = 10 hz, mode = batch, buffer = 5;"
     out_dir = _prepare(device_mm, tmp_path, "BatchDemo", mqtt_broker, extra=extra)
-    write_fake_driver(
-        out_dir / "bme680_envsensor.py", "BME680_EnvSensor", _fake_env_reading()
-    )
+    write_fake_driver(out_dir / "bme680_envsensor.py", "BME680_EnvSensor", _fake_env_reading())
 
     collector = MqttCollector(mqtt_broker["host"], mqtt_broker["port"])
     try:
@@ -148,21 +141,14 @@ def test_batch_publishes_complete_buffers(device_mm, mqtt_broker, tmp_path):
 
 
 def test_alert_publishes_to_its_topic(device_mm, mqtt_broker, tmp_path):
-    extra = (
-        "ALERT hot ON EnvSensor WHEN temperature > 20 "
-        'THEN PUBLISH "alerts/hot" VIA Local COOLDOWN 1 hz;'
-    )
+    extra = "ALERT hot ON EnvSensor WHEN temperature > 20 " 'THEN PUBLISH "alerts/hot" VIA Local COOLDOWN 1 hz;'
     out_dir = _prepare(device_mm, tmp_path, "AlertDemo", mqtt_broker, extra=extra)
-    write_fake_driver(
-        out_dir / "bme680_envsensor.py", "BME680_EnvSensor", _fake_env_reading(30.0)
-    )
+    write_fake_driver(out_dir / "bme680_envsensor.py", "BME680_EnvSensor", _fake_env_reading(30.0))
 
     collector = MqttCollector(mqtt_broker["host"], mqtt_broker["port"])
     try:
         output = run_node(out_dir, "envsensor_node.py", seconds=3.0)
-        assert collector.wait_for_count("alerts/hot", 1, timeout=5.0), (
-            collector.messages
-        )
+        assert collector.wait_for_count("alerts/hot", 1, timeout=5.0), collector.messages
     finally:
         collector.close()
 
@@ -227,9 +213,7 @@ def test_actuator_node_receives_commands(device_mm, mqtt_broker, tmp_path):
 
 def test_generated_messages_are_json_objects(device_mm, mqtt_broker, tmp_path):
     out_dir = _prepare(device_mm, tmp_path, "JsonDemo", mqtt_broker)
-    write_fake_driver(
-        out_dir / "bme680_envsensor.py", "BME680_EnvSensor", _fake_env_reading()
-    )
+    write_fake_driver(out_dir / "bme680_envsensor.py", "BME680_EnvSensor", _fake_env_reading())
 
     collector = MqttCollector(mqtt_broker["host"], mqtt_broker["port"])
     try:

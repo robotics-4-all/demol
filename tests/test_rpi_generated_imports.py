@@ -13,9 +13,7 @@ from pathlib import Path
 
 import pytest
 
-EXAMPLES = sorted(
-    (Path(__file__).resolve().parents[1] / "examples" / "rpi").glob("*.dev")
-)
+EXAMPLES = sorted((Path(__file__).resolve().parents[1] / "examples" / "rpi").glob("*.dev"))
 
 PROBE = r"""
 import importlib
@@ -85,9 +83,7 @@ def test_generated_tree_is_flat_and_importable(device_mm, tmp_path, example):
     assert generated
     for path in generated:
         text = path.read_text(encoding="utf-8")
-        assert "from ." not in text, (
-            f"{path.name} uses a package-relative import in a flat layout"
-        )
+        assert "from ." not in text, f"{path.name} uses a package-relative import in a flat layout"
 
     probe = tmp_path / "_import_probe.py"
     probe.write_text(PROBE, encoding="utf-8")
@@ -101,12 +97,7 @@ def test_generated_tree_is_flat_and_importable(device_mm, tmp_path, example):
     assert result.returncode == 0, (result.stdout or "") + (result.stderr or "")
 
 
-PI4_BASE_MODEL = (
-    Path(__file__).resolve().parents[1]
-    / "examples"
-    / "rpi"
-    / "rpi_battery_power_analysis.dev"
-)
+PI4_BASE_MODEL = Path(__file__).resolve().parents[1] / "examples" / "rpi" / "rpi_battery_power_analysis.dev"
 
 
 def _run_import_probe(out_dir, tmp_path):
@@ -129,9 +120,7 @@ def test_pi3_and_pi4_board_output_is_importable(device_mm, tmp_path, board):
     source = PI4_BASE_MODEL.read_text(encoding="utf-8")
     assert "RaspberryPi_4B_4GB" in source
     model_path = tmp_path / f"{board}.dev"
-    model_path.write_text(
-        source.replace("RaspberryPi_4B_4GB", board), encoding="utf-8"
-    )
+    model_path.write_text(source.replace("RaspberryPi_4B_4GB", board), encoding="utf-8")
 
     out_dir = tmp_path / f"out_{board}"
     m2t_rpi(device_mm.model_from_file(str(model_path)), output_dir=str(out_dir))
@@ -141,16 +130,10 @@ def test_pi3_and_pi4_board_output_is_importable(device_mm, tmp_path, board):
     assert result.returncode == 0, (result.stdout or "") + (result.stderr or "")
 
 
-TEMPLATE_DIR = (
-    Path(__file__).resolve().parents[1] / "demol" / "templates" / "rpi"
-)
+TEMPLATE_DIR = Path(__file__).resolve().parents[1] / "demol" / "templates" / "rpi"
 
 
 def test_python_templates_escape_interpolated_string_literals():
     """Model-controlled strings must not be pasted raw between quotes."""
-    offenders = [
-        path.name
-        for path in TEMPLATE_DIR.glob("*.py.j2")
-        if '"{{' in path.read_text(encoding="utf-8")
-    ]
+    offenders = [path.name for path in TEMPLATE_DIR.glob("*.py.j2") if '"{{' in path.read_text(encoding="utf-8")]
     assert not offenders, offenders

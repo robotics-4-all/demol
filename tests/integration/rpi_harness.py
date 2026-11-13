@@ -54,9 +54,7 @@ def generate_rpi(device_mm, model_path: Path, out_dir: Path) -> Path:
     return out_dir
 
 
-def write_fake_driver(
-    path: Path, class_name: str, read_body: str, base: str = "Peripheral"
-) -> None:
+def write_fake_driver(path: Path, class_name: str, read_body: str, base: str = "Peripheral") -> None:
     """Overwrite a generated driver module with a deterministic fake.
 
     ``read_body`` is the body of ``read()``; it may use ``self._reads``.
@@ -76,8 +74,7 @@ def write_fake_driver(
         "        pass\n"
         "\n"
         "    def read(self):\n"
-        "        self._reads += 1\n"
-        + "".join(f"        {line}\n" for line in read_body.strip().splitlines())
+        "        self._reads += 1\n" + "".join(f"        {line}\n" for line in read_body.strip().splitlines())
     )
 
 

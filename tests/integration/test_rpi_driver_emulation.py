@@ -40,9 +40,7 @@ def _module(name: str, **attributes) -> types.ModuleType:
 def _load_driver(out_dir: Path, module_file: str):
     sys.path.insert(0, str(out_dir))
     try:
-        spec = importlib.util.spec_from_file_location(
-            f"demol_driver_{uuid.uuid4().hex}", out_dir / module_file
-        )
+        spec = importlib.util.spec_from_file_location(f"demol_driver_{uuid.uuid4().hex}", out_dir / module_file)
         module = importlib.util.module_from_spec(spec)
         assert spec.loader is not None
         spec.loader.exec_module(module)
@@ -136,18 +134,12 @@ def test_ina219_driver_maps_vendor_fields(device_mm, tmp_path, monkeypatch):
         def set_calibration_32V_2A(self):
             pass
 
-    monkeypatch.setitem(
-        sys.modules, "board", _module("board", SCL=object(), SDA=object())
-    )
-    monkeypatch.setitem(
-        sys.modules, "busio", _module("busio", I2C=lambda *a, **k: object())
-    )
+    monkeypatch.setitem(sys.modules, "board", _module("board", SCL=object(), SDA=object()))
+    monkeypatch.setitem(sys.modules, "busio", _module("busio", I2C=lambda *a, **k: object()))
     monkeypatch.setitem(
         sys.modules,
         "adafruit_ina219",
-        _module(
-            "adafruit_ina219", INA219=FakeIna219, ADCResolution=1, BusVoltageRange=1
-        ),
+        _module("adafruit_ina219", INA219=FakeIna219, ADCResolution=1, BusVoltageRange=1),
     )
 
     module = _load_driver(out_dir, "ina219_powermonitor.py")
@@ -194,21 +186,15 @@ def test_ads1115_driver_maps_all_channels(device_mm, tmp_path, monkeypatch):
             return 0.5 * (self.pin + 1)
 
     ads_pkg = _module("adafruit_ads1x15")
-    ads_mod = _module(
-        "adafruit_ads1x15.ads1115", ADS1115=FakeAds1115, P0=0, P1=1, P2=2, P3=3
-    )
+    ads_mod = _module("adafruit_ads1x15.ads1115", ADS1115=FakeAds1115, P0=0, P1=1, P2=2, P3=3)
     analog_mod = _module("adafruit_ads1x15.analog_in", AnalogIn=FakeAnalogIn)
     ads_pkg.ads1115 = ads_mod
     ads_pkg.analog_in = analog_mod
     monkeypatch.setitem(sys.modules, "adafruit_ads1x15", ads_pkg)
     monkeypatch.setitem(sys.modules, "adafruit_ads1x15.ads1115", ads_mod)
     monkeypatch.setitem(sys.modules, "adafruit_ads1x15.analog_in", analog_mod)
-    monkeypatch.setitem(
-        sys.modules, "board", _module("board", SCL=object(), SDA=object())
-    )
-    monkeypatch.setitem(
-        sys.modules, "busio", _module("busio", I2C=lambda *a, **k: object())
-    )
+    monkeypatch.setitem(sys.modules, "board", _module("board", SCL=object(), SDA=object()))
+    monkeypatch.setitem(sys.modules, "busio", _module("busio", I2C=lambda *a, **k: object()))
 
     module = _load_driver(out_dir, "ads1115_adc.py")
     driver = module.ADS1115_Adc()
