@@ -2,7 +2,7 @@
 
 ## OVERVIEW
 
-pytest suite: 76 test files covering semantic validation, code generation (RPi, RIOT, Zephyr, Wokwi, Renode), CLI utilities, and advanced DSL features. The RPi codegen syntax gate parametrizes over **41+ examples** and runs both `ast.parse` and `py_compile` on every emitted Python file. ALERT codegen is covered by `test_rpi_alerts_emission.py` (string assertions on emitted Python), `test_alert_runtime.py` (importlib-loads the rendered `alerts.py` and exercises `AlertTrigger.evaluate` end-to-end), and `test_riot_alerts_emission.py` (string assertions on emitted C, including SCALE arithmetic and the `publish_alert` cooldown gate). Zephyr and RIOT driver codegen is covered by per-peripheral test files (e.g., `test_zephyr_bme280_codegen.py`, `test_riot_bme280_codegen.py`). CONSTRAINT runtime is covered by `test_riot_constraint_codegen.py`, `test_zephyr_constraint_codegen.py`, and `test_rpi_constraint_codegen.py`. AMQP/Redis broker support is covered by `test_rpi_amqp_redis_codegen.py`.
+pytest suite: 78 test files (plus tests/integration/) covering semantic validation, code generation (RPi, RIOT, Zephyr, Wokwi, Renode), CLI utilities, and advanced DSL features. The RPi codegen syntax gate parametrizes over **41+ examples** and runs both `ast.parse` and `py_compile` on every emitted Python file. ALERT codegen is covered by `test_rpi_alerts_emission.py` (string assertions on emitted Python), `test_alert_runtime.py` (importlib-loads the rendered `alerts.py` and exercises `AlertTrigger.evaluate` end-to-end), and `test_riot_alerts_emission.py` (string assertions on emitted C, including SCALE arithmetic and the `publish_alert` cooldown gate). Zephyr and RIOT driver codegen is covered by per-peripheral test files (e.g., `test_zephyr_bme280_codegen.py`, `test_riot_bme280_codegen.py`). CONSTRAINT runtime is covered by `test_riot_constraint_codegen.py`, `test_zephyr_constraint_codegen.py`, and `test_rpi_constraint_codegen.py`. AMQP/Redis broker support is covered by `test_rpi_amqp_redis_codegen.py`.
 
 ## STRUCTURE
 
@@ -33,6 +33,8 @@ tests/
 │ # Code Generation (37 files)
 ├── test_rpi_transformation.py      # RPi Python code generation (file-existence + substring assertions)
 ├── test_rpi_codegen_syntax.py      # ast.parse + py_compile over generated Python for every examples/rpi/*.dev
+├── test_rpi_generated_imports.py   # L1: every generated module imports in a flat layout (+ Pi 3/4 boards)
+├── integration/                    # L2/L3: broker contract + driver emulation (opt-in, Docker)
 ├── test_rpi_alerts_emission.py     # ALERT emission for RPi: alerts.py runtime, AlertTrigger imports, broker routing
 ├── test_alert_runtime.py           # Importlib-loads emitted alerts.py and exercises AlertTrigger.evaluate
 ├── test_rpi_template_rendering.py  # RPi template rendering tests
