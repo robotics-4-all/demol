@@ -1,7 +1,7 @@
 import board
 import busio
 from adafruit_ina219 import INA219, ADCResolution, BusVoltageRange
-from .peripheral import Sensor
+from peripheral import Sensor
 
 
 class {{ driver_class_name }}(Sensor):
@@ -15,7 +15,7 @@ class {{ driver_class_name }}(Sensor):
 
     def __init__(self):
         super().__init__(
-            name="{{ instance }}",
+            name={{ instance | tojson }},
             connections={{ conn }},
             attributes={{ attributes }}
         )

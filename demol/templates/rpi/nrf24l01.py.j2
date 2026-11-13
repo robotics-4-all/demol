@@ -2,10 +2,10 @@ import board
 import busio
 from circuitpython_nrf24l01.rf24 import RF24
 from digitalio import DigitalInOut
-from .peripheral import Sensor
+from peripheral import Actuator
 
 
-class {{ driver_class_name }}(Sensor):
+class {{ driver_class_name }}(Actuator):
     """
     nRF24L01+ 2.4 GHz Wireless Transceiver (SPI)
     Provides short-range wireless data transmission up to 100m.
@@ -13,11 +13,11 @@ class {{ driver_class_name }}(Sensor):
     _CHANNEL = {{ attributes.get('channel', 76) }}
     _DATA_RATE = {{ attributes.get('data_rate', 1) }}
     _PA_LEVEL = {{ attributes.get('pa_level', 0) }}
-    _ADDRESS = b"{{ attributes.get('address', '1Node') }}"
+    _ADDRESS = b{{ attributes.get('address', '1Node') | tojson }}
 
     def __init__(self):
         super().__init__(
-            name="{{ instance }}",
+            name={{ instance | tojson }},
             connections={{ conn }},
             attributes={{ attributes }}
         )
@@ -56,3 +56,14 @@ class {{ driver_class_name }}(Sensor):
         """Power down the radio"""
         if self.radio:
             self.radio.power = False
+
+    def write(self, msg):
+        """Transmit a payload from a WirelessMessage."""
+        payload = getattr(msg, "received", None) if not isinstance(msg, dict) else msg.get("received")
+        if payload is None:
+            payload = getattr(msg, "text", None) if not isinstance(msg, dict) else msg.get("text")
+        if not payload:
+            return
+        if isinstance(payload, str):
+            payload = payload.encode()
+        self.send(payload)

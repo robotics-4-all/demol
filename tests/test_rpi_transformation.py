@@ -56,7 +56,7 @@ def test_rpi_transformation_basic(tmp_path):
     node_content = (output_dir / "envsensor_node.py").read_text()
     assert "class BME680Node" in node_content
     # The generated file uses relative import
-    assert "from .bme680_envsensor import BME680_EnvSensor" in node_content
+    assert "from bme680_envsensor import BME680_EnvSensor" in node_content
     # Topic is used in create_publisher
     assert 'topic="rpitest.sensor.env.envsensor"' in node_content
 
@@ -100,7 +100,7 @@ def test_rpi_transformation_actuator(tmp_path):
 
     node_content = (output_dir / "statusled_node.py").read_text()
     assert "class LedGenericNode" in node_content
-    assert "from .ledgeneric_statusled import LedGeneric_StatusLed" in node_content
+    assert "from ledgeneric_statusled import LedGeneric_StatusLed" in node_content
 
 
 def test_rpi_transformation_dependencies(tmp_path):
@@ -411,7 +411,7 @@ def test_rpi_smartconnect_i2c_sensor(tmp_path):
 
     # Check node content
     node_content = (output_dir / "envsensor_node.py").read_text()
-    assert "from .bme680_envsensor import BME680_EnvSensor" in node_content
+    assert "from bme680_envsensor import BME680_EnvSensor" in node_content
     assert 'topic="sensors/env"' in node_content
 
 

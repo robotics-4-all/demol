@@ -30,13 +30,13 @@ LOG = logging.getLogger(__name__)
 
 # --- Configuration --------------------------------------------------------
 
-AMQP_HOST: str = os.environ.get("AMQP_HOST", "{{ cfg.host }}")
-AMQP_PORT: int = int(os.environ.get("AMQP_PORT", "{{ cfg.port }}"))
-AMQP_VHOST: str = os.environ.get("AMQP_VHOST", "{{ cfg.vhost }}")
-AMQP_EXCHANGE: str = os.environ.get("AMQP_EXCHANGE", "{{ cfg.topic_exchange }}")
-AMQP_USERNAME: str = os.environ.get("AMQP_USERNAME", "{{ cfg.username }}")
-AMQP_PASSWORD: str = os.environ.get("AMQP_PASSWORD", "{{ cfg.password }}")
-AMQP_USE_SSL: bool = os.environ.get("AMQP_USE_SSL", "{{ cfg.ssl }}").lower() in ("1", "true", "yes")
+AMQP_HOST: str = os.environ.get("AMQP_HOST", {{ cfg.host | tojson }})
+AMQP_PORT: int = int(os.environ.get("AMQP_PORT", {{ cfg.port | tojson }}))
+AMQP_VHOST: str = os.environ.get("AMQP_VHOST", {{ cfg.vhost | tojson }})
+AMQP_EXCHANGE: str = os.environ.get("AMQP_EXCHANGE", {{ cfg.topic_exchange | tojson }})
+AMQP_USERNAME: str = os.environ.get("AMQP_USERNAME", {{ cfg.username | tojson }})
+AMQP_PASSWORD: str = os.environ.get("AMQP_PASSWORD", {{ cfg.password | tojson }})
+AMQP_USE_SSL: bool = os.environ.get("AMQP_USE_SSL", {{ cfg.ssl | string | tojson }}).lower() in ("1", "true", "yes")
 
 
 # --- Connection management -----------------------------------------------

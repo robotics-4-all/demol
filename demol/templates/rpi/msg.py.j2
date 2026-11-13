@@ -233,3 +233,74 @@ class CoolerMessage(PubSubMessage):
 class FanMessage(PubSubMessage):
     header: MessageHeader = MessageHeader()
     speed: float = 0.0
+
+class BioMessage(PubSubMessage):
+    header: MessageHeader = MessageHeader()
+    heart_rate_bpm: float = 0.0
+    ir_raw: int = 0
+    red_raw: int = 0
+
+
+class DisplayMessage(PubSubMessage):
+    header: MessageHeader = MessageHeader()
+    text: str = ""
+    x: int = 0
+    y: int = 0
+    clear: bool = True
+
+
+class GPSMessage(PubSubMessage):
+    header: MessageHeader = MessageHeader()
+    latitude: float = 0.0
+    longitude: float = 0.0
+    speed: float = 0.0
+    fix: bool = False
+
+
+class MotorDriverMessage(PubSubMessage):
+    header: MessageHeader = MessageHeader()
+    speed: float = 0.0
+    direction: str = "stop"
+
+
+class PowerMessage(PubSubMessage):
+    header: MessageHeader = MessageHeader()
+    bus_voltage: float = 0.0
+    shunt_voltage: float = 0.0
+    current: float = 0.0
+    power: float = 0.0
+
+
+class RFIDMessage(PubSubMessage):
+    header: MessageHeader = MessageHeader()
+    uid: int = 0
+    text: str = ""
+
+
+class RTCMessage(PubSubMessage):
+    header: MessageHeader = MessageHeader()
+    year: int = 1970
+    month: int = 1
+    day: int = 1
+    hour: int = 0
+    minute: int = 0
+    second: int = 0
+    temperature: float = 25.0
+
+
+class StepperDriverMessage(PubSubMessage):
+    header: MessageHeader = MessageHeader()
+    steps: int = 0
+    direction: str = "forward"
+    delay: float = 0.001
+
+
+class WeightMessage(PubSubMessage):
+    header: MessageHeader = MessageHeader()
+    weight_grams: float = 0.0
+
+
+class WirelessMessage(PubSubMessage):
+    header: MessageHeader = MessageHeader()
+    received: str = ""
+    rssi: float = 0.0

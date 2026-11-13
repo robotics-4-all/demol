@@ -32,12 +32,12 @@ LOG = logging.getLogger(__name__)
 
 # --- Configuration --------------------------------------------------------
 
-REDIS_HOST: str = os.environ.get("REDIS_HOST", "{{ cfg.host }}")
-REDIS_PORT: int = int(os.environ.get("REDIS_PORT", "{{ cfg.port }}"))
-REDIS_DB: int = int(os.environ.get("REDIS_DB", "{{ cfg.db }}"))
-REDIS_USERNAME: str = os.environ.get("REDIS_USERNAME", "{{ cfg.username }}")
-REDIS_PASSWORD: str = os.environ.get("REDIS_PASSWORD", "{{ cfg.password }}")
-REDIS_USE_SSL: bool = os.environ.get("REDIS_USE_SSL", "{{ cfg.ssl }}").lower() in ("1", "true", "yes")
+REDIS_HOST: str = os.environ.get("REDIS_HOST", {{ cfg.host | tojson }})
+REDIS_PORT: int = int(os.environ.get("REDIS_PORT", {{ cfg.port | tojson }}))
+REDIS_DB: int = int(os.environ.get("REDIS_DB", {{ cfg.db | tojson }}))
+REDIS_USERNAME: str = os.environ.get("REDIS_USERNAME", {{ cfg.username | tojson }})
+REDIS_PASSWORD: str = os.environ.get("REDIS_PASSWORD", {{ cfg.password | tojson }})
+REDIS_USE_SSL: bool = os.environ.get("REDIS_USE_SSL", {{ cfg.ssl | string | tojson }}).lower() in ("1", "true", "yes")
 
 
 # --- Connection management -----------------------------------------------

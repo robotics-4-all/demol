@@ -51,7 +51,7 @@ class TestAlertsRuntimeEmission:
 class TestSensorNodeAlertsHookup:
     def test_irthermometer_imports_alert_trigger(self, health_monitor_out):
         body = _read(health_monitor_out / "irthermometer_node.py")
-        assert "from .alerts import AlertTrigger" in body
+        assert "from alerts import AlertTrigger" in body
 
     def test_irthermometer_defines_fever_alert(self, health_monitor_out):
         body = _read(health_monitor_out / "irthermometer_node.py")
