@@ -1,19 +1,19 @@
 from gpiozero import PWMLED
-from .peripheral import Actuator
-from .msg import LedMessage
+from peripheral import Actuator
+from msg import LedMessage
 
 
 class {{ driver_class_name }}(Actuator):
     """
     Generic LED Actuator (PWM supported)
     """
-    _PIN = "{{ conn.gpio.pins.get('vin', {}).get('name', 'GPIO18') }}"
-    _ACTIVE_HIGH = {{ attributes.get('active_high', True) | lower }}
-    _INITIAL_VALUE = {{ attributes.get('initial_value', False) | lower }}
+    _PIN = {{ conn.gpio.pins.get('vin', {}).get('name', 'GPIO18') | tojson }}
+    _ACTIVE_HIGH = {{ attributes.get('active_high', True) | pybool }}
+    _INITIAL_VALUE = {{ attributes.get('initial_value', False) | pybool }}
 
     def __init__(self):
         super().__init__(
-            name="{{ instance }}", 
+            name={{ instance | tojson }}, 
             connections={{ conn }}, 
             attributes={{ attributes }}
         )

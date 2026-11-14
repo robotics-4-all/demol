@@ -44,7 +44,7 @@ class TestAlertTriggerBasic:
         trig = alerts_module.AlertTrigger(
             name="t1",
             condition=lambda data: False,
-            actions=[lambda: calls.append("a")],
+            actions=[lambda _data: calls.append("a")],
             cooldown_sec=0.0,
         )
         assert trig.evaluate({"x": 1}) is False
@@ -55,7 +55,7 @@ class TestAlertTriggerBasic:
         trig = alerts_module.AlertTrigger(
             name="t1",
             condition=lambda data: data["x"] > 5,
-            actions=[lambda: calls.append("a"), lambda: calls.append("b")],
+            actions=[lambda _data: calls.append("a"), lambda _data: calls.append("b")],
             cooldown_sec=0.0,
         )
         assert trig.evaluate({"x": 10}) is True
@@ -68,7 +68,7 @@ class TestCooldown:
         trig = alerts_module.AlertTrigger(
             name="t1",
             condition=lambda data: True,
-            actions=[lambda: calls.append("a")],
+            actions=[lambda _data: calls.append("a")],
             cooldown_sec=10.0,
         )
         assert trig.evaluate({}) is True
@@ -81,7 +81,7 @@ class TestCooldown:
         trig = alerts_module.AlertTrigger(
             name="t1",
             condition=lambda data: True,
-            actions=[lambda: calls.append("a")],
+            actions=[lambda _data: calls.append("a")],
             cooldown_sec=0.0,
         )
         assert trig.evaluate({}) is True
@@ -95,7 +95,7 @@ class TestCooldown:
         trig = alerts_module.AlertTrigger(
             name="t1",
             condition=lambda data: True,
-            actions=[lambda: calls.append("a")],
+            actions=[lambda _data: calls.append("a")],
             cooldown_sec=5.0,
         )
         assert trig.evaluate({}) is True
@@ -116,7 +116,7 @@ class TestErrorIsolation:
         trig = alerts_module.AlertTrigger(
             name="t1",
             condition=boom,
-            actions=[lambda: calls.append("a")],
+            actions=[lambda _data: calls.append("a")],
             cooldown_sec=0.0,
         )
         assert trig.evaluate({}) is False
@@ -125,13 +125,13 @@ class TestErrorIsolation:
     def test_action_exception_does_not_abort_siblings(self, alerts_module):
         calls = []
 
-        def bad():
+        def bad(_data):
             raise RuntimeError("publisher down")
 
         trig = alerts_module.AlertTrigger(
             name="t1",
             condition=lambda data: True,
-            actions=[bad, lambda: calls.append("after")],
+            actions=[bad, lambda _data: calls.append("after")],
             cooldown_sec=0.0,
         )
         assert trig.evaluate({}) is True

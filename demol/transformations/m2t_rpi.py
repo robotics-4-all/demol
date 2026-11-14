@@ -25,10 +25,19 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
+def _py_bool(value: Any) -> bool:
+    """Render DSL boolean-like values as python bool literals in templates."""
+    if isinstance(value, str):
+        return value.strip().lower() in {"1", "true", "yes", "on"}
+    return bool(value)
+
+
 class RPiCodeGenerator(BaseCodeGenerator, DockerBuildMixin):
     """Generates Raspberry Pi code from device model."""
 
     OS = "raspbian"
+    # Generated nodes embed broker credentials, so keep them owner-only.
+    _OUTPUT_MODE = 0o600
 
     def _get_constraint_functions(self):
         # RPi runtime: helpers keep their DSL names so the template can call
@@ -60,7 +69,9 @@ class RPiCodeGenerator(BaseCodeGenerator, DockerBuildMixin):
             Configured Jinja2 Environment
         """
         fsloader = jinja2.FileSystemLoader(TEMPLATES_RPI)
-        return jinja2.Environment(loader=fsloader)
+        env = jinja2.Environment(loader=fsloader)
+        env.filters["pybool"] = _py_bool
+        return env
 
     def build_template_context(self, connection) -> Dict[str, Any]:
         """Build structured context dictionary by querying model.
@@ -113,6 +124,7 @@ class RPiCodeGenerator(BaseCodeGenerator, DockerBuildMixin):
     def generate(self) -> None:
         """Generate all RPI code from device model."""
         logger.info("Generating RPI code...")
+        self.generate_peripheral_base()
         self.generate_peripheral_classes()
         self.generate_peripheral_nodes()
         self.generate_common()
@@ -122,6 +134,11 @@ class RPiCodeGenerator(BaseCodeGenerator, DockerBuildMixin):
         self.generate_broker_specific()
         self.generate_docker_files()
         logger.info("Code generation complete!")
+
+    def generate_peripheral_base(self) -> None:
+        """Generate the shared Peripheral/Sensor/Actuator base module."""
+        template = self.env.get_template("peripheral.py.j2")
+        self._write_template(template, {}, self.output_dir / "peripheral.py")
 
     _COMP_OPS = {">": ">", "<": "<", ">=": ">=", "<=": "<=", "==": "==", "!=": "!="}
 
@@ -157,7 +174,7 @@ class RPiCodeGenerator(BaseCodeGenerator, DockerBuildMixin):
                     via_name = getattr(act, "via", None) or default_broker_name
                     broker = self.resolve_broker(via_name)
                     topic = act.topic
-                    payload_expr = "{'alert': '" + alert.name + "', 'source': '" + source_name + "', 'data': data}"
+                    payload_expr = "{'alert': '" + alert.name + "', 'source': '" + source_name + "', 'data': _data}"
                 else:
                     target_topic = self.resolve_activate_target_topic(act.target)
                     if not target_topic:

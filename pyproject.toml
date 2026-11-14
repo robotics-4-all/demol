@@ -110,4 +110,5 @@ testpaths = ["tests"]
 python_files = ["test_*.py"]
 markers = [
     "performance: timing-sensitive benchmarks (skipped under --cov)",
+    "integration: end-to-end codegen verification (Docker broker or emulated hardware)",
 ]

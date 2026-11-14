@@ -126,8 +126,8 @@ structure: commlib imports, sensor initialization, and MQTT publisher wiring.
 from commlib.node import Node
 from commlib.utils import get_timestamp_ns, Rate
 from commlib.transports.mqtt import ConnectionParameters
-from .msg import EnvMessage
-from .bme680_envsensor import BME680_EnvSensor
+from msg import EnvMessage
+from bme680_envsensor import BME680_EnvSensor
 
 
 class BME680Node:

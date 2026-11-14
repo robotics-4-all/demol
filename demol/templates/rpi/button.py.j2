@@ -1,19 +1,19 @@
 from gpiozero import Button as GpioButton
-from .peripheral import Sensor
-from .msg import ButtonMessage
+from peripheral import Sensor
+from msg import ButtonMessage
 
 
 class {{ driver_class_name }}(Sensor):
     """
     Tactile Button Sensor
     """
-    _PIN = "{{ conn.gpio.pins.get('state', {}).get('name') }}"
+    _PIN = {{ conn.gpio.pins.get('state', {}).get('name') | tojson }}
     _MAX_FREQUENCY = {{ op.get('freq_max', 100) }}
     _FREQUENCY = {{ attributes.get('frequency', 10.0) }}
     
     def __init__(self):
         super().__init__(
-            name="{{ instance }}", 
+            name={{ instance | tojson }}, 
             connections={{ conn }}, 
             attributes={{ attributes }}
         )
@@ -21,7 +21,7 @@ class {{ driver_class_name }}(Sensor):
     
     def initialize(self):
         """Initialize the sensor hardware"""
-        self.button = GpioButton(self._PIN, pull_up={{ attributes.get('pullup', True) | lower }})
+        self.button = GpioButton(self._PIN, pull_up={{ attributes.get('pullup', True) | pybool }})
         
     def read(self):
         """Read sensor data"""

@@ -1,7 +1,7 @@
 import board
 import busio
 import adafruit_apds9960.apds9960 as APDS9960
-from .peripheral import Sensor
+from peripheral import Sensor
 
 
 class {{ driver_class_name }}(Sensor):
@@ -16,7 +16,7 @@ class {{ driver_class_name }}(Sensor):
 
     def __init__(self):
         super().__init__(
-            name="{{ instance }}",
+            name={{ instance | tojson }},
             connections={{ conn }},
             attributes={{ attributes }}
         )

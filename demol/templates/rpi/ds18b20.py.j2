@@ -1,15 +1,15 @@
 from w1thermsensor import W1ThermSensor, Unit
-from .peripheral import Sensor
-from .msg import TemperatureMessage
+from peripheral import Sensor
+from msg import TemperatureMessage
 
 
 class {{ driver_class_name }}(Sensor):
-    _UNIT = "{{ attributes.get('unit', 'celsius') }}"
+    _UNIT = {{ attributes.get('unit', 'celsius') | tojson }}
     _FREQUENCY = {{ attributes.get('frequency', 1.0) }}
 
     def __init__(self):
         super().__init__(
-            name="{{ instance }}",
+            name={{ instance | tojson }},
             connections={{ conn }},
             attributes={{ attributes }}
         )

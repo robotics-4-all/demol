@@ -1,17 +1,19 @@
+import os
+
 from commlib.node import Node
 from commlib.utils import get_timestamp_ns, Rate
 from commlib.transports.mqtt import ConnectionParameters
-from .msg import {{class}}Message
-from .{{ driver_module_name }} import {{ driver_class_name }}
+from msg import {{class}}Message
+from {{ driver_module_name }} import {{ driver_class_name }}
 {% if source_alerts %}
-from .alerts import AlertTrigger
+from alerts import AlertTrigger
 {% endif %}
 
 
 class {{ peripheral.name }}Node:
 {% if sampling %}
     _FREQUENCY = {{ sampling.rate_hz }}
-    _SAMPLING_MODE = "{{ sampling.mode }}"
+    _SAMPLING_MODE = {{ sampling.mode | tojson }}
 {% if sampling.mode == "on_change" %}
     _THRESHOLD = {{ sampling.threshold }}
 {% endif %}
@@ -35,11 +37,11 @@ class {{ peripheral.name }}Node:
         self._batch = []
 {% endif %}
         conn_params = ConnectionParameters(
-            host="{{ broker.host }}",
+            host={{ broker.host | tojson }},
             port={{ broker.port }}{% if broker.ssl is defined %},
             ssl={{ broker.ssl }}{% endif %}{% if broker.username is defined and broker.username %},
-            username="{{ broker.username }}"{% endif %}{% if broker.password is defined and broker.password %},
-            password="{{ broker.password}}"{% endif %}
+            username=os.environ.get("DEMOL_BROKER_USERNAME", {{ broker.username | tojson }}){% endif %}{% if broker.password is defined and broker.password %},
+            password=os.environ.get("DEMOL_BROKER_PASSWORD", {{ broker.password | tojson }}){% endif %}
         )
         self.node = Node(
             node_name='sensors.{{ class | lower }}.{{ instance | lower }}',
@@ -48,14 +50,14 @@ class {{ peripheral.name }}Node:
         self._alert_brokers = {}
         self._alert_pubs = {}
 {% for broker_name, broker_cfg in alert_brokers.items() %}
-        self._alert_brokers["{{ broker_name }}"] = Node(
+        self._alert_brokers[{{ broker_name | tojson }}] = Node(
             node_name='alerts.{{ instance | lower }}.{{ broker_name | lower }}',
             connection_params=ConnectionParameters(
-                host="{{ broker_cfg.host }}",
+                host={{ broker_cfg.host | tojson }},
                 port={{ broker_cfg.port }},
                 ssl={{ broker_cfg.ssl }},
-                username="{{ broker_cfg.username }}",
-                password="{{ broker_cfg.password }}",
+                username=os.environ.get("DEMOL_BROKER_USERNAME", {{ broker_cfg.username | tojson }}),
+                password=os.environ.get("DEMOL_BROKER_PASSWORD", {{ broker_cfg.password | tojson }}),
             ),
             heartbeats=False,
         )
@@ -65,20 +67,20 @@ class {{ peripheral.name }}Node:
 
     def _initialize(self):
         self.sensor.initialize()
-        self.pub = self.node.create_publisher(msg_type={{ class }}Message, topic="{{ topic }}")
+        self.pub = self.node.create_publisher(msg_type={{ class }}Message, topic={{ topic | tojson }})
         self.node.run()
 {% if source_alerts %}
-        for _broker_node in self._alert_brokers.values():
-            _broker_node.run()
 {% for alert in source_alerts %}
 {% for act in alert.action_specs %}
-        self._alert_pubs[("{{ alert.name }}", {{ loop.index0 }})] = (
-            self._alert_brokers["{{ act.broker_name }}"].create_publisher(
-                msg_type=None, topic="{{ act.topic }}"
+        self._alert_pubs[({{ alert.name | tojson }}, {{ loop.index0 }})] = (
+            self._alert_brokers[{{ act.broker_name | tojson }}].create_publisher(
+                msg_type=None, topic={{ act.topic | tojson }}
             )
         )
 {% endfor %}
 {% endfor %}
+        for _broker_node in self._alert_brokers.values():
+            _broker_node.run()
         self._build_alerts()
 
     def _build_alerts(self):
@@ -87,11 +89,11 @@ class {{ peripheral.name }}Node:
             return {{ alert.condition_expr }}
         _actions_{{ alert.name }} = [
 {% for act in alert.action_specs %}
-            lambda _pub=self._alert_pubs[("{{ alert.name }}", {{ loop.index0 }})], _payload={{ act.payload_expr }}: _pub.publish(_payload),
+            lambda _data, _pub=self._alert_pubs[({{ alert.name | tojson }}, {{ loop.index0 }})]: _pub.publish({{ act.payload_expr }}),
 {% endfor %}
         ]
         self.alerts.append(AlertTrigger(
-            name="{{ alert.name }}",
+            name={{ alert.name | tojson }},
             condition=_cond_{{ alert.name }},
             actions=_actions_{{ alert.name }},
             cooldown_sec={{ alert.cooldown_sec }},
@@ -101,15 +103,15 @@ class {{ peripheral.name }}Node:
 
     def _send(self):
         msg = {{class}}Message(**self.sensor.current_state['data'])
-        msg.header.stamp = get_timestamp_ns()
-        self.pub.send(msg)
+        msg.header.timestamp = get_timestamp_ns()
+        self.pub.publish(msg)
 
 {% if sampling and sampling.mode == "batch" %}
     def _send_batch(self):
         for data in self._batch:
             msg = {{class}}Message(**data)
-            msg.header.stamp = get_timestamp_ns()
-            self.pub.send(msg)
+            msg.header.timestamp = get_timestamp_ns()
+            self.pub.publish(msg)
         self._batch.clear()
 
 {% endif %}

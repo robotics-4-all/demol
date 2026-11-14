@@ -1,4 +1,4 @@
-.PHONY: help install install-dev clean test test-perf test-riot test-zephyr test-firmware test-validation test-transformations test-all test-local lint format format-check type-check generate-examples ci ci-check validate-examples \
+.PHONY: help install install-dev clean test test-perf test-riot test-zephyr test-firmware test-rpi-e2e test-rpi-hil test-validation test-transformations test-all test-local lint format format-check type-check generate-examples ci ci-check validate-examples \
         build rebuild up down restart logs shell docker-clean dist release docs info
 
 # ── Variables ─────────────────────────────────────────────────────────────────
@@ -74,6 +74,15 @@ test: ## Run all pytest tests (excludes performance benchmarks)
 	@echo "Running pytest tests..."
 	$(PYTHON) -m pytest tests/ -v -m "not performance"
 	@echo "✓ Tests complete"
+
+test-rpi-e2e: ## RPi L1/L2/L3 verification (Docker required for the broker)
+	@echo "Running RPi runtime verification..."
+	DEMOL_RUN_INTEGRATION=1 $(PYTHON) -m pytest tests/test_rpi_generated_imports.py tests/integration -v
+	@echo "✓ RPi verification complete"
+
+test-rpi-hil: ## RPi hardware-in-the-loop bench (MODEL=... BROKER_HOST=... TOPIC=...)
+	./scripts/rpi_hil_bench.sh --model "$(MODEL)" --broker-host "$(BROKER_HOST)" \
+		--broker-port "$(or $(BROKER_PORT),1883)" --topic "$(TOPIC)"
 
 test-perf: ## Run performance benchmarks only (timing-sensitive; run on quiet machine)
 	@echo "Running performance benchmarks..."

@@ -142,9 +142,9 @@ def max_power(kind: str) -> float:
 _CONSTRAINTS: List[Tuple[str, Callable[[], bool], str]] = [
 {% for c in constraints %}
     (
-        "{{ c.name }}",
+        {{ c.name | tojson }},
         lambda: ({{ c.predicate }}),
-        "{{ c.message }}",
+        {{ c.message | tojson }},
     ),
 {% endfor %}
 ]

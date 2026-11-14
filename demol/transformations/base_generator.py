@@ -800,6 +800,13 @@ class BaseCodeGenerator(ABC):
 
         with open(output_path, "w", encoding="utf-8") as f:
             f.write(output)
+        # Backends that embed credentials set _OUTPUT_MODE; others keep defaults.
+        mode = getattr(self, "_OUTPUT_MODE", None)
+        if mode is not None:
+            try:
+                output_path.chmod(mode)
+            except OSError:
+                pass
 
         logger.debug(f"Generated: {output_path}")
 
